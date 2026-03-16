@@ -164,14 +164,10 @@ body {
 
 .chip:hover {
   border-color: var(--accent);
-  color: var(--accent-text);
-  background: var(--accent-light);
 }
 
 .chip.active {
-  background: var(--accent-light);
   border-color: var(--accent);
-  color: var(--accent-text);
 }
 
 .service-icon {
@@ -201,7 +197,6 @@ body {
 
 .input-area:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 textarea {

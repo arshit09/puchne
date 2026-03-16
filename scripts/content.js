@@ -526,7 +526,7 @@ class PromptBlastOverlay {
         font-size: 16px; font-weight: 500; cursor: pointer;
         transition: all var(--transition); user-select: none;
       }
-      .chip:hover { border-color: var(--text-muted); color: var(--text-primary); }
+      .chip:hover { border-color: var(--accent); }
       .chip.active { border-color: var(--accent); }
       .service-icon { width: 14px; height: 14px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
       .chip:hover .service-icon { filter: grayscale(0) opacity(1); }
@@ -537,7 +537,7 @@ class PromptBlastOverlay {
         border: 1px solid var(--border); border-radius: var(--radius);
         overflow: hidden; transition: border-color var(--transition);
       }
-      .input-area:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+      .input-area:focus-within { border-color: var(--accent); }
 
       textarea {
         width: 100%; padding: 20px; background: transparent; border: none; outline: none;
