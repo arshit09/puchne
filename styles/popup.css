@@ -15,7 +15,7 @@
   --text-secondary: #5f6368;
   --text-muted:     #80868b;
 
-  /* Light orange accent */
+  /* Vibrant orange accent */
   --accent:       #fb923c;
   --accent-hover: #f97316;
   --accent-light: rgba(251, 146, 60, 0.14);
@@ -37,8 +37,8 @@
   --bg-hover:     #5f6368;
   --text-primary:   #e8eaed;
   --text-secondary: #bdc1c6;
-  --text-muted:     #9aa0a6;
-  --accent-light: rgba(251, 146, 60, 0.18);
+  --accent:       #fb923c;
+  --accent-light: rgba(251, 146, 60, 0.1);
   --accent-text:  #fb923c;
   --border:       #3c4043;
 }

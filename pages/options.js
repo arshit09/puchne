@@ -27,7 +27,21 @@ const darkModeEl = document.getElementById("darkMode");
 const showRecentsEl = document.getElementById("showRecents");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 const overlayPositionEl = document.getElementById("overlayPosition");
-const showToolNamesEl = document.getElementById("showToolNames");
+const overlayPositionContainer = document.getElementById("overlayPositionContainer");
+const overlayPositionTrigger = document.getElementById("overlayPositionTrigger");
+const overlayPositionLabel = document.getElementById("overlayPositionLabel");
+const overlayPositionOptions = document.getElementById("overlayPositionOptions");
+const showToolNamesEl = document.getElementById("chipDisplay");
+const chipDisplayContainer = document.getElementById("chipDisplayContainer");
+const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
+const chipDisplayLabel = document.getElementById("chipDisplayLabel");
+const chipDisplayOptions = document.getElementById("chipDisplayOptions");
+const advancedModeEl = document.getElementById("advancedMode");
+const mainContainer = document.querySelector(".container");
+
+// Preview References
+const mockOverlay = document.getElementById("mockOverlay");
+const mockHistory = document.getElementById("mockHistory");
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
@@ -41,7 +55,9 @@ const DEFAULTS = {
   delayMs: 2000,
   showRecents: true,
   overlayPosition: "top",
-  showToolNames: true,
+  chipDisplay: "logo-name",
+  theme: "dark",
+  advancedMode: false,
 };
 
 // ── Initialization ───────────────────────────────────────────
@@ -62,11 +78,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   groupTabsEl.checked = settings.groupTabs;
   delayMsEl.value = settings.delayMs;
   showRecentsEl.checked = settings.showRecents !== false;
+
+  // Init chipDisplay
+  const savedChipDisplay = settings.chipDisplay || "logo-name";
+  showToolNamesEl.value = savedChipDisplay;
+  updateChipDisplayLabel(savedChipDisplay);
+  // Restore overlay position separately
   overlayPositionEl.value = settings.overlayPosition || "top";
-  showToolNamesEl.checked = settings.showToolNames !== false;
+  overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Top";
+  updateSelectedOption(settings.overlayPosition || "top");
+  advancedModeEl.checked = settings.advancedMode === true;
+  if (advancedModeEl.checked) mainContainer.classList.add("advanced-mode");
 
   // Apply saved theme
-  const savedTheme = settings.theme || "light";
+  const savedTheme = settings.theme || "dark";
   document.documentElement.dataset.theme = savedTheme;
   darkModeEl.checked = savedTheme === "dark";
   darkModeEl.addEventListener("change", () => {
@@ -74,9 +99,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.documentElement.dataset.theme = theme;
     renderServices();
     save();
+    updatePreview();
   });
 
-  showRecentsEl.addEventListener("change", save);
+  showRecentsEl.addEventListener("change", () => {
+    save();
+    updatePreview();
+  });
 
   // Render the service list
   renderServices();
@@ -85,8 +114,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.addEventListener("change", save);
   groupTabsEl.addEventListener("change", save);
   delayMsEl.addEventListener("change", save);
-  overlayPositionEl.addEventListener("change", save);
-  showToolNamesEl.addEventListener("change", save);
 
   clearHistoryBtn.addEventListener("click", clearHistory);
   resetAllBtn.addEventListener("click", resetAll);
@@ -94,10 +121,102 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
   });
 
+  advancedModeEl.addEventListener("change", () => {
+    mainContainer.classList.toggle("advanced-mode", advancedModeEl.checked);
+    renderServices();
+    save();
+  });
+
+  // Init custom selects
+  initCustomSelect();
+  initChipDisplaySelect();
+
+  // Initial preview update
+  updatePreview();
+
   // Load live shortcut & check if we need to scroll+blink
   loadCurrentShortcut();
   checkShortcutHighlight();
+
+  // Listen for re-triggering while page is already open
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.highlightShortcut?.newValue === true) {
+      checkShortcutHighlight();
+    }
+  });
 });
+
+function initCustomSelect() {
+  overlayPositionTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    overlayPositionContainer.classList.toggle("open");
+  });
+
+  overlayPositionOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      overlayPositionEl.value = val;
+      overlayPositionLabel.textContent = option.textContent;
+      updateSelectedOption(val);
+      overlayPositionContainer.classList.remove("open");
+      save();
+      updatePreview();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    overlayPositionContainer.classList.remove("open");
+  });
+}
+
+function updateSelectedOption(val) {
+  overlayPositionOptions.querySelectorAll(".option").forEach(opt => {
+    if (opt.getAttribute("data-value") === val) {
+      opt.classList.add("selected");
+    } else {
+      opt.classList.remove("selected");
+    }
+  });
+}
+
+function initChipDisplaySelect() {
+  chipDisplayTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    // Close position dropdown first
+    overlayPositionContainer.classList.remove("open");
+    chipDisplayContainer.classList.toggle("open");
+  });
+
+  chipDisplayOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      showToolNamesEl.value = val;
+      updateChipDisplayLabel(val);
+      updateChipDisplaySelected(val);
+      chipDisplayContainer.classList.remove("open");
+      save();
+      updatePreview();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    chipDisplayContainer.classList.remove("open");
+  });
+
+  // Mark initial selected option
+  updateChipDisplaySelected(showToolNamesEl.value || "logo-name");
+}
+
+function updateChipDisplayLabel(val) {
+  const labels = { "none": "None", "name": "Name only", "logo-name": "Name with Logo" };
+  chipDisplayLabel.textContent = labels[val] || "Name with Logo";
+}
+
+function updateChipDisplaySelected(val) {
+  chipDisplayOptions.querySelectorAll(".option").forEach(opt => {
+    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
+}
 
 
 // ── Service List Rendering ───────────────────────────────────
@@ -135,7 +254,45 @@ function renderServices() {
     toggle.appendChild(slider);
 
     item.appendChild(info);
+
+    // Advanced Info (Visible only in Advanced Mode)
+    if (advancedModeEl.checked) {
+      const adv = document.createElement("div");
+      adv.className = "service-advanced";
+      adv.innerHTML = `
+        <div class="adv-grid">
+          <div class="adv-field">
+            <span class="adv-label">Input Type</span>
+            <input type="text" class="adv-input" value="${service.inputType || ''}" readonly>
+          </div>
+          <div class="adv-field">
+            <span class="adv-label">Selector</span>
+            <input type="text" class="adv-input" value="${service.selector || ''}" readonly>
+          </div>
+          <div class="adv-field">
+            <span class="adv-label">Submit Type</span>
+            <input type="text" class="adv-input" value="${service.submitType || ''}" readonly>
+          </div>
+          <div class="adv-field">
+            <span class="adv-label">Button Selector</span>
+            <input type="text" class="adv-input" value="${service.buttonSel || 'N/A'}" readonly>
+          </div>
+        </div>
+        <p class="adv-note">These parameters are for developers. AI websites update frequently; if a service breaks, these targets may need adjustment.</p>
+      `;
+      item.appendChild(adv);
+    }
+
     item.appendChild(toggle);
+
+    // Entire row click toggles the service
+    item.addEventListener("click", (e) => {
+      // Don't toggle if clicking the toggle switch itself or the advanced info area
+      if (e.target.closest(".toggle") || e.target.closest(".service-advanced")) return;
+      checkbox.checked = !checkbox.checked;
+      toggleService(service.id, checkbox.checked);
+    });
+
     serviceListEl.appendChild(item);
   });
 }
@@ -169,7 +326,8 @@ async function save() {
     theme: darkModeEl.checked ? "dark" : "light",
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,
-    showToolNames: showToolNamesEl.checked,
+    chipDisplay: showToolNamesEl.value,
+    advancedMode: advancedModeEl.checked,
   };
 
   await chrome.storage.sync.set({ settings });
@@ -255,7 +413,10 @@ async function checkShortcutHighlight() {
 
   // Wait for scroll to settle, then blink
   setTimeout(() => {
+    section.classList.remove("highlight-blink"); // Force reset
+    void section.offsetWidth; // Trigger reflow
     section.classList.add("highlight-blink");
+    
     // Remove the class after animation so it can replay if triggered again
     section.addEventListener("animationend", () => {
       section.classList.remove("highlight-blink");
@@ -263,3 +424,67 @@ async function checkShortcutHighlight() {
   }, 400);
 }
 
+function updatePreview() {
+  if (!mockOverlay) return;
+
+  // Position — always use `top` + `translateY` so CSS can animate between
+  // numeric values. Setting `top: auto` or `bottom` breaks transitions because
+  // browsers cannot interpolate `auto`.
+  const pos = overlayPositionEl.value || "top";
+  const previewBox = mockOverlay.parentElement;
+  const boxH = previewBox ? previewBox.clientHeight : 240;
+  const overlayH = mockOverlay.offsetHeight;
+
+  switch (pos) {
+    case "top":
+      mockOverlay.style.top = "20px";
+      mockOverlay.style.transform = "translateY(0)";
+      break;
+    case "center":
+      mockOverlay.style.top = "50%";
+      mockOverlay.style.transform = "translateY(-50%)";
+      break;
+    case "bottom":
+      mockOverlay.style.top = (boxH - overlayH - 20) + "px";
+      mockOverlay.style.transform = "translateY(0)";
+      break;
+  }
+
+  // History
+  mockHistory.style.display = showRecentsEl.checked ? "flex" : "none";
+
+  // Chip Display
+  const chipMode = showToolNamesEl.value || "logo-name";
+  const mockChipsContainer = mockOverlay.querySelector(".mock-chips");
+  const mockChips = mockOverlay.querySelectorAll(".mock-chip");
+  
+  if (mockChipsContainer) {
+    mockChipsContainer.style.display = chipMode === "none" ? "none" : "flex";
+  }
+
+  mockChips.forEach(chip => {
+    const chipText = chip.querySelector(".chip-text");
+    const dot = chip.querySelector(".dot");
+    if (chipMode === "name") {
+      if (chipText) chipText.style.display = "inline";
+      if (dot) dot.style.display = "none";
+      chip.style.width = "";
+      chip.style.height = "";
+      chip.style.padding = "";
+      chip.style.borderRadius = "";
+    } else if (chipMode === "logo-name") {
+      if (chipText) chipText.style.display = "inline";
+      if (dot) dot.style.display = "block";
+      chip.style.width = "";
+      chip.style.height = "";
+      chip.style.padding = "";
+      chip.style.borderRadius = "";
+    }
+  });
+
+  // Theme
+  const isDark = darkModeEl.checked;
+  mockOverlay.style.background = isDark ? "#202124" : "#ffffff";
+  mockOverlay.style.color = isDark ? "#e8eaed" : "#202124";
+  mockOverlay.style.borderColor = isDark ? "#3c4043" : "#dadce0";
+}

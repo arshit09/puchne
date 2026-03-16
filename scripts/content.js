@@ -86,12 +86,13 @@ class PromptBlastOverlay {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
       z-index: 2147483647;
       display: none;
       align-items: flex-start;
-      padding-top: 8vh;
+      padding-top: 40px;
       justify-content: center;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
@@ -148,7 +149,7 @@ class PromptBlastOverlay {
     this.promptHistory = historyData.promptHistory || [];
     this.showRecents = settings.showRecents !== false;
     this.overlayPosition = settings.overlayPosition || "top";
-    this.showToolNames = settings.showToolNames !== false;
+    this.chipDisplay = settings.chipDisplay || "logo-name";
     this.applyPosition();
   }
 
@@ -163,12 +164,12 @@ class PromptBlastOverlay {
       case "bottom":
         this.container.style.alignItems = "flex-end";
         this.container.style.paddingTop = "0";
-        this.container.style.paddingBottom = "8vh";
+        this.container.style.paddingBottom = "40px";
         break;
       case "top":
       default:
         this.container.style.alignItems = "flex-start";
-        this.container.style.paddingTop = "8vh";
+        this.container.style.paddingTop = "40px";
         this.container.style.paddingBottom = "0";
         break;
     }
@@ -254,7 +255,14 @@ class PromptBlastOverlay {
 
   renderServiceChips() {
     const serviceChipsEl = this.shadow.getElementById("serviceChips");
+    const mode = this.chipDisplay || "logo-name";
+    serviceChipsEl.style.display = (mode === "none") ? "none" : "flex";
     serviceChipsEl.innerHTML = "";
+
+    if (mode === "none") {
+      this.updateSendButton();
+      return;
+    }
 
     this.allServices.forEach((service) => {
       const chip = document.createElement("button");
@@ -264,8 +272,12 @@ class PromptBlastOverlay {
       }
       const isDark = this.container.dataset.dark === "true";
       const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
-      const nameText = this.showToolNames ? service.name : "";
-      chip.innerHTML = `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" />${nameText}`;
+      const showLogo = mode === "logo-name";
+      const showName = mode === "name" || mode === "logo-name";
+      chip.innerHTML = [
+        showLogo ? `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" />` : "",
+        showName ? service.name : ""
+      ].join("");
       chip.addEventListener("click", () => this.toggleService(service.id));
       serviceChipsEl.appendChild(chip);
     });

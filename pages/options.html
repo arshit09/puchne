@@ -24,150 +24,220 @@
           <p class="subtitle">Settings & Customization</p>
         </div>
       </div>
+      <div class="header-tools">
+        <label class="toggle-container">
+          <span class="toggle-label">Advanced Mode</span>
+          <label class="toggle sm">
+            <input type="checkbox" id="advancedMode">
+            <span class="slider"></span>
+          </label>
+        </label>
+      </div>
     </header>
 
     <!-- ── Section: AI Services ───────────────────────── -->
     <section class="section">
-      <h2>AI Services</h2>
-      <p class="section-desc">Choose which AI services to include when multicasting. Drag to reorder priority.</p>
+      <div class="section-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12L2.69 7"/><path d="M12 22V12"/><path d="M22 12H12"/><path d="M12 12l9.31-5"/></svg>
+        <h2>AI Services</h2>
+      </div>
+      <p class="section-desc">Choose which AI services to include when multicasting. You can toggle them individually below.</p>
       <div id="serviceList" class="service-list">
         <!-- Dynamically populated -->
       </div>
     </section>
 
-    <!-- ── Section: Appearance ─────────────────────── -->
-    <section class="section">
-      <h2>Appearance</h2>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Dark mode</p>
-          <p class="setting-desc">Switch between light and dark interface</p>
+    <div class="settings-grid">
+      <!-- ── Section: Appearance & Display ──────────────── -->
+      <section class="section display-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <h2>Display & Preview</h2>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="darkMode">
-          <span class="slider"></span>
-        </label>
-      </div>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Show recent prompts</p>
-          <p class="setting-desc">Display your recent prompt history in the overlay</p>
+        <div class="display-container">
+          <div class="display-controls">
+            <div class="setting-row">
+              <div class="setting-info">
+                <p class="setting-label">Dark Mode</p>
+                <p class="setting-desc">Switch between light and dark interface</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="darkMode">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <p class="setting-label">Overlay Position</p>
+                <p class="setting-desc">Where the modal appears on the page</p>
+              </div>
+              <div class="custom-select" id="overlayPositionContainer">
+                <div class="select-trigger" id="overlayPositionTrigger">
+                  <span id="overlayPositionLabel">Top</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="select-options" id="overlayPositionOptions">
+                  <div class="option" data-value="top">Top</div>
+                  <div class="option" data-value="center">Center</div>
+                  <div class="option" data-value="bottom">Bottom</div>
+                </div>
+                <input type="hidden" id="overlayPosition" value="top">
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <p class="setting-label">Show Recent Prompts</p>
+                <p class="setting-desc">Show history in the overlay</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="showRecents" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <p class="setting-label">AI Tools</p>
+                <p class="setting-desc">How AI options appear in the popup</p>
+              </div>
+              <div class="custom-select" id="chipDisplayContainer">
+                <div class="select-trigger" id="chipDisplayTrigger">
+                  <span id="chipDisplayLabel">Name with Logo</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="select-options" id="chipDisplayOptions">
+                  <div class="option" data-value="none">None</div>
+                  <div class="option" data-value="name">Name only</div>
+                  <div class="option" data-value="logo-name">Name with Logo</div>
+                </div>
+                <input type="hidden" id="chipDisplay" value="logo-name">
+              </div>
+            </div>
+          </div>
+
+          <div class="display-preview">
+            <div class="preview-label">Live Preview</div>
+            <div class="preview-box" id="previewBox">
+              <!-- Simulated Overlay for Preview -->
+              <div class="mock-overlay" id="mockOverlay">
+                <div class="mock-header">
+                  <div class="mock-logo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M8 12l3 3 5-6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>PromptBlast</span>
+                  </div>
+                </div>
+                <div class="mock-chips" id="mockChips">
+                  <div class="mock-chip active"><div class="dot chatgpt"></div><span class="chip-text">ChatGPT</span></div>
+                  <div class="mock-chip"><div class="dot claude"></div><span class="chip-text">Claude</span></div>
+                  <div class="mock-chip"><div class="dot gemini"></div><span class="chip-text">Gemini</span></div>
+                </div>
+                <div class="mock-input">
+                  <div class="mock-line"></div>
+                  <div class="mock-line short"></div>
+                  <div class="mock-btn"></div>
+                </div>
+                <div class="mock-history" id="mockHistory">
+                  <div class="mock-hist-label">RECENT PROMPTS</div>
+                  <div class="mock-hist-item">Write a python script to...</div>
+                  <div class="mock-hist-item">Explain quantum physics...</div>
+                </div>
+              </div>
+              <!-- Position Indicators -->
+              <div class="pos-indicator pos-top" id="posTop"></div>
+              <div class="pos-indicator pos-center" id="posCenter"></div>
+              <div class="pos-indicator pos-bottom" id="posBottom"></div>
+            </div>
+          </div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="showRecents" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
+      </section>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Show AI tool names</p>
-          <p class="setting-desc">Display the names of AI services next to their logos</p>
+      <!-- Behavior is now pushed below on smaller screens, but shared in grid otherwise -->
+      <section class="section behavior-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-10.6"/><path d="M12 6L12 12 16 14"/></svg>
+          <h2>Behavior</h2>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="showToolNames" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Overlay position</p>
-          <p class="setting-desc">Choose where the overlay modal appears on the page</p>
+        <!-- (Behavior content same as before) -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <p class="setting-label">Auto-Submit</p>
+            <p class="setting-desc">Press Enter automatically after filling</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="autoSubmit" checked>
+            <span class="slider"></span>
+          </label>
         </div>
-        <select id="overlayPosition" class="num-input" style="width: 120px;">
-          <option value="top">Top</option>
-          <option value="center">Center</option>
-          <option value="bottom">Bottom</option>
-        </select>
-      </div>
-    </section>
 
-    <!-- ── Section: Behavior ──────────────────────────── -->
-    <section class="section">
-      <h2>Behavior</h2>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Auto-submit prompts</p>
-          <p class="setting-desc">Automatically press Enter after filling the prompt into each AI</p>
+        <div class="setting-row">
+          <div class="setting-info">
+            <p class="setting-label">Group Tabs</p>
+            <p class="setting-desc">Organize into a single Chrome tab group</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="groupTabs" checked>
+            <span class="slider"></span>
+          </label>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="autoSubmit" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
 
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Group tabs together</p>
-          <p class="setting-desc">Organize all AI tabs into a single Chrome tab group</p>
+        <div class="setting-row">
+          <div class="setting-info">
+            <p class="setting-label">Page Load Delay</p>
+            <p class="setting-desc">Wait time (ms) before typing prompt</p>
+          </div>
+          <div class="input-group">
+            <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
+            <span class="input-suffix">ms</span>
+          </div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="groupTabs" checked>
-          <span class="slider"></span>
-        </label>
-      </div>
-
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Page load delay</p>
-          <p class="setting-desc">Extra time (ms) to wait after page loads before typing. Increase if queries aren't being filled.</p>
-        </div>
-        <div class="input-group">
-          <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
-          <span class="input-suffix">ms</span>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <!-- ── Section: Keyboard Shortcut ─────────────────── -->
     <section class="section" id="shortcut-section">
-      <h2>Keyboard Shortcut</h2>
-
-      <div class="setting-row" style="margin-bottom: 12px;">
-        <div class="setting-info">
-          <p class="setting-label">Current shortcut</p>
-          <p class="setting-desc">The key combination to open the PromptBlast overlay</p>
-        </div>
-        <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
+      <div class="section-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
+        <h2>Global Shortcut</h2>
       </div>
 
-      <p class="section-desc">
-        Chrome manages extension shortcuts globally. To change the hotkey:
-      </p>
-      <ol class="shortcut-steps">
-        <li>Open <code>chrome://extensions/shortcuts</code></li>
-        <li>Find <strong>PromptBlast</strong> in the list</li>
-        <li>Click the pencil icon next to "Open PromptBlast popup"</li>
-        <li>Press your desired key combination</li>
-      </ol>
-      <button id="openShortcuts" class="btn-secondary">
-        Open Shortcut Settings ↗
-      </button>
+      <div class="shortcut-container">
+        <div class="shortcut-info">
+          <p class="setting-desc">Press this key combination to open the PromptBlast overlay on any website.</p>
+        </div>
+        <div class="shortcut-action">
+          <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
+          <button id="openShortcuts" class="btn-action">Change Shortcut ↗</button>
+        </div>
+      </div>
     </section>
 
-    <!-- ── Section: Data ──────────────────────────────── -->
+    <!-- ── Section: Maintenance ────────────────────────── -->
     <section class="section">
-      <h2>Data</h2>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Clear prompt history</p>
-          <p class="setting-desc">Remove all saved recent prompts</p>
-        </div>
-        <button id="clearHistory" class="btn-danger">Clear</button>
+      <div class="section-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        <h2>Maintenance</h2>
       </div>
 
       <div class="setting-row">
         <div class="setting-info">
-          <p class="setting-label">Reset all settings</p>
-          <p class="setting-desc">Restore everything to defaults</p>
+          <p class="setting-label">Prompt History</p>
+          <p class="setting-desc">Clear your locally saved recent prompts</p>
         </div>
-        <button id="resetAll" class="btn-danger">Reset</button>
+        <button id="clearHistory" class="btn-danger">Clear History</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Reset Extension</p>
+          <p class="setting-desc">Restore all settings to factory defaults</p>
+        </div>
+        <button id="resetAll" class="btn-danger">Reset All</button>
       </div>
     </section>
 
@@ -176,9 +246,12 @@
 
     <!-- ── Footer ─────────────────────────────────────── -->
     <footer class="footer">
-      <p>© 2024 PromptBlast</p>
+      <p class="attribution">
+        Made with <span class="heart"><svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></span> by 
+        <a href="https://www.instagram.com/geek_updates" target="_blank" class="author-link">Arshit Vaghasiya</a>
+      </p>
       <a href="https://github.com/arshit09/prompt-blast" target="_blank" class="gh-link" title="View on GitHub">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
         </svg>
         <span>GitHub</span>

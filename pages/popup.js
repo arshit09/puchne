@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
   // 2b. Apply theme
-  applyTheme(settings.theme || "light");
+  applyTheme(settings.theme || "dark");
   themeToggleBtn.addEventListener("click", toggleTheme);
 
   // 3. Load prompt history
