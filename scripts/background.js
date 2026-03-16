@@ -42,7 +42,8 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: '#composer-submit-button, [data-testid="send-button"]',
     waitMs: 2500,
-    iconPath: 'icons/chatgpt.svg'
+    iconPath: 'icons/chatgpt_dark.png',
+    iconPathDark: 'icons/chatgpt_light.png'
   },
   {
     id: "claude",
@@ -53,7 +54,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button:has(path[d^="M208.49"])',
     waitMs: 2500,
-    iconPath: 'icons/claude.svg'
+    iconPath: 'icons/claude.png'
   },
   {
     id: "gemini",
@@ -64,7 +65,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"]',
     waitMs: 2500,
-    iconPath: 'icons/gemini.svg'
+    iconPath: 'icons/gemini.png'
   },
   {
     id: "copilot",
@@ -74,7 +75,7 @@ const AI_SERVICES = [
     selector: "#userInput",
     submitType: "enter",
     waitMs: 2500,
-    iconPath: 'icons/copilot.svg'
+    iconPath: 'icons/copilot.png'
   },
   {
     id: "deepseek",
@@ -84,7 +85,7 @@ const AI_SERVICES = [
     selector: "textarea",
     submitType: "enter",
     waitMs: 2500,
-    iconPath: 'icons/deepseek.svg'
+    iconPath: 'icons/deepseek.png'
   },
   {
     id: "perplexity",
@@ -95,7 +96,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Submit"]',
     waitMs: 2500,
-    iconPath: 'icons/perplexity.svg'
+    iconPath: 'icons/perplexity.png'
   },
 ];
 

@@ -30,6 +30,7 @@ const iconSun = document.getElementById("iconSun");
 let allServices = [];        // Full list from background.js
 let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
+let showToolNames = true;    // UI preference
 
 const MAX_HISTORY = 5;
 
@@ -42,6 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+  showToolNames = settings.showToolNames !== false;
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
   // 2b. Apply theme
@@ -59,6 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 5. Focus the input
   promptInput.focus();
+  document.body.classList.add("ready");
 });
 
 
@@ -80,7 +83,10 @@ function renderServiceChips() {
       chip.classList.add("active");
     }
 
-    chip.innerHTML = `<img src="../${service.iconPath}" class="service-icon" />${service.name}`;
+    const isDark = document.documentElement.dataset.theme === "dark";
+    const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+    const nameText = showToolNames ? service.name : "";
+    chip.innerHTML = `<img src="../${icon}" class="service-icon" />${nameText}`;
     chip.addEventListener("click", () => toggleService(service.id));
 
     serviceChipsEl.appendChild(chip);
@@ -257,14 +263,14 @@ async function updateShortcutHint() {
 
     if (shortcut) {
       // Format: turn "Ctrl+Shift+A" into a nice display
-      shortcutHint.textContent = shortcut;
+      shortcutHint.textContent = shortcut.replace(/\+/g, " + ");
     } else {
       shortcutHint.textContent = "No shortcut set";
     }
   } catch {
     // commands API not available (shouldn't happen in MV3 popup)
     const isMac = navigator.platform.toUpperCase().includes("MAC");
-    shortcutHint.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+    shortcutHint.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
   }
 
   // Make the badge clickable — open options and highlight the shortcut section
@@ -293,6 +299,7 @@ function applyTheme(theme) {
     iconMoon.style.display = "";
     iconSun.style.display = "none";
   }
+  renderServiceChips();
 }
 
 /**

@@ -52,12 +52,12 @@
 
 html {
   font-size: 15px;
+  height: 530px;
 }
 
 body {
-  width: 460px;
-  min-height: 340px;
-  max-height: 600px;
+  width: 600px;
+  height: 530px;
   font-family: var(--font);
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -144,19 +144,22 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+  min-height: 44px; /* Space for at least one row of chips */
 }
 
 .chip {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  padding: 7px 13px;
+  padding: 8px 14px;
+  min-width: 44px;
   border-radius: 999px;
   border: 2px solid var(--border);
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 400;
   cursor: pointer;
   transition: all var(--transition);
   user-select: none;
@@ -171,11 +174,13 @@ body {
 }
 
 .service-icon {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   object-fit: contain;
   filter: grayscale(1) opacity(0.55);
   transition: all var(--transition);
+  aspect-ratio: 1 / 1; /* Stabilize layout if image loads late */
 }
 
 .chip:hover .service-icon,
@@ -186,13 +191,16 @@ body {
 /* ── Input Area ────────────────────────────────────────────── */
 .input-area {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-end;
   background: var(--bg-secondary);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  padding: 8px 8px 8px 16px;
+  gap: 8px;
   transition: border-color var(--transition), box-shadow var(--transition);
   margin-bottom: 16px;
+  flex-wrap: wrap; /* Allows button to wrap if input is very wide or multi-line */
 }
 
 .input-area:focus-within {
@@ -200,31 +208,32 @@ body {
 }
 
 textarea {
-  width: 100%;
-  padding: 15px 16px;
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 0;
   background: transparent;
   border: none;
   outline: none;
   color: var(--text-primary);
   font-family: var(--font);
   font-size: 1.05rem;
-  line-height: 1.6;
+  line-height: 1.5;
   resize: none;
-  min-height: 90px;
+  min-height: 24px;
 }
 
 textarea::placeholder {
   color: var(--text-muted);
+  font-size: 16px;
 }
 
 /* ── Input Footer (toggles + send) ─────────────────────────── */
 .input-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-tertiary);
+  justify-content: flex-end; /* Always pull to end */
+  padding: 0;
+  background: transparent;
   gap: 10px;
 }
 
@@ -274,19 +283,17 @@ textarea::placeholder {
 .send-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 9px 18px;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   background: var(--accent);
   color: #fff;
-  font-family: var(--font);
-  font-size: 0.95rem;
-  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
-  white-space: nowrap;
   flex-shrink: 0;
+  margin-bottom: 4px;
 }
 
 .send-btn:hover:not(:disabled) {
@@ -301,7 +308,7 @@ textarea::placeholder {
 
 /* ── History ───────────────────────────────────────────────── */
 .history-section {
-  animation: fadeIn 200ms ease;
+  display: block;
   margin-bottom: 16px;
 }
 
@@ -351,21 +358,28 @@ textarea::placeholder {
 .footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+  justify-content: center;
+  padding-top: 8px;
   margin-top: 2px;
 }
 
 .shortcut-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
-  background: var(--bg-secondary);
-  padding: 3px 9px;
+  background: transparent;
+  padding: 5px 12px;
   border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
-  font-family: "SF Mono", "Consolas", monospace;
-  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.shortcut-hint:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
 
 .gh-link {
@@ -387,10 +401,7 @@ textarea::placeholder {
 }
 
 /* ── Animations ────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* Animations removed for stability */
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }

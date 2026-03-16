@@ -26,6 +26,8 @@ const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
 const showRecentsEl = document.getElementById("showRecents");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
+const overlayPositionEl = document.getElementById("overlayPosition");
+const showToolNamesEl = document.getElementById("showToolNames");
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
@@ -38,6 +40,8 @@ const DEFAULTS = {
   groupTabs: true,
   delayMs: 2000,
   showRecents: true,
+  overlayPosition: "top",
+  showToolNames: true,
 };
 
 // ── Initialization ───────────────────────────────────────────
@@ -58,6 +62,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   groupTabsEl.checked = settings.groupTabs;
   delayMsEl.value = settings.delayMs;
   showRecentsEl.checked = settings.showRecents !== false;
+  overlayPositionEl.value = settings.overlayPosition || "top";
+  showToolNamesEl.checked = settings.showToolNames !== false;
 
   // Apply saved theme
   const savedTheme = settings.theme || "light";
@@ -66,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   darkModeEl.addEventListener("change", () => {
     const theme = darkModeEl.checked ? "dark" : "light";
     document.documentElement.dataset.theme = theme;
+    renderServices();
     save();
   });
 
@@ -78,6 +85,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.addEventListener("change", save);
   groupTabsEl.addEventListener("change", save);
   delayMsEl.addEventListener("change", save);
+  overlayPositionEl.addEventListener("change", save);
+  showToolNamesEl.addEventListener("change", save);
 
   clearHistoryBtn.addEventListener("click", clearHistory);
   resetAllBtn.addEventListener("click", resetAll);
@@ -102,8 +111,10 @@ function renderServices() {
 
     const info = document.createElement("div");
     info.className = "service-info";
+    const isDark = document.documentElement.dataset.theme === "dark";
+    const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
     info.innerHTML = `
-      <img src="../${service.iconPath}" class="service-icon" />
+      <img src="../${icon}" class="service-icon" />
       <div>
         <p class="name">${service.name}</p>
         <p class="url">${service.url}</p>
@@ -157,6 +168,8 @@ async function save() {
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     theme: darkModeEl.checked ? "dark" : "light",
     showRecents: showRecentsEl.checked,
+    overlayPosition: overlayPositionEl.value,
+    showToolNames: showToolNamesEl.checked,
   };
 
   await chrome.storage.sync.set({ settings });
@@ -216,7 +229,7 @@ async function loadCurrentShortcut() {
     const commands = await chrome.commands.getAll();
     const cmd = commands.find((c) => c.name === "_execute_action");
     const shortcut = cmd?.shortcut;
-    currentShortcutBadge.textContent = shortcut || "Not set";
+    currentShortcutBadge.textContent = shortcut ? shortcut.replace(/\+/g, " + ") : "Not set";
   } catch {
     currentShortcutBadge.textContent = "Unavailable";
   }

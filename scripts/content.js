@@ -71,6 +71,8 @@ class PromptBlastOverlay {
     this.allServices = [];
     this.enabledServiceIds = [];
     this.promptHistory = [];
+    this.overlayPosition = "top";
+    this.showToolNames = true;
     this.MAX_HISTORY = 5;
 
     this.initPromise = this.init();
@@ -88,7 +90,8 @@ class PromptBlastOverlay {
       height: 100vh;
       z-index: 2147483647;
       display: none;
-      align-items: center;
+      align-items: flex-start;
+      padding-top: 8vh;
       justify-content: center;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
@@ -144,6 +147,31 @@ class PromptBlastOverlay {
     const historyData = await chrome.storage.local.get("promptHistory");
     this.promptHistory = historyData.promptHistory || [];
     this.showRecents = settings.showRecents !== false;
+    this.overlayPosition = settings.overlayPosition || "top";
+    this.showToolNames = settings.showToolNames !== false;
+    this.applyPosition();
+  }
+
+  applyPosition() {
+    if (!this.container) return;
+    switch (this.overlayPosition) {
+      case "center":
+        this.container.style.alignItems = "center";
+        this.container.style.paddingTop = "0";
+        this.container.style.paddingBottom = "0";
+        break;
+      case "bottom":
+        this.container.style.alignItems = "flex-end";
+        this.container.style.paddingTop = "0";
+        this.container.style.paddingBottom = "8vh";
+        break;
+      case "top":
+      default:
+        this.container.style.alignItems = "flex-start";
+        this.container.style.paddingTop = "8vh";
+        this.container.style.paddingBottom = "0";
+        break;
+    }
   }
 
   setupListeners() {
@@ -234,7 +262,10 @@ class PromptBlastOverlay {
       if (this.enabledServiceIds.includes(service.id)) {
         chip.classList.add("active");
       }
-      chip.innerHTML = `<img src="${chrome.runtime.getURL(service.iconPath)}" class="service-icon" />${service.name}`;
+      const isDark = this.container.dataset.dark === "true";
+      const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+      const nameText = this.showToolNames ? service.name : "";
+      chip.innerHTML = `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" />${nameText}`;
       chip.addEventListener("click", () => this.toggleService(service.id));
       serviceChipsEl.appendChild(chip);
     });
@@ -358,14 +389,14 @@ class PromptBlastOverlay {
       });
       
       if (response?.shortcut) {
-        hintText.textContent = response.shortcut;
+        hintText.textContent = response.shortcut.replace(/\+/g, " + ");
       } else {
         const isMac = navigator.platform.toUpperCase().includes("MAC");
-        hintText.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+        hintText.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
       }
     } catch {
       const isMac = navigator.platform.toUpperCase().includes("MAC");
-      hintText.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+      hintText.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
     }
 
     // Make it clickable: open options and scroll to keyboard shortcut section
@@ -406,9 +437,8 @@ class PromptBlastOverlay {
         <div class="input-area">
           <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus></textarea>
           <div class="input-footer" style="justify-content: flex-end;">
-            <button id="sendBtn" class="send-btn" disabled>
-              <span>Multicast</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <button id="sendBtn" class="send-btn" disabled title="Send Multicast">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/>
                 <polyline points="12 5 19 12 12 19"/>
               </svg>
@@ -486,7 +516,7 @@ class PromptBlastOverlay {
       }
 
       .modal-container {
-        width: 680px;
+        width: 800px;
         max-width: 90vw;
         background: var(--bg-primary);
         color: var(--text-primary);
@@ -497,14 +527,10 @@ class PromptBlastOverlay {
         flex-direction: column;
         gap: 20px;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         line-height: 1.5;
       }
 
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
+      /* slideUp removed */
 
       .header { display: flex; align-items: center; justify-content: space-between; }
       .logo { display: flex; align-items: center; gap: 10px; }
@@ -520,35 +546,35 @@ class PromptBlastOverlay {
 
       .service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
       .chip {
-        display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-        border-radius: 999px; border: 2px solid var(--border);
+        display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px;
+        min-width: 44px; border-radius: 999px; border: 2px solid var(--border);
         background: var(--bg-secondary); color: var(--text-secondary);
-        font-size: 16px; font-weight: 500; cursor: pointer;
+        font-size: 15px; font-weight: 400; cursor: pointer;
         transition: all var(--transition); user-select: none;
       }
       .chip:hover { border-color: var(--accent); }
       .chip.active { border-color: var(--accent); }
-      .service-icon { width: 14px; height: 14px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
+      .service-icon { width: 18px; height: 18px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
       .chip:hover .service-icon { filter: grayscale(0) opacity(1); }
       .chip.active .service-icon { filter: none; }
 
-      .input-area {
-        display: flex; flex-direction: column; background: var(--bg-secondary);
-        border: 1px solid var(--border); border-radius: var(--radius);
-        overflow: hidden; transition: border-color var(--transition);
-      }
-      .input-area:focus-within { border-color: var(--accent); }
-
       textarea {
-        width: 100%; padding: 20px; background: transparent; border: none; outline: none;
+        flex: 1; min-width: 200px; padding: 10px 0; background: transparent; border: none; outline: none;
         color: var(--text-primary); font-family: var(--font); font-size: 18px;
-        line-height: 1.6; resize: none; min-height: 120px;
+        line-height: 1.6; resize: none; min-height: 30px;
       }
-      textarea::placeholder { color: var(--text-muted); }
+      textarea::placeholder { color: var(--text-muted); font-size: 16px; }
 
       .input-footer {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 16px 20px; border-top: 1px solid var(--border); background: var(--bg-tertiary);
+        display: flex; align-items: center; justify-content: flex-end;
+        padding-bottom: 5px; background: transparent;
+      }
+
+      .input-area {
+        display: flex; flex-direction: row; align-items: flex-end; background: var(--bg-secondary);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 10px 10px 10px 20px; transition: border-color var(--transition);
+        gap: 12px; flex-wrap: wrap;
       }
 
       .toggles { display: flex; align-items: center; gap: 20px; }
@@ -578,10 +604,11 @@ class PromptBlastOverlay {
       .has-tooltip:hover .tooltip { opacity: 1; visibility: visible; bottom: calc(100% + 6px); }
 
       .send-btn {
-        display: flex; align-items: center; gap: 8px; padding: 12px 24px;
-        border: none; border-radius: var(--radius-sm);
-        background: var(--accent); color: #fff; font-family: var(--font);
-        font-size: 16px; font-weight: 600; cursor: pointer; transition: all var(--transition);
+        display: flex; align-items: center; justify-content: center;
+        width: 48px; height: 48px;
+        border: none; border-radius: 50%;
+        background: var(--accent); color: #fff; transition: all var(--transition);
+        flex-shrink: 0;
       }
       .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); }
       .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -612,17 +639,17 @@ class PromptBlastOverlay {
       }
       .history-delete-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
-      .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; }
+      .footer { display: flex; align-items: center; justify-content: center; padding-top: 8px; }
       .shortcut-hint { 
         display: flex; 
         align-items: center; 
-        gap: 8px; 
-        font-size: 13px; 
+        gap: 6px; 
+        font-size: 12px; 
         color: var(--text-muted); 
-        background: var(--bg-secondary); 
-        padding: 6px 12px; 
-        border-radius: var(--radius-sm); 
-        border: 1px solid var(--border); 
+        background: transparent; 
+        padding: 5px 12px; 
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent; 
         transition: all var(--transition);
       }
       .shortcut-hint:hover {
