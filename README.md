@@ -2,35 +2,35 @@
 
 > One prompt. Every AI. Simultaneously.
 
-PromptBlast is a Chrome extension that lets you send a single prompt to **ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity, and Poe** — all at once. Compare answers side by side without copy-pasting between tabs.
+PromptBlast is a powerful, open-source Chrome extension that lets you send a single prompt to **ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity** — all at once. Compare results instantly without manual copy-pasting.
 
 ---
 
 ## ✨ Features
 
-- **One-click multicast** — Type your prompt once, get answers from every AI
-- **Customizable shortcut** — Default: `Ctrl+Shift+A` (Windows/Linux) / `Ctrl+Shift+A` (Mac). Fully customizable via Chrome settings
-- **Pick your AIs** — Toggle individual services on/off. Only use the ones you want
-- **Auto-submit** — Automatically sends the prompt (or just fills it in — your choice)
-- **Tab grouping** — All AI tabs are neatly grouped together
-- **Prompt history** — Quick access to your last 5 prompts
-- **Configurable delay** — Adjust page load wait time for slower connections
-- **Clean, dark UI** — Minimal and fast, like a command palette
-- **Open source** — MIT licensed, contributions welcome
+- **Multicast Prompting** — Type once, blast your query to all selected AI models.
+- **Modern Flat Design** — A fast, minimal UI that feels like an integrated command palette.
+- **Standardized UI** — Consistent popup dimensions and layout across all websites.
+- **Smart Selection** — Toggle specific AIs on/off. ChatGPT, Claude, and Gemini are pre-enabled by default.
+- **Prompt History** — Access recent prompts with one click. Clear or hide history based on your preference.
+- **Customizable Shortcuts** — Quickly trigger the overlay with `Ctrl+Shift+A` (customizable in Chrome settings).
+- **Auto-Submit** — Automatically starts the conversation for you, or just pre-fills the text area.
+- **Vertical Positioning** — Fine-tune where the overlay appears on your screen using an intuitive slider.
+- **Tab Grouping** — Keeps your workspace organized by grouping all AI tabs automatically.
+- **Open Source** — Built with privacy and transparency in mind.
 
 ## 🖥️ Supported AI Services
 
-| Service     | URL                          | Status |
-| ----------- | ---------------------------- | ------ |
-| ChatGPT     | chatgpt.com                  | ✅      |
-| Claude      | claude.ai                    | ✅      |
-| Gemini      | gemini.google.com            | ✅      |
-| Copilot     | copilot.microsoft.com        | ✅      |
-| DeepSeek    | chat.deepseek.com            | ✅      |
-| Perplexity  | perplexity.ai                | ✅      |
-| Poe         | poe.com                      | ✅      |
+| Service    | URL                   | Status |
+| ---------- | --------------------- | ------ |
+| ChatGPT    | chatgpt.com           | ✅      |
+| Claude     | claude.ai             | ✅      |
+| Gemini     | gemini.google.com     | ✅      |
+| Copilot    | copilot.microsoft.com | ✅      |
+| DeepSeek   | chat.deepseek.com     | ✅      |
+| Perplexity | perplexity.ai         | ✅      |
 
-> **Note:** You must be logged into each AI service for the extension to work. The extension does not handle authentication.
+> **Note:** You must be logged into each service for the extension to work. PromptBlast does not handle authentication.
 
 ---
 
@@ -38,9 +38,9 @@ PromptBlast is a Chrome extension that lets you send a single prompt to **ChatGP
 
 ### From Source (Developer Mode)
 
-1. **Clone or download** this repository:
+1. **Clone** this repository:
    ```bash
-   git clone https://github.com/your-username/prompt-blast.git
+   git clone https://github.com/arshit09/prompt-blast.git
    ```
 
 2. Open Chrome and navigate to `chrome://extensions/`
@@ -49,14 +49,13 @@ PromptBlast is a Chrome extension that lets you send a single prompt to **ChatGP
 
 4. Click **Load unpacked** and select the `prompt-blast` folder
 
-5. The extension icon will appear in your toolbar. Pin it for easy access!
+5. Pin the extension icon for the best experience!
 
-### Customizing the Keyboard Shortcut
+### Keyboard Shortcut Setup
 
 1. Go to `chrome://extensions/shortcuts`
-2. Find **PromptBlast** in the list
-3. Click the pencil icon next to "Open PromptBlast popup"
-4. Press your desired key combination
+2. Find **PromptBlast**
+3. Set your preferred key combination for "Open PromptBlast popup"
 
 ---
 
@@ -64,109 +63,49 @@ PromptBlast is a Chrome extension that lets you send a single prompt to **ChatGP
 
 ```
 prompt-blast/
-├── manifest.json              # Extension configuration (Manifest V3)
-├── README.md                  # You are here
-├── LICENSE                    # MIT License
-│
+├── manifest.json              # Extension metadata & permissions
 ├── scripts/
-│   ├── background.js          # Service worker: orchestrates tab creation
-│   └── content.js             # Injected into AI sites: fills & submits prompts
-│
+│   ├── background.js          # Tab orchestration & service registry
+│   └── content.js             # UI Overlay & prompt injection logic
 ├── pages/
-│   ├── popup.html             # Main popup UI
-│   ├── popup.js               # Popup logic (service chips, history, send)
-│   ├── options.html           # Full settings page
-│   └── options.js             # Settings logic (toggles, persistence)
-│
+│   ├── popup.html             # Main blast interface
+│   ├── options.html           # Advanced settings page
 ├── styles/
-│   ├── popup.css              # Popup styles (dark theme)
-│   └── options.css            # Options page styles
-│
+│   ├── popup.css              # Custom themes & layout tokens
+│   └── options.css            # Settings page styling
 └── icons/
-    ├── icon-16.png
-    ├── icon-48.png
-    └── icon-128.png
+    ├── chatgpt.svg, gemini.svg... # Brand icons for services
+    ├── icon-128.png           # Extension identity icons
 ```
 
 ---
 
-## 🔧 How It Works
+## 🔧 Technical Overview
 
-1. **User presses the shortcut** → Chrome opens the popup
-2. **User types a prompt** and clicks "Multicast" (or presses Enter)
-3. **`popup.js`** sends a message to the **background service worker**
-4. **`background.js`** opens a new tab for each enabled AI service
-5. Once each tab loads, it sends a message to the **content script**
-6. **`content.js`** finds the input field, fills in the prompt, and submits
+PromptBlast handles the complexities of modern web apps (React/Vue/ProseMirror) by intelligently simulating user input:
 
-### Why is filling inputs complicated?
-
-Modern AI chat UIs (ChatGPT, Claude, etc.) use React/Vue with synthetic event systems. Simply setting `.value` on an input doesn't trigger their internal state updates. The content script uses different strategies:
-
-- **Textarea:** Uses the native `HTMLTextAreaElement.prototype.value` setter to bypass React, then dispatches `input` and `change` events
-- **ContentEditable:** Creates a text node, appends it, positions the cursor, and fires `InputEvent` with `inputType: "insertText"`
-- **ProseMirror:** Simulates a paste via `DataTransfer` and `InputEvent` with `inputType: "insertFromPaste"`
+- **Bypassing Virtual DOMs:** Uses native prototype hooks to ensure state updates trigger in AI textareas.
+- **Event Simulation:** Replicates `InputEvent` and `DataTransfer` to work with advanced editors like ProseMirror (Claude/ChatGPT).
+- **Tab Synchronization:** Background workers ensure prompts are only injected once the page is fully ready.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Here's how you can help:
+Contributions are what make the open source community such an amazing place to learn, inspire, and create.
 
-### Adding a New AI Service
-
-1. Open `scripts/background.js`
-2. Add a new entry to the `AI_SERVICES` array:
-   ```javascript
-   {
-     id: "your-ai",
-     name: "Your AI",
-     url: "https://your-ai.com/",
-     inputType: "textarea",        // or "contenteditable" or "prosemirror"
-     selector: "textarea.chat",    // CSS selector for the input
-     submitType: "enter",          // or "button" or "both"
-     buttonSel: null,              // CSS selector for send button (if submitType is "button")
-     waitMs: 2500,                 // Extra wait time in ms
-   }
-   ```
-3. Add the URL pattern to `manifest.json` → `host_permissions` and `content_scripts.matches`
-4. Test it and submit a PR!
-
-### Fixing a Broken Selector
-
-AI websites update their DOM frequently. If a service stops working:
-
-1. Open the AI website in Chrome
-2. Right-click the input field → Inspect
-3. Find a stable CSS selector for the input element
-4. Update the `selector` field in `AI_SERVICES` in `background.js`
-5. Submit a PR!
-
-### Development Tips
-
-- After making changes, go to `chrome://extensions/` and click the refresh icon on the extension card
-- Use the **Service Worker** link on the extension card to open devtools for `background.js`
-- Right-click the popup → Inspect to debug `popup.js`
-- Check the AI site's console for content script logs (prefixed with `[PromptBlast]`)
-
----
-
-## ⚠️ Known Limitations
-
-- **Login required:** You must be logged into each AI service. The extension cannot authenticate for you.
-- **DOM changes:** AI sites frequently update their HTML structure, which can break selectors. Open an issue if something stops working.
-- **Rate limiting:** Some AI services may rate-limit rapid requests. The configurable delay helps mitigate this.
-- **Captchas:** If an AI service shows a captcha, the extension cannot bypass it.
-- **Firefox:** Currently Chrome-only (Manifest V3). Firefox support via WebExtension API is planned.
+1. **Bug Reports:** If a service's selector breaks, please open an issue.
+2. **New Services:** Add new AI providers to the registry in `scripts/background.js`.
+3. **UI Improvements:** Feel free to suggest design refinements.
 
 ---
 
 ## 📄 License
 
-MIT License — see [LICENSE](./LICENSE) for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 🌟 Star This Repo
+## 🌟 Support
 
-If you find PromptBlast useful, consider giving it a ⭐ on GitHub. It helps others discover it!
+If you like this project, please consider giving it a ⭐ on GitHub! It helps more developers find and improve it.
