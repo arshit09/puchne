@@ -882,3 +882,96 @@ body {
 .footer .gh-link:hover svg {
   color: var(--text-primary);
 }
+
+/* ── Confirmation Modal ────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 400px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-overlay.show .modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--danger);
+}
+
+.modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-body p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-danger-filled {
+  padding: 10px 24px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-danger-filled:hover {
+  background: var(--danger-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 48, 37, 0.3);
+}
+
+.btn-danger-filled:active {
+  transform: translateY(0);
+}
+
+.modal-overlay.hidden {
+  display: flex; /* Overriding hidden class but opacity/visibility handles it */
+}

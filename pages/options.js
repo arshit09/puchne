@@ -37,6 +37,9 @@ const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
 const chipDisplayLabel = document.getElementById("chipDisplayLabel");
 const chipDisplayOptions = document.getElementById("chipDisplayOptions");
 const mainContainer = document.querySelector(".container");
+const confirmModal = document.getElementById("confirmModal");
+const cancelResetBtn = document.getElementById("cancelReset");
+const confirmResetBtn = document.getElementById("confirmReset");
 
 // Preview References
 const mockOverlay = document.getElementById("mockOverlay");
@@ -113,7 +116,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   delayMsEl.addEventListener("change", save);
 
   clearHistoryBtn.addEventListener("click", clearHistory);
-  resetAllBtn.addEventListener("click", resetAll);
+  resetAllBtn.addEventListener("click", () => showModal(true));
+  cancelResetBtn.addEventListener("click", () => showModal(false));
+  confirmResetBtn.addEventListener("click", performReset);
   openShortcutsBtn.addEventListener("click", () => {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
   });
@@ -127,6 +132,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initial preview update
   updatePreview();
+
+  // Close modal on backdrop click
+  confirmModal.addEventListener("click", (e) => {
+    if (e.target === confirmModal) {
+      showModal(false);
+    }
+  });
 
   // Load live shortcut & check if we need to scroll+blink
   loadCurrentShortcut();
@@ -328,14 +340,22 @@ async function clearHistory() {
 
 
 /**
+ * Shows or hides the reset confirmation modal.
+ */
+function showModal(show) {
+  if (show) {
+    confirmModal.classList.add("show");
+  } else {
+    confirmModal.classList.remove("show");
+  }
+}
+
+/**
  * Resets all settings to defaults and refreshes the page.
  */
-async function resetAll() {
-  const confirmed = confirm(
-    "Reset all settings to defaults? This cannot be undone."
-  );
-  if (!confirmed) return;
-
+async function performReset() {
+  showModal(false);
+  
   await chrome.storage.sync.set({ settings: DEFAULTS });
   await chrome.storage.local.remove("promptHistory");
   showToast("All settings reset");
