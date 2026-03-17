@@ -38,9 +38,10 @@ const AI_SERVICES = [
     name: "ChatGPT",
     url: "https://chatgpt.com/",
     inputType: "prosemirror",
-    selector: "#prompt-textarea",
+    // Primary ID first; fallback to data-testid, then any visible ProseMirror editor
+    selector: '#prompt-textarea, [data-testid="prompt-textarea"], div.ProseMirror[contenteditable="true"]',
     submitType: "button",
-    buttonSel: '#composer-submit-button, [data-testid="send-button"]',
+    buttonSel: '#composer-submit-button, [data-testid="send-button"], button[aria-label*="send" i]',
     waitMs: 2500,
     iconPath: 'icons/chatgpt_dark.png',
     iconPathDark: 'icons/chatgpt_light.png'
@@ -50,9 +51,10 @@ const AI_SERVICES = [
     name: "Claude",
     url: "https://claude.ai/new",
     inputType: "prosemirror",
-    selector: 'div[contenteditable="true"].ProseMirror, [contenteditable="true"]',
+    // Class-based first (most specific), then generic contenteditable
+    selector: 'div.ProseMirror[contenteditable="true"], [data-testid="chat-input"], [contenteditable="true"]',
     submitType: "button",
-    buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button:has(path[d^="M208.49"])',
+    buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button[aria-label*="send" i], button:has(path[d^="M208.49"])',
     waitMs: 2500,
     iconPath: 'icons/claude.png'
   },
@@ -61,9 +63,10 @@ const AI_SERVICES = [
     name: "Gemini",
     url: "https://gemini.google.com/app",
     inputType: "contenteditable",
-    selector: '.ql-editor[contenteditable="true"]',
+    // Quill class first; fallback to rich-textarea role, then generic contenteditable
+    selector: '.ql-editor[contenteditable="true"], [data-testid="user-prompt-text-area"], [contenteditable="true"][role="textbox"]',
     submitType: "button",
-    buttonSel: 'button[aria-label="Send message"]',
+    buttonSel: 'button[aria-label="Send message"], button[aria-label*="send" i], [data-testid="send-button"]',
     waitMs: 2500,
     iconPath: 'icons/gemini.png'
   },
@@ -72,7 +75,8 @@ const AI_SERVICES = [
     name: "Copilot",
     url: "https://copilot.microsoft.com/",
     inputType: "textarea",
-    selector: "#userInput",
+    // ID first; fallback to name attribute, aria role, then placeholder heuristic
+    selector: '#userInput, textarea[name="userInput"], [data-testid="user-input"], textarea[placeholder*="message" i]',
     submitType: "enter",
     waitMs: 2500,
     iconPath: 'icons/copilot.png'
@@ -82,7 +86,8 @@ const AI_SERVICES = [
     name: "DeepSeek",
     url: "https://chat.deepseek.com/",
     inputType: "textarea",
-    selector: "textarea",
+    // Specific ID first; generic textarea as final fallback
+    selector: 'textarea#chat-input, textarea[placeholder*="message" i], textarea',
     submitType: "enter",
     waitMs: 2500,
     iconPath: 'icons/deepseek.png'
@@ -92,9 +97,10 @@ const AI_SERVICES = [
     name: "Perplexity",
     url: "https://www.perplexity.ai/",
     inputType: "contenteditable",
-    selector: "#ask-input",
+    // ID first; fallback to data-testid, then placeholder heuristic
+    selector: '#ask-input, [data-testid="ask-input"], textarea[placeholder*="ask" i]',
     submitType: "button",
-    buttonSel: 'button[aria-label="Submit"]',
+    buttonSel: 'button[aria-label="Submit"], button[aria-label*="submit" i], button[aria-label*="send" i]',
     waitMs: 2500,
     iconPath: 'icons/perplexity.png'
   },

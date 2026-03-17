@@ -32,6 +32,17 @@ const MAX_RETRIES = 30;      // Increased for slow-loading SPAs
 const RETRY_INTERVAL = 500;  // ms between retries
 const SUBMIT_DELAY = 100;    // Reduced since we now wait for the button specifically
 
+// Last-resort selectors tried when the service's own selector finds nothing.
+// Ordered from most-specific to most-generic so we grab the right element.
+const GENERIC_INPUT_FALLBACKS = {
+  textarea:        'textarea:not([aria-hidden="true"])',
+  contenteditable: '[contenteditable="true"][role="textbox"]:not([aria-hidden="true"]), [contenteditable="true"]:not([aria-hidden="true"])',
+  prosemirror:     'div.ProseMirror[contenteditable="true"], [contenteditable="true"][role="textbox"]:not([aria-hidden="true"])',
+};
+
+const GENERIC_BUTTON_FALLBACKS =
+  'button[aria-label*="send" i], button[aria-label*="submit" i], [data-testid*="send"], [data-testid*="submit"]';
+
 // ── Message Listener ─────────────────────────────────────────
 // Only add the listener if it hasn't been added before
 if (!window.PromptBlastListenerAdded) {
@@ -706,8 +717,14 @@ async function fillAndSubmit({
   // Step 1: Wait for the page to settle before interacting
   if (waitMs > 0) await sleep(waitMs);
 
-  // Step 2: Wait for the input element to appear in the DOM
-  const element = await waitForElement(selector);
+  // Step 2: Wait for the input element to appear in the DOM.
+  // If the primary selector misses (site redesign), fall back to generic patterns.
+  let element = await waitForElement(selector);
+  if (!element) {
+    const fallbackSel = GENERIC_INPUT_FALLBACKS[inputType] || GENERIC_INPUT_FALLBACKS.contenteditable;
+    console.warn(`[PromptBlast] Primary selector failed ("${selector}"), trying generic fallback: ${fallbackSel}`);
+    element = await waitForElement(fallbackSel);
+  }
   if (!element) {
     return { ok: false, error: `Input not found: ${selector}` };
   }
@@ -741,10 +758,16 @@ async function fillAndSubmit({
   if (autoSubmit) {
     // If we have a button selector, wait for it to be visible/enabled
     if (buttonSel && submitType !== "enter") {
-      const btn = await waitForElement(buttonSel, true);
+      let btn = await waitForElement(buttonSel, true);
+      let resolvedButtonSel = buttonSel;
+      if (!btn) {
+        console.warn(`[PromptBlast] Button selector failed ("${buttonSel}"), trying generic fallback`);
+        btn = await waitForElement(GENERIC_BUTTON_FALLBACKS, true);
+        resolvedButtonSel = GENERIC_BUTTON_FALLBACKS;
+      }
       if (btn) {
         await sleep(SUBMIT_DELAY);
-        submit(element, submitType, buttonSel);
+        submit(element, submitType, resolvedButtonSel);
       } else {
         console.warn("[PromptBlast] Submit button NOT found after filling:", buttonSel);
         // Fallback: try enter key anyway
