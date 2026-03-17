@@ -19,6 +19,7 @@ const serviceListEl = document.getElementById("serviceList");
 const autoSubmitEl = document.getElementById("autoSubmit");
 const groupTabsEl = document.getElementById("groupTabs");
 const delayMsEl = document.getElementById("delayMs");
+const historyLimitEl = document.getElementById("historyLimit");
 const clearHistoryBtn = document.getElementById("clearHistory");
 const resetAllBtn = document.getElementById("resetAll");
 const openShortcutsBtn = document.getElementById("openShortcuts");
@@ -55,6 +56,7 @@ const DEFAULTS = {
   autoSubmit: true,
   groupTabs: true,
   delayMs: 2000,
+  historyLimit: 20,
   showRecents: true,
   overlayPosition: "top",
   chipDisplay: "logo-name",
@@ -78,6 +80,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.checked = settings.autoSubmit;
   groupTabsEl.checked = settings.groupTabs;
   delayMsEl.value = settings.delayMs;
+  historyLimitEl.value = settings.historyLimit || 20;
   showRecentsEl.checked = settings.showRecents !== false;
 
   // Init chipDisplay
@@ -114,6 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.addEventListener("change", save);
   groupTabsEl.addEventListener("change", save);
   delayMsEl.addEventListener("change", save);
+  historyLimitEl.addEventListener("change", save);
 
   clearHistoryBtn.addEventListener("click", clearHistory);
   resetAllBtn.addEventListener("click", () => showModal(true));
@@ -319,6 +323,7 @@ async function save() {
     autoSubmit: autoSubmitEl.checked,
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
+    historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
     theme: darkModeEl.checked ? "dark" : "light",
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,

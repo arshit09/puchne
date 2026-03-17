@@ -148,9 +148,12 @@ class PromptBlastOverlay {
     // Apply saved theme to the shadow host
     applyTheme(this.container, settings.theme || "light");
 
-    // Load history
+    // Load history (handle legacy plain-string format)
     const historyData = await chrome.storage.local.get("promptHistory");
-    this.promptHistory = historyData.promptHistory || [];
+    this.promptHistory = (historyData.promptHistory || []).map((h) =>
+      typeof h === "string" ? { text: h, timestamp: Date.now() } : h
+    );
+    this.historyLimit = settings.historyLimit || MAX_HISTORY;
     this.showRecents = settings.showRecents !== false;
     this.overlayPosition = settings.overlayPosition || "top";
     this.chipDisplay = settings.chipDisplay || "logo-name";
@@ -345,15 +348,15 @@ class PromptBlastOverlay {
   }
 
   addToHistory(query) {
-    this.promptHistory = this.promptHistory.filter((h) => h !== query);
-    this.promptHistory.unshift(query);
-    this.promptHistory = this.promptHistory.slice(0, MAX_HISTORY);
+    this.promptHistory = this.promptHistory.filter((h) => h.text !== query);
+    this.promptHistory.unshift({ text: query, timestamp: Date.now() });
+    this.promptHistory = this.promptHistory.slice(0, this.historyLimit || MAX_HISTORY);
     chrome.storage.local.set({ promptHistory: this.promptHistory });
     this.renderHistory();
   }
 
   deleteFromHistory(prompt) {
-    this.promptHistory = this.promptHistory.filter((h) => h !== prompt);
+    this.promptHistory = this.promptHistory.filter((h) => h.text !== prompt);
     chrome.storage.local.set({ promptHistory: this.promptHistory });
     this.renderHistory();
   }
@@ -367,20 +370,31 @@ class PromptBlastOverlay {
     }
     historySection.classList.remove("hidden");
     historyList.innerHTML = "";
-    this.promptHistory.forEach((prompt) => {
+    this.promptHistory.forEach((entry) => {
+      const prompt = entry.text;
       const li = document.createElement("li");
       li.className = "history-item";
       li.title = prompt;
 
-      const text = document.createElement("span");
-      text.className = "history-item-text";
-      text.textContent = prompt;
-      text.addEventListener("click", () => {
+      const textWrapper = document.createElement("div");
+      textWrapper.className = "history-item-content";
+      textWrapper.addEventListener("click", () => {
         const input = this.shadow.getElementById("promptInput");
         input.value = prompt;
         input.focus();
         this.updateSendButton();
       });
+
+      const text = document.createElement("span");
+      text.className = "history-item-text";
+      text.textContent = prompt;
+
+      const time = document.createElement("span");
+      time.className = "history-item-time";
+      time.textContent = formatRelativeTime(entry.timestamp);
+
+      textWrapper.appendChild(text);
+      textWrapper.appendChild(time);
 
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "history-delete-btn";
@@ -391,7 +405,7 @@ class PromptBlastOverlay {
         this.deleteFromHistory(prompt);
       });
 
-      li.appendChild(text);
+      li.appendChild(textWrapper);
       li.appendChild(deleteBtn);
       historyList.appendChild(li);
     });
@@ -648,17 +662,24 @@ class PromptBlastOverlay {
       .history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
       .history-item {
         display: flex; align-items: center; gap: 8px;
-        padding: 10px 12px 10px 16px; border-radius: var(--radius-sm);
+        padding: 8px 12px 8px 16px; border-radius: var(--radius-sm);
         transition: background var(--transition);
       }
       .history-item:hover { background: var(--bg-hover); }
       .history-item:hover .history-delete-btn { opacity: 1; pointer-events: auto; }
+      .history-item-content {
+        flex: 1; display: flex; flex-direction: column; gap: 1px;
+        cursor: pointer; overflow: hidden;
+      }
       .history-item-text {
-        flex: 1; font-size: 15px; color: var(--text-secondary);
-        cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        font-size: 15px; color: var(--text-secondary);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         transition: color var(--transition);
       }
       .history-item:hover .history-item-text { color: var(--text-primary); }
+      .history-item-time {
+        font-size: 11px; color: var(--text-muted);
+      }
       .history-delete-btn {
         flex-shrink: 0; display: flex; align-items: center; justify-content: center;
         width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px;
@@ -1089,6 +1110,24 @@ function waitForElement(selector, checkEnabled = false) {
       }
     }, RETRY_INTERVAL);
   });
+}
+
+
+/**
+ * Returns a human-readable relative time string (e.g. "2h ago").
+ * @param {number} timestamp - Unix timestamp in ms
+ */
+function formatRelativeTime(timestamp) {
+  const diff = Date.now() - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString();
 }
 
 
