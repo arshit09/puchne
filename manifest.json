@@ -53,7 +53,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["scripts/content.js"],
+      "js": ["scripts/constants.js", "scripts/content.js"],
       "run_at": "document_idle"
     }
   ],

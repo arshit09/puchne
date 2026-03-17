@@ -32,8 +32,6 @@ let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
 let showToolNames = true;    // UI preference
 
-const MAX_HISTORY = 5;
-
 // ── Initialization ───────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Fetch the service registry from background

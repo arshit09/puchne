@@ -28,8 +28,7 @@ if (window.PromptBlastLoaded) {
  */
 
 // ── Configuration ────────────────────────────────────────────
-const MAX_RETRIES = 30;      // Increased for slow-loading SPAs
-const RETRY_INTERVAL = 500;  // ms between retries
+// MAX_RETRIES and RETRY_INTERVAL are defined in scripts/constants.js
 const SUBMIT_DELAY = 100;    // Reduced since we now wait for the button specifically
 
 // Last-resort selectors tried when the service's own selector finds nothing.
@@ -84,7 +83,6 @@ class PromptBlastOverlay {
     this.promptHistory = [];
     this.overlayPosition = "top";
     this.showToolNames = true;
-    this.MAX_HISTORY = 5;
 
     this.initPromise = this.init();
   }
@@ -342,7 +340,7 @@ class PromptBlastOverlay {
   addToHistory(query) {
     this.promptHistory = this.promptHistory.filter((h) => h !== query);
     this.promptHistory.unshift(query);
-    this.promptHistory = this.promptHistory.slice(0, this.MAX_HISTORY);
+    this.promptHistory = this.promptHistory.slice(0, MAX_HISTORY);
     chrome.storage.local.set({ promptHistory: this.promptHistory });
     this.renderHistory();
   }
