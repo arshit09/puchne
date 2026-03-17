@@ -92,11 +92,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Apply saved theme
   const savedTheme = settings.theme || "dark";
-  document.documentElement.dataset.theme = savedTheme;
+  applyTheme(document.documentElement, savedTheme);
   darkModeEl.checked = savedTheme === "dark";
   darkModeEl.addEventListener("change", () => {
     const theme = darkModeEl.checked ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
+    applyTheme(document.documentElement, theme);
     renderServices();
     save();
     updatePreview();

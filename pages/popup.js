@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
   // 2b. Apply theme
-  applyTheme(settings.theme || "dark");
+  applyThemeToPage(settings.theme || "dark");
   themeToggleBtn.addEventListener("click", toggleTheme);
 
   // 3. Load prompt history
@@ -285,11 +285,11 @@ async function updateShortcutHint() {
 // ── Theme ─────────────────────────────────────────────────────
 
 /**
- * Applies a theme ("light" | "dark") to the document and
+ * Applies a theme ("light" | "dark") to the popup document and
  * swaps the toggle button icon accordingly.
  */
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
+function applyThemeToPage(theme) {
+  applyTheme(document.documentElement, theme);
   if (theme === "dark") {
     iconMoon.style.display = "none";
     iconSun.style.display = "";
@@ -306,7 +306,7 @@ function applyTheme(theme) {
 async function toggleTheme() {
   const current = document.documentElement.dataset.theme || "light";
   const next = current === "dark" ? "light" : "dark";
-  applyTheme(next);
+  applyThemeToPage(next);
   // Persist alongside other settings
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};

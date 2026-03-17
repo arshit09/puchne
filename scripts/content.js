@@ -146,11 +146,7 @@ class PromptBlastOverlay {
     this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
 
     // Apply saved theme to the shadow host
-    if (settings.theme === "dark") {
-      this.container.dataset.dark = "true";
-    } else {
-      delete this.container.dataset.dark;
-    }
+    applyTheme(this.container, settings.theme || "light");
 
     // Load history
     const historyData = await chrome.storage.local.get("promptHistory");
@@ -277,7 +273,7 @@ class PromptBlastOverlay {
       if (this.enabledServiceIds.includes(service.id)) {
         chip.classList.add("active");
       }
-      const isDark = this.container.dataset.dark === "true";
+      const isDark = this.container.dataset.theme === "dark";
       const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
       const showLogo = mode === "logo-name" || mode === "logo";
       const showName = mode === "name" || mode === "logo-name";
@@ -514,7 +510,7 @@ class PromptBlastOverlay {
         --font: "Roboto", "Google Sans", system-ui, sans-serif;
       }
 
-      :host([data-dark="true"]) {
+      :host([data-theme="dark"]) {
         /* Google dark-mode palette */
         --bg-primary:   #202124;
         --bg-secondary: #303134;
