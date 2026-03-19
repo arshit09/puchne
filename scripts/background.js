@@ -251,7 +251,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "injectGridQueries") {
     (async () => {
       try {
-        const { tabId, targets, query, autoSubmit, delayMs } = message;
+        const { tabId, targets, query, autoSubmit, cookieConsent, delayMs } = message;
         const frames = await chrome.webNavigation.getAllFrames({ tabId });
 
         // Match each sub-frame URL to a target service
@@ -264,6 +264,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             console.warn(`[PromptBlast Grid] No frame found for ${target.name}`);
             results.push({ service: target.name, ok: false, error: "frame not found" });
             continue;
+          }
+
+          if (cookieConsent !== "off") {
+            try {
+              // Set the mode before injecting the dismisser script
+              await chrome.scripting.executeScript({
+                target: { tabId, frameIds: [frame.frameId] },
+                func: (mode) => { window.__promptBlastCookieMode = mode; },
+                args: [cookieConsent],
+              });
+              await chrome.scripting.executeScript({
+                target: { tabId, frameIds: [frame.frameId] },
+                files: ["scripts/cookie-dismiss.js"],
+              });
+            } catch (err) {
+              console.log(`[PromptBlast Grid] Cookie dismiss inject for ${target.name}:`, err.message);
+            }
           }
 
           try {
@@ -366,6 +383,7 @@ async function handleMulticast(query) {
       gridData: {
         query,
         autoSubmit: settings.autoSubmit,
+        cookieConsent: settings.cookieConsent || "accept",
         delayMs: settings.delayMs,
         targets: targets.map((t) => ({
           id: t.id,

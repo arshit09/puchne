@@ -178,6 +178,25 @@
           </label>
         </div>
 
+        <div class="setting-row" id="cookieConsentRow">
+          <div class="setting-info">
+            <p class="setting-label">Cookie Consent</p>
+            <p class="setting-desc">Auto-handle cookie popups in grid iframes</p>
+          </div>
+          <div class="custom-select" id="cookieConsentContainer">
+            <div class="select-trigger" id="cookieConsentTrigger">
+              <span id="cookieConsentLabel">Accept All</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="select-options" id="cookieConsentOptions">
+              <div class="option" data-value="accept">Accept All</div>
+              <div class="option" data-value="reject">Reject All</div>
+              <div class="option" data-value="off">Off (Manual)</div>
+            </div>
+            <input type="hidden" id="cookieConsent" value="accept">
+          </div>
+        </div>
+
         <div class="setting-row" id="groupTabsRow">
           <div class="setting-info">
             <p class="setting-label">Group Tabs</p>

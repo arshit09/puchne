@@ -70,7 +70,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.svg", "icons/*.png", "pages/grid.html"],
+      "resources": ["icons/*.svg", "icons/*.png", "pages/grid.html", "scripts/cookie-dismiss.js"],
       "matches": ["<all_urls>"]
     }
   ]

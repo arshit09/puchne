@@ -39,6 +39,12 @@ const chipDisplayContainer = document.getElementById("chipDisplayContainer");
 const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
 const chipDisplayLabel = document.getElementById("chipDisplayLabel");
 const chipDisplayOptions = document.getElementById("chipDisplayOptions");
+const cookieConsentEl = document.getElementById("cookieConsent");
+const cookieConsentRow = document.getElementById("cookieConsentRow");
+const cookieConsentContainer = document.getElementById("cookieConsentContainer");
+const cookieConsentTrigger = document.getElementById("cookieConsentTrigger");
+const cookieConsentLabel = document.getElementById("cookieConsentLabel");
+const cookieConsentOptions = document.getElementById("cookieConsentOptions");
 const mainContainer = document.querySelector(".container");
 const confirmModal = document.getElementById("confirmModal");
 const cancelResetBtn = document.getElementById("cancelReset");
@@ -65,6 +71,7 @@ const DEFAULTS = {
   overlayPosition: "center",
   chipDisplay: "logo-name",
   theme: "dark",
+  cookieConsent: "accept",
   customSelectors: {},
 };
 
@@ -87,6 +94,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   gridViewEl.checked = settings.gridView || false;
   groupTabsEl.checked = settings.groupTabs;
   updateGroupTabsState();
+  // Cookie consent setting
+  const savedCookieConsent = settings.cookieConsent || "accept";
+  cookieConsentEl.value = savedCookieConsent;
+  updateCookieConsentLabel(savedCookieConsent);
+  updateCookieConsentSelected(savedCookieConsent);
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
   showRecentsEl.checked = settings.showRecents !== false;
@@ -124,6 +136,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.addEventListener("change", save);
   gridViewEl.addEventListener("change", () => {
     updateGroupTabsState();
+    updateCookieConsentState();
     save();
   });
   groupTabsEl.addEventListener("change", save);
@@ -141,6 +154,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Init custom selects
   initCustomSelect();
   initChipDisplaySelect();
+  initCookieConsentSelect();
+  updateCookieConsentState();
 
   // Init custom number spinners
   initNumSpinners();
@@ -290,6 +305,49 @@ function updateGroupTabsState() {
   const disabled = gridViewEl.checked;
   groupTabsRow.style.opacity = disabled ? "0.45" : "1";
   groupTabsRow.style.pointerEvents = disabled ? "none" : "";
+}
+
+function updateCookieConsentState() {
+  const disabled = !gridViewEl.checked;
+  cookieConsentRow.style.opacity = disabled ? "0.45" : "1";
+  cookieConsentRow.style.pointerEvents = disabled ? "none" : "";
+}
+
+function initCookieConsentSelect() {
+  cookieConsentTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    overlayPositionContainer.classList.remove("open");
+    chipDisplayContainer.classList.remove("open");
+    cookieConsentContainer.classList.toggle("open");
+  });
+
+  cookieConsentOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      cookieConsentEl.value = val;
+      updateCookieConsentLabel(val);
+      updateCookieConsentSelected(val);
+      cookieConsentContainer.classList.remove("open");
+      save();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    cookieConsentContainer.classList.remove("open");
+  });
+
+  updateCookieConsentSelected(cookieConsentEl.value || "accept");
+}
+
+function updateCookieConsentLabel(val) {
+  const labels = { "accept": "Accept All", "reject": "Reject All", "off": "Off (Manual)" };
+  cookieConsentLabel.textContent = labels[val] || "Accept All";
+}
+
+function updateCookieConsentSelected(val) {
+  cookieConsentOptions.querySelectorAll(".option").forEach(opt => {
+    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
 }
 
 // ── Service List Rendering ───────────────────────────────────
@@ -541,6 +599,7 @@ async function save() {
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
+    cookieConsent: cookieConsentEl.value || "accept",
     customSelectors,
   };
 

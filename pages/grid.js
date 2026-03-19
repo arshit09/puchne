@@ -312,10 +312,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const query      = gridData.query || "";
-  const targets    = gridData.targets;
-  const autoSubmit = gridData.autoSubmit;
-  const delayMs    = gridData.delayMs;
+  const query         = gridData.query || "";
+  const targets       = gridData.targets;
+  const autoSubmit    = gridData.autoSubmit;
+  const cookieConsent = gridData.cookieConsent || "accept";
+  const delayMs       = gridData.delayMs;
 
   if (query) {
     const display = query.length > 80 ? query.slice(0, 80) + "\u2026" : query;
@@ -454,7 +455,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   console.log(`[PromptBlast Grid] Requesting injection for ${loadedTargets.length} frames...`);
   chrome.runtime.sendMessage(
-    { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query, autoSubmit, delayMs },
+    { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query, autoSubmit, cookieConsent, delayMs },
     (response) => {
       if (chrome.runtime.lastError) {
         console.error("[PromptBlast Grid] Injection request failed:", chrome.runtime.lastError.message);
