@@ -94,7 +94,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   overlayPositionEl.value = settings.overlayPosition || "center";
   overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Center";
   updateSelectedOption(settings.overlayPosition || "center");
-  updateSelectedOption(settings.overlayPosition || "center");
 
   // Apply saved theme
   const savedTheme = settings.theme || "dark";

@@ -161,9 +161,9 @@ promptInput.addEventListener("keydown", (e) => {
 // Enable/disable send button based on input
 promptInput.addEventListener("input", updateSendButton);
 
-// Settings button opens the options page
+// Settings button opens the options page (via background, which reuses an existing tab)
 settingsBtn.addEventListener("click", () => {
-  chrome.runtime.openOptionsPage();
+  chrome.runtime.sendMessage({ action: "openOptions" });
 });
 
 
@@ -182,10 +182,12 @@ function updateSendButton() {
  * Adds a prompt to history (deduplicates, caps at MAX_HISTORY).
  */
 function addToHistory(query) {
-  // Remove duplicate if exists
-  promptHistory = promptHistory.filter((h) => h !== query);
-  // Add to front
-  promptHistory.unshift(query);
+  // Remove duplicate if exists (handle both legacy string and {text} object formats)
+  promptHistory = promptHistory.filter((h) =>
+    typeof h === "string" ? h !== query : h.text !== query
+  );
+  // Add to front as {text, timestamp} object (matches overlay format)
+  promptHistory.unshift({ text: query, timestamp: Date.now() });
   // Cap length
   promptHistory = promptHistory.slice(0, historyLimit);
   // Persist (don't re-render now — history updates on next popup open)
@@ -205,7 +207,8 @@ function renderHistory() {
   historySection.classList.remove("hidden");
   historyList.innerHTML = "";
 
-  promptHistory.forEach((prompt) => {
+  promptHistory.forEach((entry) => {
+    const prompt = typeof entry === "string" ? entry : entry.text;
     const li = document.createElement("li");
     li.textContent = prompt;
     li.title = prompt;

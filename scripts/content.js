@@ -1,9 +1,8 @@
 if (window.PromptBlastLoaded) {
-  // If already loaded, just return but allow the listener registration below
-  // Actually, we want to prevent double-registration.
+  // Script already injected — bail out entirely to avoid duplicate
+  // class definitions, listeners, and login-check overlays.
 } else {
-  window.PromptBlastLoaded = true;
-}
+window.PromptBlastLoaded = true;
 
 /**
  * ============================================================
@@ -278,12 +277,27 @@ class PromptBlastOverlay {
   async show() {
     this.visible = true;
     this.container.style.display = "flex";
-    // Refresh history from storage each time the overlay opens
+
+    // Refresh all settings from storage each time the overlay opens
+    // (user may have changed them in the options page since last open)
+    const stored = await chrome.storage.sync.get("settings");
+    const settings = stored.settings || {};
+    this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+    this.showRecents = settings.showRecents !== false;
+    this.overlayPosition = settings.overlayPosition || "center";
+    this.chipDisplay = settings.chipDisplay || "logo-name";
+    this.historyLimit = settings.historyLimit || MAX_HISTORY;
+    applyTheme(this.container, settings.theme || "dark");
+    this.applyPosition();
+    this.renderServiceChips();
+
+    // Refresh history from storage
     const historyData = await chrome.storage.local.get("promptHistory");
     this.promptHistory = (historyData.promptHistory || []).map((h) =>
       typeof h === "string" ? { text: h, timestamp: Date.now() } : h
     );
     this.renderHistory();
+
     setTimeout(() => {
       const input = this.shadow.getElementById("promptInput");
       input.focus();
@@ -1413,3 +1427,5 @@ if (document.readyState === "complete") {
 } else {
   window.addEventListener("load", initLoginCheck);
 }
+
+} // end of PromptBlastLoaded guard
