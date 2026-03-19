@@ -5,7 +5,7 @@
   "description": "Send one prompt to ChatGPT, Claude, Gemini, Copilot, DeepSeek & more — all at once. Open source.",
   "author": "PromptBlast Contributors",
 
-  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups"],
+  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequest", "webNavigation"],
 
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -16,6 +16,16 @@
     "https://chat.deepseek.com/*",
     "https://www.perplexity.ai/*"
   ],
+
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "grid_headers",
+        "enabled": true,
+        "path": "rules/grid_headers.json"
+      }
+    ]
+  },
 
   "background": {
     "service_worker": "scripts/background.js"
@@ -60,7 +70,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.svg", "icons/*.png"],
+      "resources": ["icons/*.svg", "icons/*.png", "pages/grid.html"],
       "matches": ["<all_urls>"]
     }
   ]

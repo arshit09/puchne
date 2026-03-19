@@ -126,6 +126,7 @@ async function getSettings() {
   const defaults = {
     enabledServices: ["chatgpt", "claude", "gemini"],
     autoSubmit: true,
+    gridView: false,
     groupTabs: true,
     delayMs: 2000,
     customSelectors: {},
@@ -247,6 +248,77 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "injectGridQueries") {
+    (async () => {
+      try {
+        const { tabId, targets, query, autoSubmit, delayMs } = message;
+        const frames = await chrome.webNavigation.getAllFrames({ tabId });
+
+        // Match each sub-frame URL to a target service
+        const results = [];
+        for (const target of targets) {
+          const frame = frames.find(
+            (f) => f.frameId !== 0 && f.url && f.url.startsWith(new URL(target.url).origin)
+          );
+          if (!frame) {
+            console.warn(`[PromptBlast Grid] No frame found for ${target.name}`);
+            results.push({ service: target.name, ok: false, error: "frame not found" });
+            continue;
+          }
+
+          try {
+            // Inject content script into the sub-frame
+            await chrome.scripting.executeScript({
+              target: { tabId, frameIds: [frame.frameId] },
+              files: ["scripts/constants.js", "scripts/content.js"],
+            });
+          } catch (err) {
+            console.log(`[PromptBlast Grid] Script inject for ${target.name}:`, err.message);
+          }
+
+          // Send fillQuery to that specific frame
+          try {
+            const response = await new Promise((resolve) => {
+              const timer = setTimeout(() => resolve({ ok: false, error: "timeout" }), 15_000);
+              chrome.tabs.sendMessage(
+                tabId,
+                {
+                  action: "fillQuery",
+                  query,
+                  autoSubmit,
+                  waitMs: delayMs ?? target.waitMs,
+                  inputType: target.inputType,
+                  selector: target.selector,
+                  submitType: target.submitType,
+                  buttonSel: target.buttonSel,
+                },
+                { frameId: frame.frameId },
+                (res) => {
+                  clearTimeout(timer);
+                  if (chrome.runtime.lastError) {
+                    resolve({ ok: false, error: chrome.runtime.lastError.message });
+                  } else {
+                    resolve(res || { ok: false, error: "no response" });
+                  }
+                }
+              );
+            });
+            console.log(`[PromptBlast Grid] ${target.name}:`, response);
+            results.push({ service: target.name, ...response });
+          } catch (err) {
+            results.push({ service: target.name, ok: false, error: err.message });
+          }
+        }
+
+        sendResponse({ ok: true, results });
+      } catch (err) {
+        console.error("[PromptBlast Grid] injectGridQueries failed:", err);
+        sendResponse({ ok: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
   if (message.action === "getShortcut") {
     (async () => {
       try {
@@ -285,6 +357,33 @@ async function handleMulticast(query) {
 
   if (targets.length === 0) {
     console.warn("[PromptBlast] No services enabled — nothing to do.");
+    return;
+  }
+
+  // ── Grid View mode: open all services in a single tab as iframes ──
+  if (settings.gridView) {
+    await chrome.storage.local.set({
+      gridData: {
+        query,
+        autoSubmit: settings.autoSubmit,
+        delayMs: settings.delayMs,
+        targets: targets.map((t) => ({
+          id: t.id,
+          name: t.name,
+          url: t.url,
+          inputType: t.inputType,
+          selector: t.selector,
+          submitType: t.submitType,
+          buttonSel: t.buttonSel,
+          waitMs: t.waitMs,
+          iconPath: t.iconPath,
+          iconPathDark: t.iconPathDark,
+        })),
+      },
+    });
+    const gridUrl = chrome.runtime.getURL("pages/grid.html");
+    await chrome.tabs.create({ url: gridUrl, active: true });
+    console.log("[PromptBlast] Opened grid view tab.");
     return;
   }
 

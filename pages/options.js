@@ -22,6 +22,8 @@ const delayMsEl = document.getElementById("delayMs");
 const historyLimitEl = document.getElementById("historyLimit");
 const clearHistoryBtn = document.getElementById("clearHistory");
 const resetAllBtn = document.getElementById("resetAll");
+const gridViewEl = document.getElementById("gridView");
+const groupTabsRow = document.getElementById("groupTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
@@ -55,6 +57,7 @@ let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
 const DEFAULTS = {
   enabledServices: ["chatgpt", "claude", "gemini"],
   autoSubmit: true,
+  gridView: false,
   groupTabs: true,
   delayMs: 2000,
   historyLimit: 20,
@@ -81,7 +84,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   enabledServiceIds = settings.enabledServices;
   customSelectors = settings.customSelectors || {};
   autoSubmitEl.checked = settings.autoSubmit;
+  gridViewEl.checked = settings.gridView || false;
   groupTabsEl.checked = settings.groupTabs;
+  updateGroupTabsState();
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
   showRecentsEl.checked = settings.showRecents !== false;
@@ -117,6 +122,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Attach event listeners
   autoSubmitEl.addEventListener("change", save);
+  gridViewEl.addEventListener("change", () => {
+    updateGroupTabsState();
+    save();
+  });
   groupTabsEl.addEventListener("change", save);
   delayMsEl.addEventListener("change", save);
   historyLimitEl.addEventListener("change", save);
@@ -272,6 +281,16 @@ function initClickableRows() {
   });
 }
 
+
+/**
+ * Disables the Group Tabs row when Grid View is active (since
+ * grid mode opens a single tab, grouping is irrelevant).
+ */
+function updateGroupTabsState() {
+  const disabled = gridViewEl.checked;
+  groupTabsRow.style.opacity = disabled ? "0.45" : "1";
+  groupTabsRow.style.pointerEvents = disabled ? "none" : "";
+}
 
 // ── Service List Rendering ───────────────────────────────────
 
@@ -514,6 +533,7 @@ async function save() {
   const settings = {
     enabledServices: enabledServiceIds,
     autoSubmit: autoSubmitEl.checked,
+    gridView: gridViewEl.checked,
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
