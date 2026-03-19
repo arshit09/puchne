@@ -7,44 +7,46 @@
 /* ── CSS Variables ──────────────────────────────────────────── */
 :root {
   /* Google light-mode palette */
-  --bg-primary:   #ffffff;
+  --bg-primary: #ffffff;
   --bg-secondary: #f1f3f4;
-  --bg-tertiary:  #e8eaed;
-  --bg-hover:     #dadce0;
-  --text-primary:   #202124;
+  --bg-tertiary: #e8eaed;
+  --bg-hover: #dadce0;
+  --text-primary: #202124;
   --text-secondary: #5f6368;
-  --text-muted:     #80868b;
+  --text-muted: #80868b;
 
   /* Vibrant orange accent */
-  --accent:       #fb923c;
+  --accent: #fb923c;
   --accent-hover: #f97316;
   --accent-light: rgba(251, 146, 60, 0.14);
-  --accent-text:  #c2410c;
+  --accent-text: #c2410c;
 
-  --border:       #dadce0;
-  --radius:       12px;
-  --radius-sm:    8px;
-  --radius-xs:    6px;
-  --transition:   180ms ease;
+  --border: #dadce0;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --transition: 180ms ease;
   --font: "Roboto", "Google Sans", system-ui, sans-serif;
 }
 
 [data-theme="dark"] {
   /* Google dark-mode palette */
-  --bg-primary:   #202124;
+  --bg-primary: #202124;
   --bg-secondary: #303134;
-  --bg-tertiary:  #3c4043;
-  --bg-hover:     #5f6368;
-  --text-primary:   #e8eaed;
+  --bg-tertiary: #3c4043;
+  --bg-hover: #5f6368;
+  --text-primary: #e8eaed;
   --text-secondary: #bdc1c6;
-  --accent:       #fb923c;
+  --accent: #fb923c;
   --accent-light: rgba(251, 146, 60, 0.1);
-  --accent-text:  #fb923c;
-  --border:       #3c4043;
+  --accent-text: #fb923c;
+  --border: #3c4043;
 }
 
 /* ── Reset & Base ──────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -161,16 +163,22 @@ body {
   font-size: 0.88rem;
   font-weight: 400;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: none;
   user-select: none;
 }
 
 .chip:hover {
-  border-color: var(--accent);
+  border-color: var(--border);
+  background: var(--bg-hover);
 }
 
 .chip.active {
   border-color: var(--accent);
+}
+
+.chip.active:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-light);
 }
 
 .service-icon {
@@ -183,7 +191,6 @@ body {
   aspect-ratio: 1 / 1; /* Stabilize layout if image loads late */
 }
 
-.chip:hover .service-icon,
 .chip.active .service-icon {
   filter: none;
 }
@@ -198,7 +205,9 @@ body {
   border-radius: var(--radius);
   padding: 8px 8px 8px 16px;
   gap: 8px;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
   margin-bottom: 16px;
   flex-wrap: wrap; /* Allows button to wrap if input is very wide or multi-line */
 }
@@ -404,7 +413,16 @@ textarea::placeholder {
 /* Animations removed for stability */
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
