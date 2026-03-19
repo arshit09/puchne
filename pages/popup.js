@@ -30,6 +30,7 @@ const iconSun = document.getElementById("iconSun");
 let allServices = [];        // Full list from background.js
 let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
+let historyLimit = MAX_HISTORY; // Configurable cap
 let showToolNames = true;    // UI preference
 
 // ── Initialization ───────────────────────────────────────────
@@ -41,6 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+  historyLimit = settings.historyLimit || MAX_HISTORY;
   showToolNames = settings.showToolNames !== false;
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
@@ -185,7 +187,7 @@ function addToHistory(query) {
   // Add to front
   promptHistory.unshift(query);
   // Cap length
-  promptHistory = promptHistory.slice(0, MAX_HISTORY);
+  promptHistory = promptHistory.slice(0, historyLimit);
   // Persist (don't re-render now — history updates on next popup open)
   chrome.storage.local.set({ promptHistory });
 }
@@ -222,9 +224,12 @@ function renderHistory() {
 /**
  * Saves current settings to chrome.storage.sync.
  */
-function saveSettings() {
+async function saveSettings() {
+  const stored = await chrome.storage.sync.get("settings");
+  const prev = stored.settings || {};
   return chrome.storage.sync.set({
     settings: {
+      ...prev,
       enabledServices: enabledServiceIds,
       autoSubmit: autoSubmitToggle.checked,
       theme: document.documentElement.dataset.theme || "light",

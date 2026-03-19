@@ -59,7 +59,7 @@ const DEFAULTS = {
   delayMs: 2000,
   historyLimit: 20,
   showRecents: true,
-  overlayPosition: "top",
+  overlayPosition: "center",
   chipDisplay: "logo-name",
   theme: "dark",
   customSelectors: {},
@@ -91,10 +91,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   showToolNamesEl.value = savedChipDisplay;
   updateChipDisplayLabel(savedChipDisplay);
   // Restore overlay position separately
-  overlayPositionEl.value = settings.overlayPosition || "top";
-  overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Top";
-  updateSelectedOption(settings.overlayPosition || "top");
-  updateSelectedOption(settings.overlayPosition || "top");
+  overlayPositionEl.value = settings.overlayPosition || "center";
+  overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Center";
+  updateSelectedOption(settings.overlayPosition || "center");
+  updateSelectedOption(settings.overlayPosition || "center");
 
   // Apply saved theme
   const savedTheme = settings.theme || "dark";
@@ -526,6 +526,16 @@ async function save() {
   };
 
   await chrome.storage.sync.set({ settings });
+
+  // Trim stored history to the new limit immediately
+  const historyData = await chrome.storage.local.get("promptHistory");
+  const history = historyData.promptHistory || [];
+  if (history.length > settings.historyLimit) {
+    await chrome.storage.local.set({
+      promptHistory: history.slice(0, settings.historyLimit),
+    });
+  }
+
   showToast("Settings saved");
 }
 
@@ -635,7 +645,7 @@ function updatePreview() {
   // Position — always use `top` + `translateY` so CSS can animate between
   // numeric values. Setting `top: auto` or `bottom` breaks transitions because
   // browsers cannot interpolate `auto`.
-  const pos = overlayPositionEl.value || "top";
+  const pos = overlayPositionEl.value || "center";
   const previewBox = mockOverlay.parentElement;
   const boxH = previewBox ? previewBox.clientHeight : 240;
   const overlayH = mockOverlay.offsetHeight;

@@ -111,7 +111,7 @@ class PromptBlastOverlay {
     this.allServices = [];
     this.enabledServiceIds = [];
     this.promptHistory = [];
-    this.overlayPosition = "top";
+    this.overlayPosition = "center";
 
     this.initPromise = this.init();
   }
