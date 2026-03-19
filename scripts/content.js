@@ -1168,3 +1168,240 @@ function formatRelativeTime(timestamp) {
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+// ── Login Detection & Overlay ────────────────────────────────
+
+class LoginNoticeOverlay {
+  constructor(service) {
+    this.service = service;
+    this.container = document.createElement("div");
+    this.container.id = "prompt-blast-login-notice";
+    this.shadow = this.container.attachShadow({ mode: "open" });
+    this.initPromise = this.init();
+  }
+
+  async init() {
+    const stored = await chrome.storage.sync.get("settings");
+    const theme = (stored.settings || {}).theme || "light";
+    this.container.dataset.theme = theme;
+
+    const style = document.createElement("style");
+    style.textContent = this.getStyles();
+    this.shadow.appendChild(style);
+
+    this.shadow.innerHTML += this.getHTML();
+    this.setupListeners();
+    document.body.appendChild(this.container);
+  }
+
+  setupListeners() {
+    this.shadow.getElementById("closeNotice")?.addEventListener("click", () => this.hide());
+    this.shadow.getElementById("loginAction")?.addEventListener("click", () => this.hide());
+    
+    // Close on backdrop click
+    this.shadow.querySelector(".overlay-backdrop")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) this.hide();
+    });
+  }
+
+  show() {
+    this.container.style.display = "block";
+    document.body.style.overflow = "hidden"; // Prevent scrolling behind modal
+  }
+
+  hide() {
+    this.container.style.display = "none";
+    document.body.style.overflow = "";
+    setTimeout(() => this.container.remove(), 500);
+  }
+
+  getHTML() {
+    return `
+      <div class="overlay-backdrop">
+        <div class="notice-card">
+          <header class="header">
+            <div class="logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="#fb923c" stroke-width="2"/>
+                <path d="M8 12l3 3 5-6" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h1>PromptBlast</h1>
+            </div>
+            <button id="closeNotice" class="close-btn" title="Dismiss">&times;</button>
+          </header>
+          
+          <div class="notice-content">
+            <div class="service-info">
+              <img src="${chrome.runtime.getURL(this.service.iconPath)}" class="service-icon" />
+              <span class="service-name">${this.service.name}</span>
+            </div>
+            <p>Login required to use PromptBlast on this tool. Please sign in to enable multi-service prompting next time.</p>
+          </div>
+
+          <div class="notice-footer">
+            <button id="loginAction" class="action-btn">Got it</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  getStyles() {
+    return `
+      :host {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2147483647;
+        font-family: "Roboto", "Google Sans", system-ui, sans-serif;
+        display: none;
+      }
+      .overlay-backdrop {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .notice-card {
+        width: 420px;
+        max-width: 95vw;
+        background: #ffffff;
+        color: #202124;
+        border: 1px solid #dadce0;
+        border-radius: 20px;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        animation: pb-modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: auto;
+      }
+      @keyframes pb-modal-in {
+        from { transform: scale(0.95) translateY(20px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+      }
+      :host([data-theme="dark"]) .notice-card {
+        background: #202124;
+        color: #e8eaed;
+        border-color: #3c4043;
+      }
+      .header { display: flex; align-items: center; justify-content: space-between; }
+      .logo { display: flex; align-items: center; gap: 10px; }
+      .logo h1 { font-size: 22px; font-weight: 700; margin: 0; color: inherit; }
+      
+      .notice-content { display: flex; flex-direction: column; gap: 12px; }
+      .service-info { display: flex; align-items: center; gap: 10px; opacity: 0.8; }
+      .service-icon { width: 20px; height: 20px; object-fit: contain; }
+      .service-name { font-weight: 600; font-size: 15px; }
+      
+      .close-btn { 
+        background: none; border: none; font-size: 28px; color: #80868b; 
+        cursor: pointer; padding: 4px; line-height: 0.5; transition: all 0.2s;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+      }
+      .close-btn:hover { color: #202124; background: rgba(0,0,0,0.05); }
+      :host([data-theme="dark"]) .close-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+      .notice-content p { margin: 0; font-size: 16px; line-height: 1.6; color: #3c4043; }
+      :host([data-theme="dark"]) .notice-content p { color: #bdc1c6; }
+
+      .action-btn {
+        background: #fb923c;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s;
+      }
+      .action-btn:hover { 
+        background: #f97316; 
+      }
+      .action-btn:active { transform: scale(0.98); }
+    `;
+  }
+}
+
+async function initLoginCheck() {
+  // 1. Identify current service
+  try {
+    const response = await new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(null), 2000);
+      chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
+        clearTimeout(timeout);
+        resolve(res);
+      });
+    });
+    if (!response?.services) return;
+
+    const currentHostname = window.location.hostname;
+    const service = response.services.find((s) => {
+      try {
+        return currentHostname.includes(new URL(s.url).hostname);
+      } catch {
+        return false;
+      }
+    });
+
+    if (!service) return;
+
+    // 2. Wait to see if the input appears (user might be logged in)
+    // We check multiple times over 5 seconds
+    let loggedIn = false;
+    for (let i = 0; i < 5; i++) {
+      if (document.querySelector(service.selector)) {
+        loggedIn = true;
+        break;
+      }
+      await sleep(1000);
+    }
+    if (loggedIn) return;
+
+    // 3. Check for login markers
+    const loginMarkers = service.loginSelector ? service.loginSelector.split(',') : [];
+    let loginMarkerFound = false;
+    for (const sel of loginMarkers) {
+      if (sel.trim() && document.querySelector(sel.trim())) {
+        loginMarkerFound = true;
+        break;
+      }
+    }
+
+    // Secondary heuristic: look for "Log in" or "Sign in" buttons if input is missing
+    if (!loginMarkerFound) {
+      const loginTerms = ["log in", "sign in", "get started", "sign up"];
+      const buttons = Array.from(document.querySelectorAll("button, a"));
+      loginMarkerFound = buttons.some((btn) => {
+        const text = btn.textContent.toLowerCase();
+        return loginTerms.some((term) => text.includes(term)) && btn.offsetParent !== null; // element is visible
+      });
+    }
+
+    if (loginMarkerFound) {
+      const notice = new LoginNoticeOverlay(service);
+      await notice.initPromise;
+      notice.show();
+    }
+  } catch (err) {
+    console.warn("[PromptBlast] Login check skip:", err);
+  }
+}
+
+// Initialize login check on load
+if (document.readyState === "complete") {
+  initLoginCheck();
+} else {
+  window.addEventListener("load", initLoginCheck);
+}
