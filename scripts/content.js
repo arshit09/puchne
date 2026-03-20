@@ -183,6 +183,7 @@ class PuchneOverlay {
       typeof h === "string" ? { text: h, timestamp: Date.now() } : h
     );
     this.historyLimit = settings.historyLimit || MAX_HISTORY;
+    this.enableHistory = settings.enableHistory !== false;
     this.showRecents = settings.showRecents !== false;
     this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
@@ -398,6 +399,7 @@ class PuchneOverlay {
   }
 
   addToHistory(query) {
+    if (!this.enableHistory) return;
     this.promptHistory = this.promptHistory.filter((h) => h.text !== query);
     this.promptHistory.unshift({ text: query, timestamp: Date.now() });
     this.promptHistory = this.promptHistory.slice(0, this.historyLimit || MAX_HISTORY);

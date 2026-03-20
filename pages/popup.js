@@ -31,6 +31,7 @@ let allServices = [];        // Full list from background.js
 let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
 let historyLimit = MAX_HISTORY; // Configurable cap
+let enableHistory = true;    // Whether to record history
 let showToolNames = true;    // UI preference
 
 // ── Initialization ───────────────────────────────────────────
@@ -43,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const settings = stored.settings || {};
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
   historyLimit = settings.historyLimit || MAX_HISTORY;
+  enableHistory = settings.enableHistory !== false;
   showToolNames = settings.showToolNames !== false;
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
@@ -182,6 +184,7 @@ function updateSendButton() {
  * Adds a prompt to history (deduplicates, caps at MAX_HISTORY).
  */
 function addToHistory(query) {
+  if (!enableHistory) return;
   // Remove duplicate if exists (handle both legacy string and {text} object formats)
   promptHistory = promptHistory.filter((h) =>
     typeof h === "string" ? h !== query : h.text !== query
@@ -199,7 +202,7 @@ function addToHistory(query) {
  * Renders the recent prompts list. Clicking one re-fills the input.
  */
 function renderHistory() {
-  if (promptHistory.length === 0) {
+  if (!enableHistory || promptHistory.length === 0) {
     historySection.classList.add("hidden");
     return;
   }

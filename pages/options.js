@@ -27,6 +27,7 @@ const groupTabsRow = document.getElementById("groupTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
+const enableHistoryEl = document.getElementById("enableHistory");
 const showRecentsEl = document.getElementById("showRecents");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 const overlayPositionEl = document.getElementById("overlayPosition");
@@ -67,6 +68,7 @@ const DEFAULTS = {
   groupTabs: true,
   delayMs: 2000,
   historyLimit: 20,
+  enableHistory: true,
   showRecents: true,
   overlayPosition: "center",
   chipDisplay: "logo-name",
@@ -101,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCookieConsentSelected(savedCookieConsent);
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
+  enableHistoryEl.checked = settings.enableHistory !== false;
   showRecentsEl.checked = settings.showRecents !== false;
 
   // Init chipDisplay
@@ -124,6 +127,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     updatePreview();
   });
 
+  enableHistoryEl.addEventListener("change", () => {
+    save();
+    updatePreview();
+  });
   showRecentsEl.addEventListener("change", () => {
     save();
     updatePreview();
@@ -595,6 +602,7 @@ async function save() {
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
+    enableHistory: enableHistoryEl.checked,
     theme: darkModeEl.checked ? "dark" : "light",
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,
@@ -744,7 +752,7 @@ function updatePreview() {
   }
 
   // History
-  mockHistory.style.display = showRecentsEl.checked ? "flex" : "none";
+  mockHistory.style.display = (enableHistoryEl.checked && showRecentsEl.checked) ? "flex" : "none";
 
   // Chip Display
   const chipMode = showToolNamesEl.value || "logo-name";
