@@ -178,6 +178,7 @@ function initResize(cellObj, dir, startX, startY) {
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
+    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs } });
   }
 
   document.addEventListener("mousemove", onMove);
@@ -330,6 +331,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize equal fractions
   colFracs = Array(cols).fill(1 / cols);
   rowFracs = Array(rows).fill(1 / rows);
+
+  // Restore saved layout if grid dimensions match
+  const savedLayout = await chrome.storage.local.get("gridLayout");
+  const saved = savedLayout.gridLayout;
+  if (saved && saved.cols === cols && saved.rows === rows &&
+      Array.isArray(saved.colFracs) && saved.colFracs.length === cols &&
+      Array.isArray(saved.rowFracs) && saved.rowFracs.length === rows) {
+    colFracs = saved.colFracs;
+    rowFracs = saved.rowFracs;
+  }
+
   updateGridTemplate();
 
   // Determine last-row spanning
