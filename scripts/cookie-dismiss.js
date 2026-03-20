@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  PromptBlast — Cookie Consent Auto-Dismisser
+ *  Puchne — Cookie Consent Auto-Dismisser
  * ============================================================
  *
  *  Injected into grid iframes to automatically handle cookie

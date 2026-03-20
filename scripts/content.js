@@ -1,12 +1,12 @@
-if (window.PromptBlastLoaded) {
+if (window.PuchneLoaded) {
   // Script already injected — bail out entirely to avoid duplicate
   // class definitions, listeners, and login-check overlays.
 } else {
-window.PromptBlastLoaded = true;
+window.PuchneLoaded = true;
 
 /**
  * ============================================================
- *  PromptBlast — Content Script
+ *  Puchne — Content Script
  * ============================================================
  *
  *  Injected into each AI website. Listens for the "fillQuery"
@@ -43,7 +43,7 @@ const GENERIC_BUTTON_FALLBACKS =
 
 // ── Message Listener ─────────────────────────────────────────
 // Only add the listener if it hasn't been added before
-if (!window.PromptBlastListenerAdded) {
+if (!window.PuchneListenerAdded) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.action === "fillQuery") {
       fillAndSubmit(message)
@@ -69,11 +69,11 @@ if (!window.PromptBlastListenerAdded) {
         // Type a test string so button-activation logic fires
         try {
           if (inputType === "textarea") {
-            fillTextarea(inputEl, "PromptBlast test");
+            fillTextarea(inputEl, "Puchne test");
           } else if (inputType === "prosemirror") {
-            fillProseMirror(inputEl, "PromptBlast test");
+            fillProseMirror(inputEl, "Puchne test");
           } else {
-            fillContentEditable(inputEl, "PromptBlast test");
+            fillContentEditable(inputEl, "Puchne test");
           }
         } catch {}
         // Give the page a moment to react (e.g. enable the send button)
@@ -88,7 +88,7 @@ if (!window.PromptBlastListenerAdded) {
       return true;
     }
   });
-  window.PromptBlastListenerAdded = true;
+  window.PuchneListenerAdded = true;
 }
 
 // ── Overlay Implementation ───────────────────────────────────
@@ -96,13 +96,13 @@ let overlayInstance = null;
 
 async function toggleOverlay() {
   if (!overlayInstance) {
-    overlayInstance = new PromptBlastOverlay();
+    overlayInstance = new PuchneOverlay();
     await overlayInstance.initPromise;
   }
   overlayInstance.toggle();
 }
 
-class PromptBlastOverlay {
+class PuchneOverlay {
   constructor() {
     this.visible = false;
     this.container = null;
@@ -513,7 +513,7 @@ class PromptBlastOverlay {
               <circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="2"/>
               <path d="M8 12l3 3 5-6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <h1>PromptBlast</h1>
+            <h1>Puchne</h1>
           </div>
           <button id="settingsBtn" class="icon-btn" title="Settings">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -801,7 +801,7 @@ async function fillAndSubmit({
   let element = await waitForElement(selector);
   if (!element) {
     const fallbackSel = GENERIC_INPUT_FALLBACKS[inputType] || GENERIC_INPUT_FALLBACKS.contenteditable;
-    console.warn(`[PromptBlast] Primary selector failed ("${selector}"), trying generic fallback: ${fallbackSel}`);
+    console.warn(`[Puchne] Primary selector failed ("${selector}"), trying generic fallback: ${fallbackSel}`);
     element = await waitForElement(fallbackSel);
   }
   if (!element) {
@@ -840,7 +840,7 @@ async function fillAndSubmit({
       let btn = await waitForElement(buttonSel, true);
       let resolvedButtonSel = buttonSel;
       if (!btn) {
-        console.warn(`[PromptBlast] Button selector failed ("${buttonSel}"), trying generic fallback`);
+        console.warn(`[Puchne] Button selector failed ("${buttonSel}"), trying generic fallback`);
         btn = await waitForElement(GENERIC_BUTTON_FALLBACKS, true);
         resolvedButtonSel = GENERIC_BUTTON_FALLBACKS;
       }
@@ -848,7 +848,7 @@ async function fillAndSubmit({
         await sleep(SUBMIT_DELAY);
         submit(element, submitType, resolvedButtonSel);
       } else {
-        console.warn("[PromptBlast] Submit button NOT found after filling:", buttonSel);
+        console.warn("[Puchne] Submit button NOT found after filling:", buttonSel);
         // Fallback: try enter key anyway
         submit(element, "enter", null);
       }
@@ -892,7 +892,7 @@ function fillTextarea(el, query) {
 
     return true;
   } catch (err) {
-    console.error("[PromptBlast] fillTextarea failed:", err);
+    console.error("[Puchne] fillTextarea failed:", err);
     return false;
   }
 }
@@ -947,7 +947,7 @@ function fillContentEditable(el, query) {
 
     return true;
   } catch (err) {
-    console.error("[PromptBlast] fillContentEditable failed:", err);
+    console.error("[Puchne] fillContentEditable failed:", err);
     return false;
   }
 }
@@ -981,7 +981,7 @@ function fillProseMirror(el, query) {
       document.execCommand("delete", false, null);
       document.execCommand("insertText", false, query);
     } catch (e) {
-      console.warn("[PromptBlast] execCommand failed, falling back...");
+      console.warn("[Puchne] execCommand failed, falling back...");
       // Manual fallback if execCommand is blocked
       el.textContent = query;
     }
@@ -1014,7 +1014,7 @@ function fillProseMirror(el, query) {
 
     return true;
   } catch (err) {
-    console.error("[PromptBlast] fillProseMirror failed:", err);
+    console.error("[Puchne] fillProseMirror failed:", err);
     // Fall back to contenteditable method
     return fillContentEditable(el, query);
   }
@@ -1247,7 +1247,7 @@ class LoginNoticeOverlay {
                 <circle cx="12" cy="12" r="10" stroke="#fb923c" stroke-width="2"/>
                 <path d="M8 12l3 3 5-6" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <h1>PromptBlast</h1>
+              <h1>Puchne</h1>
             </div>
             <button id="closeNotice" class="close-btn" title="Dismiss">&times;</button>
           </header>
@@ -1257,7 +1257,7 @@ class LoginNoticeOverlay {
               <img src="${chrome.runtime.getURL(this.service.iconPath)}" class="service-icon" />
               <span class="service-name">${this.service.name}</span>
             </div>
-            <p>Login required to use PromptBlast on this tool. Please sign in to enable multi-service prompting next time.</p>
+            <p>Login required to use Puchne on this tool. Please sign in to enable multi-service prompting next time.</p>
           </div>
 
           <div class="notice-footer">
@@ -1417,7 +1417,7 @@ async function initLoginCheck() {
       notice.show();
     }
   } catch (err) {
-    console.warn("[PromptBlast] Login check skip:", err);
+    console.warn("[Puchne] Login check skip:", err);
   }
 }
 
@@ -1428,4 +1428,4 @@ if (document.readyState === "complete") {
   window.addEventListener("load", initLoginCheck);
 }
 
-} // end of PromptBlastLoaded guard
+} // end of PuchneLoaded guard

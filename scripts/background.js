@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  PromptBlast — Background Service Worker
+ *  Puchne — Background Service Worker
  * ============================================================
  *
  *  This is the "brain" of the extension. It:
@@ -166,10 +166,10 @@ chrome.action.onClicked.addListener(async (tab) => {
         // Try again after injection
         await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
       } catch (injectErr) {
-        console.warn("[PromptBlast] Manual injection failed:", injectErr);
+        console.warn("[Puchne] Manual injection failed:", injectErr);
       }
     } else {
-      console.error("[PromptBlast] Toggle overlay failed:", err);
+      console.error("[Puchne] Toggle overlay failed:", err);
     }
   }
 });
@@ -183,10 +183,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.action === "multicast") {
-    console.log("[PromptBlast] Starting multicast for query:", message.query);
+    console.log("[Puchne] Starting multicast for query:", message.query);
     // We await this so the service worker stays alive and we can report completion
     handleMulticast(message.query).then(() => {
-      console.log("[PromptBlast] Multicast completed.");
+      console.log("[Puchne] Multicast completed.");
     });
     sendResponse({ ok: true });
     return true;
@@ -261,7 +261,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             (f) => f.frameId !== 0 && f.url && f.url.startsWith(new URL(target.url).origin)
           );
           if (!frame) {
-            console.warn(`[PromptBlast Grid] No frame found for ${target.name}`);
+            console.warn(`[Puchne Grid] No frame found for ${target.name}`);
             results.push({ service: target.name, ok: false, error: "frame not found" });
             continue;
           }
@@ -279,7 +279,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
                 files: ["scripts/cookie-dismiss.js"],
               });
             } catch (err) {
-              console.log(`[PromptBlast Grid] Cookie dismiss inject for ${target.name}:`, err.message);
+              console.log(`[Puchne Grid] Cookie dismiss inject for ${target.name}:`, err.message);
             }
           }
 
@@ -290,7 +290,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
               files: ["scripts/constants.js", "scripts/content.js"],
             });
           } catch (err) {
-            console.log(`[PromptBlast Grid] Script inject for ${target.name}:`, err.message);
+            console.log(`[Puchne Grid] Script inject for ${target.name}:`, err.message);
           }
 
           // Send fillQuery to that specific frame
@@ -320,7 +320,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
                 }
               );
             });
-            console.log(`[PromptBlast Grid] ${target.name}:`, response);
+            console.log(`[Puchne Grid] ${target.name}:`, response);
             results.push({ service: target.name, ...response });
           } catch (err) {
             results.push({ service: target.name, ok: false, error: err.message });
@@ -329,7 +329,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
         sendResponse({ ok: true, results });
       } catch (err) {
-        console.error("[PromptBlast Grid] injectGridQueries failed:", err);
+        console.error("[Puchne Grid] injectGridQueries failed:", err);
         sendResponse({ ok: false, error: err.message });
       }
     })();
@@ -373,7 +373,7 @@ async function handleMulticast(query) {
     });
 
   if (targets.length === 0) {
-    console.warn("[PromptBlast] No services enabled — nothing to do.");
+    console.warn("[Puchne] No services enabled — nothing to do.");
     return;
   }
 
@@ -401,7 +401,7 @@ async function handleMulticast(query) {
     });
     const gridUrl = chrome.runtime.getURL("pages/grid.html");
     await chrome.tabs.create({ url: gridUrl, active: true });
-    console.log("[PromptBlast] Opened grid view tab.");
+    console.log("[Puchne] Opened grid view tab.");
     return;
   }
 
@@ -417,18 +417,18 @@ async function handleMulticast(query) {
       const ids = tabs.map((t) => t.id);
       const groupId = await chrome.tabs.group({ tabIds: ids });
       await chrome.tabGroups.update(groupId, {
-        title: "PromptBlast",
+        title: "Puchne",
         color: "blue",
         collapsed: false,
       });
     } catch (err) {
-      console.warn("[PromptBlast] Tab grouping failed:", err);
+      console.warn("[Puchne] Tab grouping failed:", err);
     }
   }
 
   // Handle tab activation & injection
   if (tabs.length > 0) {
-    console.log(`[PromptBlast] Target services: ${targets.map(t => t.name).join(", ")}`);
+    console.log(`[Puchne] Target services: ${targets.map(t => t.name).join(", ")}`);
 
     // 1. Activate the first tab immediately so the user knows work has started
     chrome.tabs.update(tabs[0].id, { active: true });
@@ -439,17 +439,17 @@ async function handleMulticast(query) {
       try {
         await waitForTabLoad(tab.id);
         await ensureContentScript(tab.id);
-        console.log(`[PromptBlast] Injecting into ${service.name}...`);
+        console.log(`[Puchne] Injecting into ${service.name}...`);
         return await injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
       } catch (err) {
-        console.warn(`[PromptBlast] Pipeline failed for ${service.name}:`, err);
+        console.warn(`[Puchne] Pipeline failed for ${service.name}:`, err);
       }
     });
 
     // 4. Wait until every tab has finished its work (keeps the service worker alive).
-    console.log("[PromptBlast] Waiting for all tabs to process query and submit...");
+    console.log("[Puchne] Waiting for all tabs to process query and submit...");
     await Promise.allSettled(injectionPromises);
-    console.log("[PromptBlast] All background processing complete.");
+    console.log("[Puchne] All background processing complete.");
   }
 }
 
@@ -465,7 +465,7 @@ function waitForTabLoad(tabId) {
 
     const timer = setTimeout(() => {
       if (!resolved) {
-        console.warn(`[PromptBlast] Tab ${tabId} load timed out after 10s`);
+        console.warn(`[Puchne] Tab ${tabId} load timed out after 10s`);
         resolved = true;
         resolve();
       }
@@ -508,7 +508,7 @@ async function ensureContentScript(tabId) {
     });
   } catch (err) {
     // Script already injected or tab is restricted — both are fine
-    console.log(`[PromptBlast] ensureContentScript (tab ${tabId}):`, err.message);
+    console.log(`[Puchne] ensureContentScript (tab ${tabId}):`, err.message);
   }
 }
 
@@ -524,7 +524,7 @@ function injectQuery(tabId, service, query, autoSubmit, waitMs) {
   return new Promise((resolve) => {
     // Safety timeout: resolve even if the tab never responds
     const timer = setTimeout(() => {
-      console.warn(`[PromptBlast] ${service.name} timed out after ${INJECT_TIMEOUT_MS}ms`);
+      console.warn(`[Puchne] ${service.name} timed out after ${INJECT_TIMEOUT_MS}ms`);
       resolve({ ok: false, error: "timeout" });
     }, INJECT_TIMEOUT_MS);
 
@@ -544,12 +544,12 @@ function injectQuery(tabId, service, query, autoSubmit, waitMs) {
         clearTimeout(timer);
         if (chrome.runtime.lastError) {
           console.warn(
-            `[PromptBlast] Could not reach ${service.name}:`,
+            `[Puchne] Could not reach ${service.name}:`,
             chrome.runtime.lastError.message
           );
           resolve({ ok: false, error: chrome.runtime.lastError.message });
         } else {
-          console.log(`[PromptBlast] ${service.name}:`, response);
+          console.log(`[Puchne] ${service.name}:`, response);
           resolve(response);
         }
       }

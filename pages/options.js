@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  PromptBlast — Options Page Script
+ *  Puchne — Options Page Script
  * ============================================================
  *
  *  Manages the full settings page:

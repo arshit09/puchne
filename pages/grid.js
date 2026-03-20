@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  PromptBlast — Grid View Script
+ *  Puchne — Grid View Script
  * ============================================================
  *
  *  Renders enabled AI services in a tiled CSS grid layout.
@@ -446,21 +446,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const loadedTargets = loadResults.filter(r => r.ok).map(r => r.service);
 
   if (loadedTargets.length === 0) {
-    console.warn("[PromptBlast Grid] No iframes loaded successfully.");
+    console.warn("[Puchne Grid] No iframes loaded successfully.");
     return;
   }
 
   const tab = await chrome.tabs.getCurrent();
   if (!tab) return;
 
-  console.log(`[PromptBlast Grid] Requesting injection for ${loadedTargets.length} frames...`);
+  console.log(`[Puchne Grid] Requesting injection for ${loadedTargets.length} frames...`);
   chrome.runtime.sendMessage(
     { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query, autoSubmit, cookieConsent, delayMs },
     (response) => {
       if (chrome.runtime.lastError) {
-        console.error("[PromptBlast Grid] Injection request failed:", chrome.runtime.lastError.message);
+        console.error("[Puchne Grid] Injection request failed:", chrome.runtime.lastError.message);
       } else {
-        console.log("[PromptBlast Grid] Injection results:", response);
+        console.log("[Puchne Grid] Injection results:", response);
       }
     }
   );

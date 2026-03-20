@@ -1,8 +1,8 @@
-# ⚡ PromptBlast — Search Every AI at Once
+# ⚡ Puchne — Ask Every AI at Once
 
 > One prompt. Every AI. Simultaneously.
 
-PromptBlast is a powerful, open-source Chrome extension that lets you send a single prompt to **ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity** — all at once. Compare results instantly without manual copy-pasting.
+Puchne is a powerful, open-source Chrome extension that lets you send a single prompt to **ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity** — all at once. Compare results instantly without manual copy-pasting.
 
 ---
 
@@ -30,7 +30,7 @@ PromptBlast is a powerful, open-source Chrome extension that lets you send a sin
 | DeepSeek   | chat.deepseek.com     | ✅      |
 | Perplexity | perplexity.ai         | ✅      |
 
-> **Note:** You must be logged into each service for the extension to work. PromptBlast does not handle authentication.
+> **Note:** You must be logged into each service for the extension to work. Puchne does not handle authentication.
 
 ---
 
@@ -54,8 +54,8 @@ PromptBlast is a powerful, open-source Chrome extension that lets you send a sin
 ### Keyboard Shortcut Setup
 
 1. Go to `chrome://extensions/shortcuts`
-2. Find **PromptBlast**
-3. Set your preferred key combination for "Open PromptBlast popup"
+2. Find **Puchne**
+3. Set your preferred key combination for "Open Puchne popup"
 
 ---
 
@@ -82,7 +82,7 @@ prompt-blast/
 
 ## 🔧 Technical Overview
 
-PromptBlast handles the complexities of modern web apps (React/Vue/ProseMirror) by intelligently simulating user input:
+Puchne handles the complexities of modern web apps (React/Vue/ProseMirror) by intelligently simulating user input:
 
 - **Bypassing Virtual DOMs:** Uses native prototype hooks to ensure state updates trigger in AI textareas.
 - **Event Simulation:** Replicates `InputEvent` and `DataTransfer` to work with advanced editors like ProseMirror (Claude/ChatGPT).
