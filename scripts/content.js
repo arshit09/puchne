@@ -1111,6 +1111,13 @@ function clickSubmitButton(buttonSel) {
 
 // ── Utilities ────────────────────────────────────────────────
 
+// Tracks all active waitForElement observers so they can be cleaned up on unload.
+const _activeObservers = new Set();
+window.addEventListener("pagehide", () => {
+  for (const obs of _activeObservers) obs.disconnect();
+  _activeObservers.clear();
+}, { once: true });
+
 /**
  * Waits for a DOM element matching `selector` to appear.
  *
@@ -1132,16 +1139,22 @@ function waitForElement(selector, checkEnabled = false) {
 
     let retries = 0;
 
+    function cleanup() {
+      observer.disconnect();
+      _activeObservers.delete(observer);
+      clearInterval(fallback);
+    }
+
     // MutationObserver: fast, event-driven detection
     const observer = new MutationObserver(() => {
       const el = getEl();
       if (el) {
-        observer.disconnect();
-        clearInterval(fallback);
+        cleanup();
         resolve(el);
       }
     });
 
+    _activeObservers.add(observer);
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
@@ -1154,12 +1167,10 @@ function waitForElement(selector, checkEnabled = false) {
       retries++;
       const el = getEl();
       if (el) {
-        observer.disconnect();
-        clearInterval(fallback);
+        cleanup();
         resolve(el);
       } else if (retries >= MAX_RETRIES) {
-        observer.disconnect();
-        clearInterval(fallback);
+        cleanup();
         resolve(null);
       }
     }, RETRY_INTERVAL);
