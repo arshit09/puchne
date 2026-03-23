@@ -40,14 +40,14 @@ Puchne is a powerful, open-source Chrome extension that lets you send a single p
 
 1. **Clone** this repository:
    ```bash
-   git clone https://github.com/arshit09/prompt-blast.git
+   git clone https://github.com/arshit09/puchne.git
    ```
 
 2. Open Chrome and navigate to `chrome://extensions/`
 
 3. Enable **Developer mode** (toggle in the top-right corner)
 
-4. Click **Load unpacked** and select the `prompt-blast` folder
+4. Click **Load unpacked** and select the `puchne` folder
 
 5. Pin the extension icon for the best experience!
 
@@ -62,20 +62,29 @@ Puchne is a powerful, open-source Chrome extension that lets you send a single p
 ## 🏗️ Project Structure
 
 ```
-prompt-blast/
+puchne/
 ├── manifest.json              # Extension metadata & permissions
 ├── scripts/
 │   ├── background.js          # Tab orchestration & service registry
-│   └── content.js             # UI Overlay & prompt injection logic
+│   ├── content.js             # UI Overlay & prompt injection logic
+│   ├── constants.js           # Shared constants & service definitions
+│   └── cookie-dismiss.js      # Auto-dismiss cookie banners on AI sites
 ├── pages/
 │   ├── popup.html             # Main blast interface
+│   ├── popup.js               # Popup logic & event handling
 │   ├── options.html           # Settings & customization page
+│   ├── options.js             # Options page logic
+│   ├── grid.html              # Grid view for comparing AI responses
+│   └── grid.js                # Grid view logic
 ├── styles/
 │   ├── popup.css              # Custom themes & layout tokens
-│   └── options.css            # Settings page styling
+│   ├── options.css            # Settings page styling
+│   └── grid.css               # Grid view styling
+├── rules/
+│   └── grid_headers.json      # Declarative net request rules for grid
 └── icons/
-    ├── chatgpt.svg, gemini.svg... # Brand icons for services
-    ├── icon-128.png           # Extension identity icons
+    ├── chatgpt_dark.png, gemini.png... # Brand icons for services
+    └── icon-16.png, icon-48.png, icon-128.png # Extension identity icons
 ```
 
 ---
