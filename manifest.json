@@ -83,15 +83,7 @@
   "web_accessible_resources": [
     {
       "resources": ["icons/*.svg", "icons/*.png", "pages/grid.html", "scripts/cookie-dismiss.js"],
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*",
-        "https://copilot.microsoft.com/*",
-        "https://chat.deepseek.com/*",
-        "https://www.perplexity.ai/*"
-      ]
+      "matches": ["<all_urls>"]
     }
   ]
 }
