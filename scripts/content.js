@@ -27,8 +27,7 @@ window.PuchneLoaded = true;
  */
 
 // ── Configuration ────────────────────────────────────────────
-// MAX_RETRIES and RETRY_INTERVAL are defined in scripts/constants.js
-const SUBMIT_DELAY = 100;    // Reduced since we now wait for the button specifically
+// MAX_RETRIES, RETRY_INTERVAL, and SUBMIT_DELAY are defined in scripts/constants.js
 
 // Last-resort selectors tried when the service's own selector finds nothing.
 // Ordered from most-specific to most-generic so we grab the right element.
@@ -42,9 +41,7 @@ const GENERIC_BUTTON_FALLBACKS =
   'button[aria-label*="send" i], button[aria-label*="submit" i], [data-testid*="send"], [data-testid*="submit"]';
 
 // ── Message Listener ─────────────────────────────────────────
-// Only add the listener if it hasn't been added before
-if (!window.PuchneListenerAdded) {
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.action === "fillQuery") {
       fillAndSubmit(message)
         .then((result) => sendResponse(result))
@@ -87,9 +84,7 @@ if (!window.PuchneListenerAdded) {
       })();
       return true;
     }
-  });
-  window.PuchneListenerAdded = true;
-}
+});
 
 // ── Overlay Implementation ───────────────────────────────────
 let overlayInstance = null;
@@ -111,6 +106,7 @@ class PuchneOverlay {
     this.enabledServiceIds = [];
     this.promptHistory = [];
     this.overlayPosition = "center";
+    this._chipFingerprint = "";
 
     this.initPromise = this.init();
   }
@@ -227,11 +223,27 @@ class PuchneOverlay {
       e.stopPropagation();
     });
 
-    // Close on Escape - scoped to the overlay container when visible
+    // Close on Escape + focus trap within the overlay
     this.container.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         e.stopPropagation();
         this.hide();
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusable = [...this.shadow.querySelectorAll(
+          'button, textarea, input, [tabindex]:not([tabindex="-1"])'
+        )].filter((el) => !el.disabled && el.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && this.shadow.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && this.shadow.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     });
 
@@ -308,9 +320,17 @@ class PuchneOverlay {
     this.container.style.display = "none";
   }
 
-  renderServiceChips() {
-    const serviceChipsEl = this.shadow.getElementById("serviceChips");
+  renderServiceChips(force = false) {
     const mode = this.chipDisplay || "logo-name";
+    const theme = this.container.dataset.theme || "dark";
+    const fp = `${mode}|${theme}|${this.enabledServiceIds.slice().sort().join(",")}`;
+    if (!force && fp === this._chipFingerprint) {
+      this.updateSendButton();
+      return;
+    }
+    this._chipFingerprint = fp;
+
+    const serviceChipsEl = this.shadow.getElementById("serviceChips");
     serviceChipsEl.style.display = (mode === "none") ? "none" : "flex";
     serviceChipsEl.innerHTML = "";
 
@@ -1186,7 +1206,9 @@ function formatRelativeTime(timestamp) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString();
+  return new Date(timestamp).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
 }
 
 

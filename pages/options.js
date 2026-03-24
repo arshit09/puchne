@@ -559,8 +559,10 @@ async function runServiceTest(service, editor, btn) {
     }
   } else {
     btn.className = "selector-test-btn failure";
-    const msg = result?.error ? result.error.slice(0, 28) : "Not found";
+    const fullError = result?.error || "Not found";
+    const msg = fullError.length > 60 ? fullError.slice(0, 57) + "..." : fullError;
     btn.textContent = `✗ ${msg}`;
+    btn.title = fullError;
   }
 
   setTimeout(() => {

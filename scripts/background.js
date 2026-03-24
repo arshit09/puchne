@@ -1,3 +1,6 @@
+// Import shared constants (must be first statement in MV3 service worker)
+importScripts("constants.js");
+
 /**
  * ============================================================
  *  Puchne — Background Service Worker
@@ -161,7 +164,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["scripts/content.js"]
+          files: ["scripts/constants.js", "scripts/content.js"]
         });
         // Try again after injection
         await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
@@ -448,7 +451,20 @@ async function handleMulticast(query) {
 
     // 4. Wait until every tab has finished its work (keeps the service worker alive).
     console.log("[Puchne] Waiting for all tabs to process query and submit...");
-    await Promise.allSettled(injectionPromises);
+    const results = await Promise.allSettled(injectionPromises);
+
+    // 5. Report failures via the extension badge.
+    const failures = results.filter(
+      (r) => r.status === "rejected" || (r.status === "fulfilled" && r.value && !r.value.ok)
+    );
+    if (failures.length > 0) {
+      chrome.action.setBadgeText({ text: "!" });
+      chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
+      setTimeout(() => chrome.action.setBadgeText({ text: "" }), 10_000);
+      console.warn(`[Puchne] ${failures.length}/${results.length} service(s) failed.`);
+    } else {
+      chrome.action.setBadgeText({ text: "" });
+    }
     console.log("[Puchne] All background processing complete.");
   }
 }
@@ -460,7 +476,7 @@ async function handleMulticast(query) {
  */
 function waitForTabLoad(tabId) {
   return new Promise((resolve) => {
-    const TIMEOUT = 10_000; // Reduced to 10s to prevent tour from hanging
+    const TIMEOUT = TAB_LOAD_TIMEOUT;
     let resolved = false;
 
     const timer = setTimeout(() => {
@@ -504,7 +520,7 @@ async function ensureContentScript(tabId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["scripts/content.js"],
+      files: ["scripts/constants.js", "scripts/content.js"],
     });
   } catch (err) {
     // Script already injected or tab is restricted — both are fine
@@ -519,7 +535,7 @@ async function ensureContentScript(tabId) {
  * resolve after INJECT_TIMEOUT_MS so Promise.allSettled doesn't hang.
  */
 function injectQuery(tabId, service, query, autoSubmit, waitMs) {
-  const INJECT_TIMEOUT_MS = 15_000; // 15 s safety net per tab
+  // INJECT_TIMEOUT_MS is defined in constants.js
 
   return new Promise((resolve) => {
     // Safety timeout: resolve even if the tab never responds
