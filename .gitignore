@@ -1,0 +1,8 @@
+# Chrome auto-generated files
+_metadata/
+
+# Generated icon exports
+newicon/
+
+# Claude Code
+.claude/
