@@ -46,8 +46,8 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: '#composer-submit-button, [data-testid="send-button"], button[aria-label*="send" i]',
     waitMs: 2500,
-    iconPath: 'icons/chatgpt_dark.png',
-    iconPathDark: 'icons/chatgpt_light.png',
+    iconPath: 'icons/services/chatgpt_dark.png',
+    iconPathDark: 'icons/services/chatgpt_light.png',
     loginSelector: '[data-testid="login-button"], a[href*="/auth/login"]'
   },
   {
@@ -60,7 +60,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button[aria-label*="send" i], button:has(path[d^="M208.49"])',
     waitMs: 2500,
-    iconPath: 'icons/claude.png',
+    iconPath: 'icons/services/claude.png',
     loginSelector: 'a[href*="/login"], .login-btn, button[class*="login" i]'
   },
   {
@@ -73,7 +73,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"], button[aria-label*="send" i], [data-testid="send-button"]',
     waitMs: 2500,
-    iconPath: 'icons/gemini.png',
+    iconPath: 'icons/services/gemini.png',
     loginSelector: 'a[href*="accounts.google.com"], .sign-in-button, button[class*="sign-in" i]'
   },
   {
@@ -85,7 +85,7 @@ const AI_SERVICES = [
     selector: '#userInput, textarea[name="userInput"], [data-testid="user-input"], textarea[placeholder*="message" i]',
     submitType: "enter",
     waitMs: 2500,
-    iconPath: 'icons/copilot.png',
+    iconPath: 'icons/services/copilot.png',
     loginSelector: 'button#mectrl_main_trigger, a.login-button, [aria-label*="sign in" i]'
   },
   {
@@ -97,7 +97,7 @@ const AI_SERVICES = [
     selector: 'textarea#chat-input, textarea[placeholder*="message" i], textarea',
     submitType: "enter",
     waitMs: 2500,
-    iconPath: 'icons/deepseek.png',
+    iconPath: 'icons/services/deepseek.png',
     loginSelector: 'a[href*="/login"], button[class*="login" i]'
   },
   {
@@ -110,7 +110,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Submit"], button[aria-label*="submit" i], button[aria-label*="send" i]',
     waitMs: 2500,
-    iconPath: 'icons/perplexity.png',
+    iconPath: 'icons/services/perplexity.png',
     loginSelector: 'a[href*="/login"], button[class*="login" i], button[class*="sign-in" i]'
   },
 ];

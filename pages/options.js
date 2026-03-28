@@ -856,7 +856,7 @@ function updatePreview() {
   // Dynamic ChatGPT icon for theme consistency
   const chatgptMockIcon = mockOverlay.querySelector("img[src*='chatgpt']");
   if (chatgptMockIcon) {
-    chatgptMockIcon.src = isDark ? "../icons/chatgpt_light.png" : "../icons/chatgpt_dark.png";
+    chatgptMockIcon.src = isDark ? "../icons/services/chatgpt_light.png" : "../icons/services/chatgpt_dark.png";
   }
 
   // Theme
