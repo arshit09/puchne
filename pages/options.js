@@ -432,11 +432,11 @@ function renderServices() {
     row.appendChild(info);
     row.appendChild(controls);
 
-    // Row click toggles the service (not expand btn or toggle)
+    // Row click expands/collapses the selector editor (not expand btn or toggle)
     row.addEventListener("click", (e) => {
       if (e.target.closest(".toggle") || e.target.closest(".expand-btn")) return;
-      checkbox.checked = !checkbox.checked;
-      toggleService(service.id, checkbox.checked);
+      const isOpen = editor.classList.toggle("open");
+      expandBtn.classList.toggle("open", isOpen);
     });
 
     // ── Selector editor (collapsible) ─────────────────────────
