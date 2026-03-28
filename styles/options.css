@@ -322,6 +322,19 @@ body {
   display: inline;
 }
 
+/* ── Sidebar preview mode ──────────────────────────────────── */
+.mock-overlay.sidebar-mode {
+  right: 0;
+  top: 0;
+  left: auto;
+  width: 58%;
+  height: 100%;
+  border-radius: 10px 0 0 10px;
+  border-right: none;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+}
+
 .pos-indicator {
   position: absolute;
   left: 0;

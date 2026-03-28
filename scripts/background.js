@@ -129,6 +129,7 @@ async function getSettings() {
   const defaults = {
     enabledServices: ["chatgpt", "claude", "gemini"],
     autoSubmit: true,
+    useSidebar: false,
     gridView: false,
     groupTabs: true,
     delayMs: 2000,
@@ -143,6 +144,26 @@ async function getSettings() {
 // ── Message Listener ─────────────────────────────────────────
 // The popup sends { action: "multicast", query: "..." }
 // We also handle { action: "getServices" } for the popup/options
+
+// ── Sidebar Mode ─────────────────────────────────────────────
+// When useSidebar is ON, clicking the icon opens the side panel
+// (Chrome handles this automatically via openPanelOnActionClick).
+// When OFF, the icon click fires onClicked and we toggle the overlay.
+
+async function applySidebarMode(useSidebar) {
+  if (!chrome.sidePanel?.setPanelBehavior) return; // Chrome < 116
+  try {
+    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: !!useSidebar });
+  } catch (err) {
+    console.warn("[Puchne] sidePanel.setPanelBehavior failed:", err);
+  }
+}
+
+// Initialize on service-worker startup
+(async () => {
+  const settings = await getSettings();
+  await applySidebarMode(settings.useSidebar);
+})();
 
 // ── Action Click Listener ────────────────────────────────────
 // When the extension icon is clicked, tell the content script to
@@ -182,6 +203,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getServices") {
     // Return the full service registry so popup/options can render it
     sendResponse({ services: AI_SERVICES });
+    return true;
+  }
+
+  if (message.action === "setSidebarMode") {
+    applySidebarMode(message.useSidebar).then(() => sendResponse({ ok: true }));
     return true;
   }
 

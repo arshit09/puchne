@@ -5,7 +5,7 @@
   "description": "Send one prompt to ChatGPT, Claude, Gemini, Copilot, DeepSeek & more — all at once. Open source.",
   "author": "Puchne Contributors",
 
-  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequest", "webNavigation"],
+  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequest", "webNavigation", "sidePanel"],
 
   "host_permissions": [
     "https://chatgpt.com/*",
@@ -25,6 +25,10 @@
         "path": "rules/grid_headers.json"
       }
     ]
+  },
+
+  "side_panel": {
+    "default_path": "pages/popup.html"
   },
 
   "background": {

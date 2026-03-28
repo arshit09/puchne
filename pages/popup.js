@@ -43,6 +43,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+
+  // Apply sidebar layout if the page is running in the side panel
+  if (settings.useSidebar) {
+    document.documentElement.dataset.mode = "sidebar";
+  }
   historyLimit = settings.historyLimit || MAX_HISTORY;
   enableHistory = settings.enableHistory !== false;
   showToolNames = settings.showToolNames !== false;

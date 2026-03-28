@@ -17,6 +17,7 @@
 // ── DOM References ───────────────────────────────────────────
 const serviceListEl = document.getElementById("serviceList");
 const autoSubmitEl = document.getElementById("autoSubmit");
+const useSidebarEl = document.getElementById("useSidebar");
 const groupTabsEl = document.getElementById("groupTabs");
 const delayMsEl = document.getElementById("delayMs");
 const historyLimitEl = document.getElementById("historyLimit");
@@ -64,6 +65,7 @@ let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
 const DEFAULTS = {
   enabledServices: ["chatgpt", "claude", "gemini"],
   autoSubmit: true,
+  useSidebar: false,
   gridView: false,
   groupTabs: true,
   delayMs: 2000,
@@ -94,6 +96,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   enabledServiceIds = settings.enabledServices;
   customSelectors = settings.customSelectors || {};
   autoSubmitEl.checked = settings.autoSubmit;
+  useSidebarEl.checked = settings.useSidebar || false;
+  updateOverlayPositionState();
   gridViewEl.checked = settings.gridView || false;
   groupTabsEl.checked = settings.groupTabs;
   updateGroupTabsState();
@@ -142,6 +146,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Attach event listeners
   autoSubmitEl.addEventListener("change", save);
+  useSidebarEl.addEventListener("change", () => {
+    chrome.runtime.sendMessage({ action: "setSidebarMode", useSidebar: useSidebarEl.checked });
+    updateOverlayPositionState();
+    save();
+    updatePreview();
+  });
   gridViewEl.addEventListener("change", () => {
     updateGroupTabsState();
     updateCookieConsentState();
@@ -313,6 +323,15 @@ function updateGroupTabsState() {
   const disabled = gridViewEl.checked;
   groupTabsRow.style.opacity = disabled ? "0.45" : "1";
   groupTabsRow.style.pointerEvents = disabled ? "none" : "";
+}
+
+function updateOverlayPositionState() {
+  const disabled = useSidebarEl.checked;
+  const row = overlayPositionContainer.closest(".setting-row");
+  if (row) {
+    row.style.opacity = disabled ? "0.45" : "1";
+    row.style.pointerEvents = disabled ? "none" : "";
+  }
 }
 
 function updateCookieConsentState() {
@@ -614,6 +633,7 @@ async function _doSave() {
   const settings = {
     enabledServices: enabledServiceIds,
     autoSubmit: autoSubmitEl.checked,
+    useSidebar: useSidebarEl.checked,
     gridView: gridViewEl.checked,
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
@@ -743,28 +763,38 @@ function updatePreview() {
   if (!mockOverlay) return;
 
   const isDark = darkModeEl.checked;
+  const isSidebar = useSidebarEl.checked;
 
-  // Position — always use `top` + `translateY` so CSS can animate between
-  // numeric values. Setting `top: auto` or `bottom` breaks transitions because
-  // browsers cannot interpolate `auto`.
-  const pos = overlayPositionEl.value || "center";
-  const previewBox = mockOverlay.parentElement;
-  const boxH = previewBox ? previewBox.clientHeight : 240;
-  const overlayH = mockOverlay.offsetHeight;
+  if (isSidebar) {
+    // Sidebar mode: dock to the right edge, full height
+    mockOverlay.classList.add("sidebar-mode");
+    mockOverlay.style.top = "";
+    mockOverlay.style.transform = "";
+  } else {
+    mockOverlay.classList.remove("sidebar-mode");
 
-  switch (pos) {
-    case "top":
-      mockOverlay.style.top = "20px";
-      mockOverlay.style.transform = "translateY(0)";
-      break;
-    case "center":
-      mockOverlay.style.top = "50%";
-      mockOverlay.style.transform = "translateY(-50%)";
-      break;
-    case "bottom":
-      mockOverlay.style.top = (boxH - overlayH - 20) + "px";
-      mockOverlay.style.transform = "translateY(0)";
-      break;
+    // Position — always use `top` + `translateY` so CSS can animate between
+    // numeric values. Setting `top: auto` or `bottom` breaks transitions because
+    // browsers cannot interpolate `auto`.
+    const pos = overlayPositionEl.value || "center";
+    const previewBox = mockOverlay.parentElement;
+    const boxH = previewBox ? previewBox.clientHeight : 240;
+    const overlayH = mockOverlay.offsetHeight;
+
+    switch (pos) {
+      case "top":
+        mockOverlay.style.top = "20px";
+        mockOverlay.style.transform = "translateY(0)";
+        break;
+      case "center":
+        mockOverlay.style.top = "50%";
+        mockOverlay.style.transform = "translateY(-50%)";
+        break;
+      case "bottom":
+        mockOverlay.style.top = (boxH - overlayH - 20) + "px";
+        mockOverlay.style.transform = "translateY(0)";
+        break;
+    }
   }
 
   // History
