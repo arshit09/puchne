@@ -442,6 +442,8 @@ async function handleMulticast(query) {
       try {
         await waitForTabLoad(tab.id);
         await ensureContentScript(tab.id);
+        // Trigger login check only for puchne-opened tabs, after page fully loads
+        chrome.tabs.sendMessage(tab.id, { action: "checkLogin" }, () => void chrome.runtime.lastError);
         console.log(`[Puchne] Injecting into ${service.name}...`);
         return await injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
       } catch (err) {

@@ -55,6 +55,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return true;
     }
 
+    if (message.action === "checkLogin") {
+      initLoginCheck();
+      sendResponse({ ok: true });
+      return true;
+    }
+
     if (message.action === "testSelector") {
       (async () => {
         const { selector, buttonSel, inputType } = message;
@@ -1408,16 +1414,19 @@ async function initLoginCheck() {
 
     if (!service) return;
 
-    // 2. Wait to see if the input appears (user might be logged in)
-    // We check multiple times over 5 seconds
-    let loggedIn = false;
-    for (let i = 0; i < 5; i++) {
-      if (document.querySelector(service.selector)) {
-        loggedIn = true;
-        break;
-      }
-      await sleep(1000);
-    }
+    // 2. Wait to see if the input appears (user might be logged in).
+    // Use MutationObserver so we react immediately instead of polling at fixed intervals.
+    const loggedIn = await new Promise((resolve) => {
+      if (document.querySelector(service.selector)) return resolve(true);
+      const observer = new MutationObserver(() => {
+        if (document.querySelector(service.selector)) {
+          observer.disconnect();
+          resolve(true);
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      setTimeout(() => { observer.disconnect(); resolve(false); }, 5000);
+    });
     if (loggedIn) return;
 
     // 3. Check for login markers
@@ -1450,11 +1459,7 @@ async function initLoginCheck() {
   }
 }
 
-// Initialize login check on load
-if (document.readyState === "complete") {
-  initLoginCheck();
-} else {
-  window.addEventListener("load", initLoginCheck);
-}
+// Login check is triggered only by a "checkLogin" message from the background,
+// which is sent exclusively to tabs opened by a Puchne search, after the page fully loads.
 
 } // end of PuchneLoaded guard
