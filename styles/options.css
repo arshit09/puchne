@@ -215,7 +215,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    top 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
   z-index: 5;
 }
 
@@ -323,6 +328,21 @@ body {
 }
 
 /* ── Sidebar preview mode ──────────────────────────────────── */
+@keyframes mock-sidebar-in {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes mock-sidebar-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(110%); opacity: 0; }
+}
+
+@keyframes mock-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .mock-overlay.sidebar-mode {
   right: 0;
   top: 0;
@@ -333,6 +353,15 @@ body {
   border-right: none;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
   overflow-y: auto;
+  animation: mock-sidebar-in 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.mock-overlay.sidebar-exiting {
+  animation: mock-sidebar-out 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+.mock-overlay.overlay-entering {
+  animation: mock-overlay-in 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .pos-indicator {
@@ -600,15 +629,24 @@ body {
   transition: background var(--transition);
 }
 
-.section .setting-row:first-of-type {
+/* Top separator — works whether a section-desc is present or not */
+.section-header + .setting-row,
+.section-desc + .setting-row,
+.display-controls .setting-row:first-child {
   border-top: 1px solid var(--border);
 }
 
-.section .setting-row:last-of-type {
+/* Last direct-child row bleeds flush with the section card bottom */
+.section > .setting-row:last-child {
   border-bottom: none;
   margin-bottom: -24px;
   border-bottom-left-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
+}
+
+/* Last row inside display-controls just loses its separator (no bleed needed) */
+.display-controls .setting-row:last-child {
+  border-bottom: none;
 }
 
 .setting-row:has(input[type="checkbox"]),
@@ -706,7 +744,6 @@ body {
   transform: translateX(18px);
 }
 
-/* ── Number Input ──────────────────────────────────────────── */
 /* ── Number Input ──────────────────────────────────────────── */
 .input-group {
   display: flex;
@@ -944,9 +981,6 @@ body {
   background: var(--accent-hover);
 }
 
-.shortcut-help {
-  display: none;
-}
 
 /* ── Toast ─────────────────────────────────────────────────── */
 .toast {

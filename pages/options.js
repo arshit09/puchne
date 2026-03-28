@@ -759,6 +759,28 @@ async function checkShortcutHighlight() {
   }, 400);
 }
 
+function applyNonSidebarPosition() {
+  const pos = overlayPositionEl.value || "center";
+  const previewBox = mockOverlay.parentElement;
+  const boxH = previewBox ? previewBox.clientHeight : 240;
+  const overlayH = mockOverlay.offsetHeight;
+
+  switch (pos) {
+    case "top":
+      mockOverlay.style.top = "20px";
+      mockOverlay.style.transform = "translateY(0)";
+      break;
+    case "center":
+      mockOverlay.style.top = "50%";
+      mockOverlay.style.transform = "translateY(-50%)";
+      break;
+    case "bottom":
+      mockOverlay.style.top = (boxH - overlayH - 20) + "px";
+      mockOverlay.style.transform = "translateY(0)";
+      break;
+  }
+}
+
 function updatePreview() {
   if (!mockOverlay) return;
 
@@ -766,35 +788,30 @@ function updatePreview() {
   const isSidebar = useSidebarEl.checked;
 
   if (isSidebar) {
+    // Cancel any in-progress exit animation
+    mockOverlay.classList.remove("sidebar-exiting", "overlay-entering");
     // Sidebar mode: dock to the right edge, full height
+    // CSS @keyframes mock-sidebar-in handles the slide-in animation
     mockOverlay.classList.add("sidebar-mode");
     mockOverlay.style.top = "";
     mockOverlay.style.transform = "";
+  } else if (mockOverlay.classList.contains("sidebar-mode")) {
+    // Slide the sidebar panel out, then restore floating position
+    mockOverlay.classList.add("sidebar-exiting");
+    mockOverlay.addEventListener("animationend", () => {
+      // Bail if sidebar was re-enabled while animation was running
+      if (useSidebarEl.checked) return;
+      mockOverlay.classList.remove("sidebar-mode", "sidebar-exiting");
+      applyNonSidebarPosition();
+      // Fade the floating card back in
+      mockOverlay.classList.add("overlay-entering");
+      mockOverlay.addEventListener("animationend", () => {
+        mockOverlay.classList.remove("overlay-entering");
+      }, { once: true });
+    }, { once: true });
   } else {
-    mockOverlay.classList.remove("sidebar-mode");
-
-    // Position — always use `top` + `translateY` so CSS can animate between
-    // numeric values. Setting `top: auto` or `bottom` breaks transitions because
-    // browsers cannot interpolate `auto`.
-    const pos = overlayPositionEl.value || "center";
-    const previewBox = mockOverlay.parentElement;
-    const boxH = previewBox ? previewBox.clientHeight : 240;
-    const overlayH = mockOverlay.offsetHeight;
-
-    switch (pos) {
-      case "top":
-        mockOverlay.style.top = "20px";
-        mockOverlay.style.transform = "translateY(0)";
-        break;
-      case "center":
-        mockOverlay.style.top = "50%";
-        mockOverlay.style.transform = "translateY(-50%)";
-        break;
-      case "bottom":
-        mockOverlay.style.top = (boxH - overlayH - 20) + "px";
-        mockOverlay.style.transform = "translateY(0)";
-        break;
-    }
+    // Already in non-sidebar mode — just reposition
+    applyNonSidebarPosition();
   }
 
   // History

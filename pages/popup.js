@@ -17,7 +17,6 @@
 const promptInput = document.getElementById("promptInput");
 const sendBtn = document.getElementById("sendBtn");
 const serviceChipsEl = document.getElementById("serviceChips");
-const autoSubmitToggle = document.getElementById("autoSubmitToggle");
 const historySection = document.getElementById("historySection");
 const historyList = document.getElementById("historyList");
 const settingsBtn = document.getElementById("settingsBtn");
@@ -51,7 +50,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   historyLimit = settings.historyLimit || MAX_HISTORY;
   enableHistory = settings.enableHistory !== false;
   showToolNames = settings.showToolNames !== false;
-  autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
 
   // 2b. Apply theme
   applyThemeToPage(settings.theme || "dark");
@@ -242,7 +240,7 @@ async function saveSettings() {
     settings: {
       ...prev,
       enabledServices: enabledServiceIds,
-      autoSubmit: autoSubmitToggle.checked,
+      autoSubmit: prev.autoSubmit !== false,
       theme: document.documentElement.dataset.theme || "light",
     },
   });
