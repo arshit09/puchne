@@ -187,6 +187,7 @@ class PuchneOverlay {
     this.showRecents = settings.showRecents !== false;
     this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
+    this.showShortcutHint = settings.showShortcutHint !== false;
     this.applyPosition();
   }
 
@@ -303,6 +304,7 @@ class PuchneOverlay {
     this.showRecents = settings.showRecents !== false;
     this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
+    this.showShortcutHint = settings.showShortcutHint !== false;
     this.historyLimit = settings.historyLimit || MAX_HISTORY;
     applyTheme(this.container, settings.theme || "dark");
     this.applyPosition();
@@ -314,6 +316,7 @@ class PuchneOverlay {
       typeof h === "string" ? { text: h, timestamp: Date.now() } : h
     );
     this.renderHistory();
+    this.updateShortcutHint();
 
     setTimeout(() => {
       const input = this.shadow.getElementById("promptInput");
@@ -502,6 +505,12 @@ class PuchneOverlay {
     const hint = this.shadow.getElementById("shortcutHint");
     const hintText = this.shadow.getElementById("shortcutText");
     if (!hint || !hintText) return;
+
+    if (!this.showShortcutHint) {
+      hint.style.display = "none";
+      return;
+    }
+    hint.style.display = "flex";
 
     // Read the real shortcut from Chrome (via background script)
     try {

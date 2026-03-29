@@ -30,6 +30,7 @@ const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
 const enableHistoryEl = document.getElementById("enableHistory");
 const showRecentsEl = document.getElementById("showRecents");
+const showShortcutHintEl = document.getElementById("showShortcutHint");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 const overlayPositionEl = document.getElementById("overlayPosition");
 const overlayPositionContainer = document.getElementById("overlayPositionContainer");
@@ -55,6 +56,7 @@ const confirmResetBtn = document.getElementById("confirmReset");
 // Preview References
 const mockOverlay = document.getElementById("mockOverlay");
 const mockHistory = document.getElementById("mockHistory");
+const mockShortcut = document.getElementById("mockShortcut");
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
@@ -72,6 +74,7 @@ const DEFAULTS = {
   historyLimit: 20,
   enableHistory: true,
   showRecents: true,
+  showShortcutHint: true,
   overlayPosition: "center",
   chipDisplay: "logo-name",
   theme: "dark",
@@ -110,6 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   historyLimitEl.value = settings.historyLimit || 20;
   enableHistoryEl.checked = settings.enableHistory !== false;
   showRecentsEl.checked = settings.showRecents !== false;
+  showShortcutHintEl.checked = settings.showShortcutHint !== false;
 
   // Init chipDisplay
   const savedChipDisplay = settings.chipDisplay || "logo-name";
@@ -137,6 +141,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     updatePreview();
   });
   showRecentsEl.addEventListener("change", () => {
+    save();
+    updatePreview();
+  });
+  showShortcutHintEl.addEventListener("change", () => {
     save();
     updatePreview();
   });
@@ -641,6 +649,7 @@ async function _doSave() {
     enableHistory: enableHistoryEl.checked,
     theme: darkModeEl.checked ? "dark" : "light",
     showRecents: showRecentsEl.checked,
+    showShortcutHint: showShortcutHintEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
     cookieConsent: cookieConsentEl.value || "accept",
@@ -815,7 +824,12 @@ function updatePreview() {
   }
 
   // History
-  mockHistory.style.display = (enableHistoryEl.checked && showRecentsEl.checked) ? "flex" : "none";
+  mockHistory.classList.toggle("collapsed", !(enableHistoryEl.checked && showRecentsEl.checked));
+
+  // Shortcut Hint
+  if (mockShortcut) {
+    mockShortcut.parentElement.classList.toggle("collapsed", !showShortcutHintEl.checked);
+  }
 
   // Chip Display
   const chipMode = showToolNamesEl.value || "logo-name";
@@ -823,7 +837,7 @@ function updatePreview() {
   const mockChips = mockOverlay.querySelectorAll(".mock-chip");
   
   if (mockChipsContainer) {
-    mockChipsContainer.style.display = chipMode === "none" ? "none" : "flex";
+    mockChipsContainer.classList.toggle("collapsed", chipMode === "none");
   }
 
   mockChips.forEach(chip => {

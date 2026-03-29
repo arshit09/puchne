@@ -243,6 +243,16 @@ body {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  overflow: hidden;
+  max-height: 100px;
+  opacity: 1;
+  transition: max-height 350ms ease, opacity 350ms ease, margin 350ms ease;
+}
+
+.mock-chips.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: -14px;
 }
 
 .mock-chip {
@@ -302,8 +312,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 200px;
+  opacity: 1;
+  transition: max-height 350ms ease, opacity 350ms ease, padding 350ms ease, margin 350ms ease;
+}
+
+.mock-history.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .mock-hist-label {
@@ -317,6 +336,32 @@ body {
   color: var(--text-secondary);
   background: var(--bg-tertiary);
   padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.mock-footer {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  max-height: 60px;
+  opacity: 1;
+  transition: max-height 350ms ease, opacity 350ms ease, margin 350ms ease, padding 350ms ease;
+}
+
+.mock-footer.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  margin-top: -14px; /* Collapse the gap */
+}
+
+.mock-shortcut {
+  font-size: 8px;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 2px 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 

@@ -32,6 +32,7 @@ let promptHistory = [];      // Last N prompts
 let historyLimit = MAX_HISTORY; // Configurable cap
 let enableHistory = true;    // Whether to record history
 let showToolNames = true;    // UI preference
+let showShortcutHint = true; // Shortcut hint visibility
 
 // ── Initialization ───────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
@@ -50,6 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   historyLimit = settings.historyLimit || MAX_HISTORY;
   enableHistory = settings.enableHistory !== false;
   showToolNames = settings.showToolNames !== false;
+  showShortcutHint = settings.showShortcutHint !== false;
 
   // 2b. Apply theme
   applyThemeToPage(settings.theme || "dark");
@@ -62,7 +64,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 4. Render everything
   renderServiceChips();
   renderHistory();
-  updateShortcutHint();
+
+  if (showShortcutHint) {
+    updateShortcutHint();
+  } else {
+    shortcutHint.style.display = "none";
+  }
 
   // 5. Focus the input
   promptInput.focus();
