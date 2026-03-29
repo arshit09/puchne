@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icons/app/icon-128.png" alt="Puchne Icon" width="96" />
+</p>
+
 # ⚡ Puchne — Ask Every AI at Once
 
 > One prompt. Every AI. Simultaneously.

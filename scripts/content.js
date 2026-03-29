@@ -542,10 +542,7 @@ class PuchneOverlay {
       <div class="modal-container">
         <header class="header">
           <div class="logo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="2"/>
-              <path d="M8 12l3 3 5-6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" width="24" height="24" alt="Puchne"/>
             <h1>Puchne</h1>
           </div>
           <button id="settingsBtn" class="icon-btn" title="Settings">
@@ -1278,10 +1275,7 @@ class LoginNoticeOverlay {
         <div class="notice-card">
           <header class="header">
             <div class="logo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="#fb923c" stroke-width="2"/>
-                <path d="M8 12l3 3 5-6" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" width="24" height="24" alt="Puchne"/>
               <h1>Puchne</h1>
             </div>
             <button id="closeNotice" class="close-btn" title="Dismiss">&times;</button>
