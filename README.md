@@ -2,7 +2,7 @@
   <img src="icons/app/icon-128.png" alt="Puchne Icon" width="96" />
 </p>
 
-# ⚡ Puchne — Ask Every AI at Once
+# Puchne — Ask Every AI at Once
 
 > One prompt. Every AI. Simultaneously.
 
@@ -10,7 +10,7 @@ Puchne is a powerful, open-source Chrome extension that lets you send a single p
 
 ---
 
-## ✨ Features
+## Features
 
 - **Multicast Prompting** — Type once, blast your query to all selected AI models.
 - **Modern Flat Design** — A fast, minimal UI that feels like an integrated command palette.
@@ -23,22 +23,22 @@ Puchne is a powerful, open-source Chrome extension that lets you send a single p
 - **Tab Grouping** — Keeps your workspace organized by grouping all AI tabs automatically.
 - **Open Source** — Built with privacy and transparency in mind.
 
-## 🖥️ Supported AI Services
+## Supported AI Services
 
 | Service    | URL                   | Status |
 | ---------- | --------------------- | ------ |
-| ChatGPT    | chatgpt.com           | ✅      |
-| Claude     | claude.ai             | ✅      |
-| Gemini     | gemini.google.com     | ✅      |
-| Copilot    | copilot.microsoft.com | ✅      |
-| DeepSeek   | chat.deepseek.com     | ✅      |
-| Perplexity | perplexity.ai         | ✅      |
+| ChatGPT    | chatgpt.com           | Active |
+| Claude     | claude.ai             | Active |
+| Gemini     | gemini.google.com     | Active |
+| Copilot    | copilot.microsoft.com | Active |
+| DeepSeek   | chat.deepseek.com     | Active |
+| Perplexity | perplexity.ai         | Active |
 
 > **Note:** You must be logged into each service for the extension to work. Puchne does not handle authentication.
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### From Source (Developer Mode)
 
@@ -63,7 +63,7 @@ Puchne is a powerful, open-source Chrome extension that lets you send a single p
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 puchne/
@@ -93,7 +93,7 @@ puchne/
 
 ---
 
-## 🔧 Technical Overview
+## Technical Overview
 
 Puchne handles the complexities of modern web apps (React/Vue/ProseMirror) by intelligently simulating user input:
 
@@ -103,7 +103,7 @@ Puchne handles the complexities of modern web apps (React/Vue/ProseMirror) by in
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create.
 
@@ -113,12 +113,12 @@ Contributions are what make the open source community such an amazing place to l
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## 🌟 Support
+## Support
 
-If you like this project, please consider giving it a ⭐ on GitHub! It helps more developers find and improve it.
+If you like this project, please consider giving it a star on GitHub! It helps more developers find and improve it.
