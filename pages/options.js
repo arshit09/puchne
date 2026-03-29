@@ -28,7 +28,6 @@ const groupTabsRow = document.getElementById("groupTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
-const enableHistoryEl = document.getElementById("enableHistory");
 const showRecentsEl = document.getElementById("showRecents");
 const showShortcutHintEl = document.getElementById("showShortcutHint");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
@@ -111,7 +110,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCookieConsentSelected(savedCookieConsent);
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
-  enableHistoryEl.checked = settings.enableHistory !== false;
   showRecentsEl.checked = settings.showRecents !== false;
   showShortcutHintEl.checked = settings.showShortcutHint !== false;
 
@@ -136,10 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     updatePreview();
   });
 
-  enableHistoryEl.addEventListener("change", () => {
-    save();
-    updatePreview();
-  });
+
   showRecentsEl.addEventListener("change", () => {
     save();
     updatePreview();
@@ -646,9 +641,9 @@ async function _doSave() {
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
-    enableHistory: enableHistoryEl.checked,
-    theme: darkModeEl.checked ? "dark" : "light",
+    enableHistory: showRecentsEl.checked,
     showRecents: showRecentsEl.checked,
+    theme: darkModeEl.checked ? "dark" : "light",
     showShortcutHint: showShortcutHintEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
@@ -824,7 +819,7 @@ function updatePreview() {
   }
 
   // History
-  mockHistory.classList.toggle("collapsed", !(enableHistoryEl.checked && showRecentsEl.checked));
+  mockHistory.classList.toggle("collapsed", !showRecentsEl.checked);
 
   // Shortcut Hint
   if (mockShortcut) {
