@@ -424,7 +424,19 @@ textarea::placeholder {
 }
 
 /* ── Animations ────────────────────────────────────────────── */
-/* Animations removed for stability */
+/* Use a JS-triggered transition instead of @keyframes — Chrome extension
+   popups skip animations that fire before the first paint. popup.js adds
+   body.ready after DOMContentLoaded, which kicks off the transition. */
+.container {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+body.ready .container {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar {
