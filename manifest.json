@@ -28,7 +28,7 @@
   },
 
   "side_panel": {
-    "default_path": "pages/popup.html"
+    "default_path": "pages/popup.html?mode=sidebar"
   },
 
   "background": {

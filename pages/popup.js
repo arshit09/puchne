@@ -45,7 +45,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
 
   // Apply sidebar layout if the page is running in the side panel
-  if (settings.useSidebar) {
+  const isSidebar = settings.useSidebar || window.location.search.includes("mode=sidebar");
+  if (isSidebar) {
     document.documentElement.dataset.mode = "sidebar";
   }
   historyLimit = settings.historyLimit || MAX_HISTORY;
@@ -150,10 +151,22 @@ async function handleSend() {
       query: query,
     },
     () => {
-      // Close the popup after a beat (feels snappier)
-      setTimeout(() => window.close(), 300);
+      // Close the popup after a beat if not in sidebar mode
+      if (!isSidebarMode()) {
+        setTimeout(() => window.close(), 300);
+      } else {
+        // Just reset the input
+        promptInput.value = "";
+        promptInput.disabled = false;
+        updateSendButton();
+        promptInput.focus();
+      }
     }
   );
+}
+
+function isSidebarMode() {
+  return document.documentElement.dataset.mode === "sidebar";
 }
 
 

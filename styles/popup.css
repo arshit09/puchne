@@ -81,6 +81,32 @@ html[data-mode="sidebar"] body {
   max-width: 100%;
 }
 
+html[data-mode="sidebar"] .container {
+  padding: 16px; /* Slightly tighter padding for sidebars */
+  height: 100vh; /* Fill the whole sidebar height */
+}
+
+html[data-mode="sidebar"] .history-list {
+  max-height: none; /* Let history expand in tall side panels */
+  flex-grow: 1;    /* But don't let it push the footer off-screen? No, it's fine. */
+}
+
+html[data-mode="sidebar"] .container {
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-mode="sidebar"] .history-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Important for flex-grow to work with overflow */
+}
+
+html[data-mode="sidebar"] .history-list {
+  flex-grow: 1;
+}
+
 /* ── Container ─────────────────────────────────────────────── */
 .container {
   display: flex;
