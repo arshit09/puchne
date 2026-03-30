@@ -71,8 +71,8 @@ const DEFAULTS = {
   groupTabs: true,
   delayMs: 2000,
   historyLimit: 20,
-  enableHistory: true,
-  showRecents: true,
+  enableHistory: false,
+  showRecents: false,
   showShortcutHint: true,
   overlayPosition: "center",
   chipDisplay: "logo-name",
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCookieConsentSelected(savedCookieConsent);
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
-  showRecentsEl.checked = settings.showRecents !== false;
+  showRecentsEl.checked = settings.showRecents === true;
   showShortcutHintEl.checked = settings.showShortcutHint !== false;
 
   // Init chipDisplay

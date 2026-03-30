@@ -183,8 +183,8 @@ class PuchneOverlay {
       typeof h === "string" ? { text: h, timestamp: Date.now() } : h
     );
     this.historyLimit = settings.historyLimit || MAX_HISTORY;
-    this.enableHistory = settings.enableHistory !== false;
-    this.showRecents = settings.showRecents !== false;
+    this.enableHistory = settings.enableHistory === true;
+    this.showRecents = settings.showRecents === true;
     this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
     this.showShortcutHint = settings.showShortcutHint !== false;
@@ -301,7 +301,8 @@ class PuchneOverlay {
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
     this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
-    this.showRecents = settings.showRecents !== false;
+    this.enableHistory = settings.enableHistory === true;
+    this.showRecents = settings.showRecents === true;
     this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
     this.showShortcutHint = settings.showShortcutHint !== false;

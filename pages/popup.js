@@ -30,7 +30,7 @@ let allServices = [];        // Full list from background.js
 let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
 let historyLimit = MAX_HISTORY; // Configurable cap
-let enableHistory = true;    // Whether to record history
+let enableHistory = false;   // Whether to record history
 let showToolNames = true;    // UI preference
 let showShortcutHint = true; // Shortcut hint visibility
 
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.documentElement.dataset.mode = "sidebar";
   }
   historyLimit = settings.historyLimit || MAX_HISTORY;
-  enableHistory = settings.enableHistory !== false;
+  enableHistory = settings.enableHistory === true;
   showToolNames = settings.showToolNames !== false;
   showShortcutHint = settings.showShortcutHint !== false;
 

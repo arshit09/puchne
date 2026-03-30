@@ -133,6 +133,8 @@ async function getSettings() {
     gridView: false,
     groupTabs: true,
     delayMs: 2000,
+    enableHistory: false,
+    showRecents: false,
     customSelectors: {},
   };
 
