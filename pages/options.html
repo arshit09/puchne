@@ -195,6 +195,36 @@
           </label>
         </div>
 
+        <div class="setting-row" id="hoverExpandRow">
+          <div class="setting-info">
+            <p class="setting-label">Hover to Expand</p>
+            <p class="setting-desc">Auto-expand a grid cell when hovering over it</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="hoverExpand" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row setting-row-sub" id="hoverExpandMinRow">
+          <div class="setting-info">
+            <p class="setting-label">Activate When</p>
+            <p class="setting-desc">Minimum number of windows open in the grid</p>
+          </div>
+          <div class="custom-select" id="hoverExpandMinContainer">
+            <div class="select-trigger" id="hoverExpandMinTrigger">
+              <span id="hoverExpandMinLabel">2 or more</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="select-options" id="hoverExpandMinOptions">
+              <div class="option" data-value="2">2 or more</div>
+              <div class="option" data-value="3">3 or more</div>
+              <div class="option" data-value="4">4 or more</div>
+            </div>
+            <input type="hidden" id="hoverExpandMin" value="2">
+          </div>
+        </div>
+
         <div class="setting-row" id="cookieConsentRow">
           <div class="setting-info">
             <p class="setting-label">Cookie Consent</p>

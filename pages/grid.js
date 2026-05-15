@@ -378,6 +378,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const theme    = settings.theme || "dark";
   applyTheme(document.documentElement, theme);
 
+  const hoverExpand    = settings.hoverExpand !== false;
+  const hoverExpandMin = settings.hoverExpandMin ?? 2;
+
   const data     = await chrome.storage.local.get("gridData");
   const gridData = data.gridData;
 
@@ -529,25 +532,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // ── Hover-to-expand ──
-    let hoverTimer = null;
+    if (hoverExpand && targets.length >= hoverExpandMin) {
+      let hoverTimer = null;
 
-    cell.addEventListener("mouseenter", () => {
-      if (expandState) return;
-      hoverTimer = setTimeout(() => {
-        hoverTimer = null;
-        expandCell(cellObj);
-      }, HOVER_EXPAND_DELAY);
-    });
+      cell.addEventListener("mouseenter", () => {
+        if (expandState) return;
+        hoverTimer = setTimeout(() => {
+          hoverTimer = null;
+          expandCell(cellObj);
+        }, HOVER_EXPAND_DELAY);
+      });
 
-    cell.addEventListener("mouseleave", () => {
-      if (hoverTimer) {
-        clearTimeout(hoverTimer);
-        hoverTimer = null;
-      }
-      if (expandState && expandState.cellObj === cellObj) {
-        collapseCell();
-      }
-    });
+      cell.addEventListener("mouseleave", () => {
+        if (hoverTimer) {
+          clearTimeout(hoverTimer);
+          hoverTimer = null;
+        }
+        if (expandState && expandState.cellObj === cellObj) {
+          collapseCell();
+        }
+      });
+    }
   });
 
   // Clean up one-time grid data

@@ -704,6 +704,23 @@ body {
   background: var(--bg-secondary);
 }
 
+.setting-row-sub {
+  padding-left: 40px;
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+.setting-row-sub::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
 .setting-info {
   flex: 1;
 }

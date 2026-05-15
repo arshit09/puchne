@@ -41,6 +41,14 @@ const chipDisplayContainer = document.getElementById("chipDisplayContainer");
 const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
 const chipDisplayLabel = document.getElementById("chipDisplayLabel");
 const chipDisplayOptions = document.getElementById("chipDisplayOptions");
+const hoverExpandEl        = document.getElementById("hoverExpand");
+const hoverExpandRow       = document.getElementById("hoverExpandRow");
+const hoverExpandMinEl        = document.getElementById("hoverExpandMin");
+const hoverExpandMinRow       = document.getElementById("hoverExpandMinRow");
+const hoverExpandMinContainer = document.getElementById("hoverExpandMinContainer");
+const hoverExpandMinTrigger   = document.getElementById("hoverExpandMinTrigger");
+const hoverExpandMinLabel     = document.getElementById("hoverExpandMinLabel");
+const hoverExpandMinOptions   = document.getElementById("hoverExpandMinOptions");
 const cookieConsentEl = document.getElementById("cookieConsent");
 const cookieConsentRow = document.getElementById("cookieConsentRow");
 const cookieConsentContainer = document.getElementById("cookieConsentContainer");
@@ -68,6 +76,8 @@ const DEFAULTS = {
   autoSubmit: true,
   useSidebar: false,
   gridView: false,
+  hoverExpand: true,
+  hoverExpandMin: 2,
   groupTabs: true,
   delayMs: 2000,
   historyLimit: 20,
@@ -101,8 +111,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   useSidebarEl.checked = settings.useSidebar || false;
   updateOverlayPositionState();
   gridViewEl.checked = settings.gridView || false;
+  hoverExpandEl.checked = settings.hoverExpand !== false;
+  const savedHoverExpandMin = String(settings.hoverExpandMin ?? 2);
+  hoverExpandMinEl.value = savedHoverExpandMin;
+  updateHoverExpandMinLabel(savedHoverExpandMin);
+  updateHoverExpandMinSelected(savedHoverExpandMin);
   groupTabsEl.checked = settings.groupTabs;
   updateGroupTabsState();
+  updateHoverExpandState();
   // Cookie consent setting
   const savedCookieConsent = settings.cookieConsent || "accept";
   cookieConsentEl.value = savedCookieConsent;
@@ -158,6 +174,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   gridViewEl.addEventListener("change", () => {
     updateGroupTabsState();
     updateCookieConsentState();
+    updateHoverExpandState();
+    save();
+  });
+  hoverExpandEl.addEventListener("change", () => {
+    updateHoverExpandState();
     save();
   });
   groupTabsEl.addEventListener("change", save);
@@ -176,6 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCustomSelect();
   initChipDisplaySelect();
   initCookieConsentSelect();
+  initHoverExpandMinSelect();
   updateCookieConsentState();
 
   // Init custom number spinners
@@ -343,11 +365,60 @@ function updateCookieConsentState() {
   cookieConsentRow.style.pointerEvents = disabled ? "none" : "";
 }
 
+function updateHoverExpandState() {
+  const gridDisabled = !gridViewEl.checked;
+  hoverExpandRow.style.opacity = gridDisabled ? "0.45" : "1";
+  hoverExpandRow.style.pointerEvents = gridDisabled ? "none" : "";
+
+  const minDisabled = gridDisabled || !hoverExpandEl.checked;
+  hoverExpandMinRow.style.opacity = minDisabled ? "0.45" : "1";
+  hoverExpandMinRow.style.pointerEvents = minDisabled ? "none" : "";
+}
+
+function initHoverExpandMinSelect() {
+  hoverExpandMinTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    overlayPositionContainer.classList.remove("open");
+    chipDisplayContainer.classList.remove("open");
+    cookieConsentContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.toggle("open");
+  });
+
+  hoverExpandMinOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      hoverExpandMinEl.value = val;
+      updateHoverExpandMinLabel(val);
+      updateHoverExpandMinSelected(val);
+      hoverExpandMinContainer.classList.remove("open");
+      save();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    hoverExpandMinContainer.classList.remove("open");
+  });
+
+  updateHoverExpandMinSelected(hoverExpandMinEl.value || "2");
+}
+
+function updateHoverExpandMinLabel(val) {
+  const labels = { "2": "2 or more", "3": "3 or more", "4": "4 or more" };
+  hoverExpandMinLabel.textContent = labels[val] || "2 or more";
+}
+
+function updateHoverExpandMinSelected(val) {
+  hoverExpandMinOptions.querySelectorAll(".option").forEach(opt => {
+    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
+}
+
 function initCookieConsentSelect() {
   cookieConsentTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
     overlayPositionContainer.classList.remove("open");
     chipDisplayContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.remove("open");
     cookieConsentContainer.classList.toggle("open");
   });
 
@@ -638,6 +709,8 @@ async function _doSave() {
     autoSubmit: autoSubmitEl.checked,
     useSidebar: useSidebarEl.checked,
     gridView: gridViewEl.checked,
+    hoverExpand: hoverExpandEl.checked,
+    hoverExpandMin: parseInt(hoverExpandMinEl.value, 10) || 2,
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
