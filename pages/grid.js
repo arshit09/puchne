@@ -29,6 +29,12 @@ let cellMap   = [];   // [{ el, row, col, colSpan, service, index }]
 
 const MIN_FRAC = 0.10; // minimum fraction for any track (10%)
 
+/* ── Hover-to-Expand State ─────────────────────────────────── */
+const HOVER_EXPAND_DELAY = 1500;  // ms of dwell before expanding
+const HOVER_EXPAND_FRAC  = 0.60;  // target fraction the hovered cell's span will occupy
+
+let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell is expanded
+
 /* ── Grid Template Helpers ─────────────────────────────────── */
 
 function updateGridTemplate() {
@@ -137,6 +143,8 @@ function removeOverlay(overlay) {
 /* ── Resize Logic (tiled — push/pull neighbors) ────────────── */
 
 function initResize(cellObj, dir, startX, startY) {
+  gridContainer.classList.add("no-transition");
+  if (expandState) { colFracs = expandState.savedColFracs; rowFracs = expandState.savedRowFracs; expandState = null; }
   const overlay = createIframeOverlay();
   const containerW = gridContainer.clientWidth;
   const containerH = gridContainer.clientHeight;
@@ -178,6 +186,7 @@ function initResize(cellObj, dir, startX, startY) {
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
+    gridContainer.classList.remove("no-transition");
     const cellOrder = [...cellMap]
       .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
       .map(c => c.service.id);
@@ -207,6 +216,8 @@ function adjustFracs(fracs, a, b, delta) {
 /* ── Drag-to-Reposition (swap cells) ──────────────────────── */
 
 function initDrag(cellObj, startX, startY) {
+  gridContainer.classList.add("no-transition");
+  if (expandState) { colFracs = expandState.savedColFracs; rowFracs = expandState.savedRowFracs; expandState = null; }
   const overlay = createIframeOverlay();
   const header  = cellObj.el.querySelector(".cell-header");
 
@@ -250,6 +261,7 @@ function initDrag(cellObj, startX, startY) {
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
+    gridContainer.classList.remove("no-transition");
 
     cellObj.el.classList.remove("dragging");
     cellObj.el.style.left = cellObj.el.style.top = cellObj.el.style.width = cellObj.el.style.height = "";
@@ -305,6 +317,58 @@ function cellUnderPoint(px, py, exclude) {
 function refreshHandles(cellObj) {
   cellObj.el.querySelectorAll(".resize-handle").forEach(h => h.remove());
   addResizeHandles(cellObj.el, cellObj);
+}
+
+/* ── Hover-to-Expand ────────────────────────────────────────── */
+
+/**
+ * Redistribute fracs so the span [startIdx, startIdx+spanLen) reaches
+ * expandTarget, stealing proportionally from the other tracks.
+ */
+function computeExpandedFracs(fracs, startIdx, spanLen, expandTarget) {
+  if (fracs.length <= spanLen) return fracs; // only one track — nothing to expand
+
+  const current = fracs.slice(startIdx, startIdx + spanLen).reduce((s, f) => s + f, 0);
+  if (current >= expandTarget) return fracs;
+
+  const delta = expandTarget - current;
+  const newFracs = [...fracs];
+
+  const otherIdxs = fracs.map((_, i) => i).filter(i => i < startIdx || i >= startIdx + spanLen);
+  const otherTotal = otherIdxs.reduce((s, i) => s + fracs[i], 0);
+  if (otherTotal <= 0) return fracs;
+
+  // Scale others down proportionally, respecting MIN_FRAC
+  otherIdxs.forEach(i => {
+    newFracs[i] = Math.max(MIN_FRAC, fracs[i] - (fracs[i] / otherTotal) * delta);
+  });
+
+  // Expand the target span, keeping internal proportions
+  for (let i = startIdx; i < startIdx + spanLen; i++) {
+    newFracs[i] = current > 0 ? fracs[i] * (expandTarget / current) : expandTarget / spanLen;
+  }
+
+  return newFracs;
+}
+
+function expandCell(cellObj) {
+  if (expandState) return;
+  expandState = {
+    savedColFracs: [...colFracs],
+    savedRowFracs: [...rowFracs],
+    cellObj,
+  };
+  colFracs = computeExpandedFracs(colFracs, cellObj.col, cellObj.colSpan, HOVER_EXPAND_FRAC);
+  rowFracs = computeExpandedFracs(rowFracs, cellObj.row, 1, HOVER_EXPAND_FRAC);
+  updateGridTemplate();
+}
+
+function collapseCell() {
+  if (!expandState) return;
+  colFracs = expandState.savedColFracs;
+  rowFracs = expandState.savedRowFracs;
+  expandState = null;
+  updateGridTemplate();
 }
 
 /* ── Main ──────────────────────────────────────────────────── */
@@ -462,6 +526,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (e.target.closest("button")) return;
       e.preventDefault();
       initDrag(cellObj, e.clientX, e.clientY);
+    });
+
+    // ── Hover-to-expand ──
+    let hoverTimer = null;
+
+    cell.addEventListener("mouseenter", () => {
+      if (expandState) return;
+      hoverTimer = setTimeout(() => {
+        hoverTimer = null;
+        expandCell(cellObj);
+      }, HOVER_EXPAND_DELAY);
+    });
+
+    cell.addEventListener("mouseleave", () => {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      if (expandState && expandState.cellObj === cellObj) {
+        collapseCell();
+      }
     });
   });
 
