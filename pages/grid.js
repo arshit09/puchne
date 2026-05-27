@@ -30,12 +30,13 @@ let cellMap   = [];   // [{ el, row, col, colSpan, service, index }]
 const MIN_FRAC = 0.10; // minimum fraction for any track (10%)
 
 /* ── Hover-to-Expand State ─────────────────────────────────── */
-const HOVER_EXPAND_DELAY = 1500;  // ms of dwell before expanding
+let hoverExpandDelay = 1500;  // ms of dwell before expanding
 const HOVER_EXPAND_FRAC  = 0.60;  // target fraction the hovered cell's span will occupy
 
 let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell is expanded
 let hoverExpand = true;
 let hoverExpandMin = 2;
+let isClosing = false;
 
 /* ── Grid Template Helpers ─────────────────────────────────── */
 
@@ -354,7 +355,9 @@ function computeExpandedFracs(fracs, startIdx, spanLen, expandTarget) {
 }
 
 function expandCell(cellObj) {
+  if (isClosing) return;
   if (expandState) return;
+  gridContainer.classList.add("transitioning");
   expandState = {
     savedColFracs: [...colFracs],
     savedRowFracs: [...rowFracs],
@@ -367,6 +370,7 @@ function expandCell(cellObj) {
 
 function collapseCell() {
   if (!expandState) return;
+  gridContainer.classList.add("transitioning");
   colFracs = expandState.savedColFracs;
   rowFracs = expandState.savedRowFracs;
   expandState = null;
@@ -376,7 +380,8 @@ function collapseCell() {
 /* ── Close Cell & Re-layout ────────────────────────────────── */
 
 function closeCell(cellObj) {
-  if (expandState && expandState.cellObj === cellObj) {
+  isClosing = true;
+  if (expandState) {
     collapseCell();
   }
 
@@ -406,6 +411,7 @@ function closeCell(cellObj) {
     colFracs = Array(cols).fill(1 / cols);
     rowFracs = Array(rows).fill(1 / rows);
 
+    gridContainer.classList.add("transitioning");
     // Update layout and placement of remaining cells
     updateGridTemplate();
 
@@ -444,6 +450,7 @@ function closeCell(cellObj) {
       .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
       .map(c => c.service.id);
     chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
+    isClosing = false;
   }, 200);
 }
 
@@ -456,6 +463,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   hoverExpand    = settings.hoverExpand !== false;
   hoverExpandMin = settings.hoverExpandMin ?? 2;
+  hoverExpandDelay = settings.hoverExpandDelay ?? 1500;
 
   const data     = await chrome.storage.local.get("gridData");
   const gridData = data.gridData;
@@ -496,6 +504,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const isEnabled = newSettings.hoverExpand !== false;
       hoverExpand = isEnabled;
       hoverExpandMin = newSettings.hoverExpandMin ?? 2;
+      hoverExpandDelay = newSettings.hoverExpandDelay ?? 1500;
 
       const toggleEl = document.getElementById("hoverExpandToggle");
       if (toggleEl && toggleEl.checked !== isEnabled) {
@@ -505,6 +514,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!isEnabled) {
         collapseCell();
       }
+    }
+  });
+
+  gridContainer.addEventListener("transitionend", (e) => {
+    if (e.target === gridContainer) {
+      gridContainer.classList.remove("transitioning");
     }
   });
 
@@ -660,12 +675,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       let hoverTimer = null;
 
       cell.addEventListener("mouseenter", () => {
+        if (isClosing) return;
         if (!hoverExpand || cellMap.length < hoverExpandMin) return;
         if (expandState) return;
         hoverTimer = setTimeout(() => {
           hoverTimer = null;
           expandCell(cellObj);
-        }, HOVER_EXPAND_DELAY);
+        }, hoverExpandDelay);
       });
 
       cell.addEventListener("mouseleave", () => {

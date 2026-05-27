@@ -225,6 +225,28 @@
           </div>
         </div>
 
+        <div class="setting-row setting-row-sub" id="hoverExpandDelayRow">
+          <div class="setting-info">
+            <p class="setting-label">Hover Delay</p>
+            <p class="setting-desc">Delay before a window expands under the cursor</p>
+          </div>
+          <div class="custom-select" id="hoverExpandDelayContainer">
+            <div class="select-trigger" id="hoverExpandDelayTrigger">
+              <span id="hoverExpandDelayLabel">1.5 seconds</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="select-options" id="hoverExpandDelayOptions">
+              <div class="option" data-value="0">Instant (0s)</div>
+              <div class="option" data-value="200">0.2 seconds</div>
+              <div class="option" data-value="500">0.5 seconds</div>
+              <div class="option" data-value="1000">1.0 second</div>
+              <div class="option" data-value="1500">1.5 seconds</div>
+              <div class="option" data-value="2000">2.0 seconds</div>
+            </div>
+            <input type="hidden" id="hoverExpandDelay" value="1500">
+          </div>
+        </div>
+
         <div class="setting-row" id="cookieConsentRow">
           <div class="setting-info">
             <p class="setting-label">Cookie Consent</p>

@@ -49,6 +49,12 @@ const hoverExpandMinContainer = document.getElementById("hoverExpandMinContainer
 const hoverExpandMinTrigger   = document.getElementById("hoverExpandMinTrigger");
 const hoverExpandMinLabel     = document.getElementById("hoverExpandMinLabel");
 const hoverExpandMinOptions   = document.getElementById("hoverExpandMinOptions");
+const hoverExpandDelayEl      = document.getElementById("hoverExpandDelay");
+const hoverExpandDelayRow     = document.getElementById("hoverExpandDelayRow");
+const hoverExpandDelayContainer = document.getElementById("hoverExpandDelayContainer");
+const hoverExpandDelayTrigger = document.getElementById("hoverExpandDelayTrigger");
+const hoverExpandDelayLabel   = document.getElementById("hoverExpandDelayLabel");
+const hoverExpandDelayOptions = document.getElementById("hoverExpandDelayOptions");
 const cookieConsentEl = document.getElementById("cookieConsent");
 const cookieConsentRow = document.getElementById("cookieConsentRow");
 const cookieConsentContainer = document.getElementById("cookieConsentContainer");
@@ -78,6 +84,7 @@ const DEFAULTS = {
   gridView: false,
   hoverExpand: true,
   hoverExpandMin: 2,
+  hoverExpandDelay: 1500,
   groupTabs: true,
   delayMs: 2000,
   historyLimit: 20,
@@ -116,6 +123,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandMinEl.value = savedHoverExpandMin;
   updateHoverExpandMinLabel(savedHoverExpandMin);
   updateHoverExpandMinSelected(savedHoverExpandMin);
+  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? 1500);
+  hoverExpandDelayEl.value = savedHoverExpandDelay;
+  updateHoverExpandDelayLabel(savedHoverExpandDelay);
+  updateHoverExpandDelaySelected(savedHoverExpandDelay);
   groupTabsEl.checked = settings.groupTabs;
   updateGroupTabsState();
   updateHoverExpandState();
@@ -198,6 +209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initChipDisplaySelect();
   initCookieConsentSelect();
   initHoverExpandMinSelect();
+  initHoverExpandDelaySelect();
   updateCookieConsentState();
 
   // Init custom number spinners
@@ -241,6 +253,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 function initCustomSelect() {
   overlayPositionTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
+    chipDisplayContainer.classList.remove("open");
+    cookieConsentContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.remove("open");
     overlayPositionContainer.classList.toggle("open");
   });
 
@@ -274,8 +290,10 @@ function updateSelectedOption(val) {
 function initChipDisplaySelect() {
   chipDisplayTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
-    // Close position dropdown first
     overlayPositionContainer.classList.remove("open");
+    cookieConsentContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.remove("open");
     chipDisplayContainer.classList.toggle("open");
   });
 
@@ -383,6 +401,8 @@ function updateHoverExpandState() {
   const minDisabled = gridDisabled || !hoverExpandEl.checked;
   hoverExpandMinRow.style.opacity = minDisabled ? "0.45" : "1";
   hoverExpandMinRow.style.pointerEvents = minDisabled ? "none" : "";
+  hoverExpandDelayRow.style.opacity = minDisabled ? "0.45" : "1";
+  hoverExpandDelayRow.style.pointerEvents = minDisabled ? "none" : "";
 }
 
 function initHoverExpandMinSelect() {
@@ -391,6 +411,7 @@ function initHoverExpandMinSelect() {
     overlayPositionContainer.classList.remove("open");
     chipDisplayContainer.classList.remove("open");
     cookieConsentContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.remove("open");
     hoverExpandMinContainer.classList.toggle("open");
   });
 
@@ -423,12 +444,59 @@ function updateHoverExpandMinSelected(val) {
   });
 }
 
+function initHoverExpandDelaySelect() {
+  hoverExpandDelayTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    overlayPositionContainer.classList.remove("open");
+    chipDisplayContainer.classList.remove("open");
+    cookieConsentContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.toggle("open");
+  });
+
+  hoverExpandDelayOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      hoverExpandDelayEl.value = val;
+      updateHoverExpandDelayLabel(val);
+      updateHoverExpandDelaySelected(val);
+      hoverExpandDelayContainer.classList.remove("open");
+      save();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    hoverExpandDelayContainer.classList.remove("open");
+  });
+
+  updateHoverExpandDelaySelected(hoverExpandDelayEl.value || "1500");
+}
+
+function updateHoverExpandDelayLabel(val) {
+  const labels = {
+    "0": "Instant (0s)",
+    "200": "0.2 seconds",
+    "500": "0.5 seconds",
+    "1000": "1.0 second",
+    "1500": "1.5 seconds",
+    "2000": "2.0 seconds"
+  };
+  hoverExpandDelayLabel.textContent = labels[val] || "1.5 seconds";
+}
+
+function updateHoverExpandDelaySelected(val) {
+  hoverExpandDelayOptions.querySelectorAll(".option").forEach(opt => {
+    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
+}
+
 function initCookieConsentSelect() {
   cookieConsentTrigger.addEventListener("click", (e) => {
     e.stopPropagation();
     overlayPositionContainer.classList.remove("open");
     chipDisplayContainer.classList.remove("open");
     hoverExpandMinContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.remove("open");
     cookieConsentContainer.classList.toggle("open");
   });
 
@@ -721,6 +789,7 @@ async function _doSave() {
     gridView: gridViewEl.checked,
     hoverExpand: hoverExpandEl.checked,
     hoverExpandMin: parseInt(hoverExpandMinEl.value, 10) || 2,
+    hoverExpandDelay: isNaN(parseInt(hoverExpandDelayEl.value, 10)) ? 1500 : parseInt(hoverExpandDelayEl.value, 10),
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
