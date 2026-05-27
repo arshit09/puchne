@@ -218,6 +218,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Make setting rows clickable
   initClickableRows();
 
+  // Initialize sidebar tabs
+  initTabs();
+
   // Initial preview update
   updatePreview();
 
@@ -637,9 +640,12 @@ function renderServices() {
     editorFooter.appendChild(testBtn);
     editorFooter.appendChild(resetLink);
 
-    editor.appendChild(inputField);
-    editor.appendChild(btnField);
-    editor.appendChild(editorFooter);
+    const editorInner = document.createElement("div");
+    editorInner.className = "selector-editor-inner";
+    editorInner.appendChild(inputField);
+    editorInner.appendChild(btnField);
+    editorInner.appendChild(editorFooter);
+    editor.appendChild(editorInner);
 
     // Save on blur (matches existing num-input / change pattern)
     editor.querySelector(`#sel-input-${service.id}`).addEventListener("change", () => {
@@ -896,7 +902,11 @@ async function checkShortcutHighlight() {
   // Clear the flag immediately so it doesn't re-trigger on refresh
   await chrome.storage.local.remove("highlightShortcut");
 
-  const section = document.getElementById("shortcut-section");
+  // Activate the shortcut tab so the user can see the highlight
+  switchTab("shortcut");
+  history.pushState(null, null, "#shortcut");
+
+  const section = document.getElementById("section-shortcut");
   if (!section) return;
 
   // Scroll the section into view, centered
@@ -913,6 +923,56 @@ async function checkShortcutHighlight() {
       section.classList.remove("highlight-blink");
     }, { once: true });
   }, 400);
+}
+
+function switchTab(tabId) {
+  // Update nav buttons active class
+  document.querySelectorAll(".nav-item").forEach(item => {
+    if (item.getAttribute("data-target") === tabId) {
+      item.classList.add("active");
+    } else {
+      item.classList.remove("active");
+    }
+  });
+
+  // Update content sections active class
+  document.querySelectorAll(".settings-content .section").forEach(sec => {
+    if (sec.id === `section-${tabId}`) {
+      sec.classList.add("active");
+    } else {
+      sec.classList.remove("active");
+    }
+  });
+}
+
+function initTabs() {
+  const navItems = document.querySelectorAll(".nav-item");
+  
+  navItems.forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      const tabId = item.getAttribute("data-target");
+      switchTab(tabId);
+      // Update hash without jumping
+      history.pushState(null, null, "#" + tabId);
+    });
+  });
+
+  // Handle back/forward buttons or hash change
+  window.addEventListener("hashchange", () => {
+    const hash = window.location.hash.substring(1);
+    if (hash && ["tools", "appearance", "behavior", "shortcut", "maintenance"].includes(hash)) {
+      switchTab(hash);
+    }
+  });
+
+  // Check initial hash
+  const initialHash = window.location.hash.substring(1);
+  if (initialHash && ["tools", "appearance", "behavior", "shortcut", "maintenance"].includes(initialHash)) {
+    switchTab(initialHash);
+  } else {
+    switchTab("tools");
+  }
 }
 
 function applyNonSidebarPosition() {

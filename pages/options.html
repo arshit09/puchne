@@ -20,345 +20,374 @@
       </div>
     </header>
 
-    <!-- ── Section: AI Services ───────────────────────── -->
-    <section class="section">
-      <div class="section-header">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        <h2>AI Services</h2>
-      </div>
-      <p class="section-desc">Choose which AI services to include when multicasting. You can toggle them individually below.</p>
-      <div id="serviceList" class="service-list">
-        <!-- Dynamically populated -->
-      </div>
-    </section>
+    <div class="settings-layout">
+      <!-- ── Left Navigation Sidebar ──────────────────── -->
+      <aside class="settings-sidebar">
+        <nav class="nav-menu">
+          <a href="#tools" class="nav-item active" data-target="tools">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z"/></svg>
+            <span>AI Tools</span>
+          </a>
+          <a href="#appearance" class="nav-item" data-target="appearance">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span>Appearance</span>
+          </a>
+          <a href="#behavior" class="nav-item" data-target="behavior">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+            <span>Behavior</span>
+          </a>
+          <a href="#shortcut" class="nav-item" data-target="shortcut">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
+            <span>Global Shortcut</span>
+          </a>
+          <a href="#maintenance" class="nav-item" data-target="maintenance">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span>Maintenance</span>
+          </a>
+        </nav>
+      </aside>
 
-    <div class="settings-grid">
-      <!-- ── Section: Appearance & Display ──────────────── -->
-      <section class="section display-section">
-        <div class="section-header">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          <h2>Display & Preview</h2>
-        </div>
-        <p class="section-desc">Customize how the Puchne overlay looks and where it appears on screen.</p>
-
-        <div class="display-container">
-          <div class="display-controls">
-            <div class="setting-row">
-              <div class="setting-info">
-                <p class="setting-label">Dark Mode</p>
-                <p class="setting-desc">Switch between light and dark interface</p>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="darkMode">
-                <span class="slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <p class="setting-label">Overlay Position</p>
-                <p class="setting-desc">Where the modal appears on the page</p>
-              </div>
-              <div class="custom-select" id="overlayPositionContainer">
-                <div class="select-trigger" id="overlayPositionTrigger">
-                  <span id="overlayPositionLabel">Top</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-                <div class="select-options" id="overlayPositionOptions">
-                  <div class="option" data-value="top">Top</div>
-                  <div class="option" data-value="center">Center</div>
-                  <div class="option" data-value="bottom">Bottom</div>
-                </div>
-                <input type="hidden" id="overlayPosition" value="center">
-              </div>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <p class="setting-label">Prompt History</p>
-                <p class="setting-desc">Save and show your recent prompts</p>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="showRecents">
-                <span class="slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <p class="setting-label">AI Tools</p>
-                <p class="setting-desc">How AI options appear in the popup</p>
-              </div>
-              <div class="custom-select" id="chipDisplayContainer">
-                <div class="select-trigger" id="chipDisplayTrigger">
-                  <span id="chipDisplayLabel">Name with Logo</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                </div>
-                <div class="select-options" id="chipDisplayOptions">
-                  <div class="option" data-value="none">None</div>
-                  <div class="option" data-value="logo">Logo only</div>
-                  <div class="option" data-value="name">Name only</div>
-                  <div class="option" data-value="logo-name">Name with Logo</div>
-                </div>
-                <input type="hidden" id="chipDisplay" value="logo-name">
-              </div>
-            </div>
-
-            <div class="setting-row" id="useSidebarRow">
-              <div class="setting-info">
-                <p class="setting-label">Open as Sidebar</p>
-                <p class="setting-desc">Dock Puchne to the browser sidebar instead of a floating overlay</p>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="useSidebar">
-                <span class="slider"></span>
-              </label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <p class="setting-label">Shortcut Hint</p>
-                <p class="setting-desc">Show keyboard shortcut at the bottom of the popup</p>
-              </div>
-              <label class="toggle">
-                <input type="checkbox" id="showShortcutHint" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
+      <!-- ── Right Content Area ────────────────────────── -->
+      <main class="settings-content">
+        <!-- ── Section: AI Services ───────────────────────── -->
+        <section class="section active" id="section-tools">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5.5Z"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z"/></svg>
+            <h2>AI Tools</h2>
           </div>
+          <p class="section-desc">Choose which AI tools to include when multicasting. You can toggle them individually below.</p>
+          <div id="serviceList" class="service-list">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
 
-          <div class="display-preview">
-            <div class="preview-label">Live Preview</div>
-            <div class="preview-box" id="previewBox">
-              <!-- Simulated Overlay for Preview -->
-              <div class="mock-overlay" id="mockOverlay">
-                <div class="mock-header">
-                  <div class="mock-logo">
-                    <img src="../icons/app/icon-16.png" width="16" height="16" alt="Puchne"/>
-                    <span>Puchne</span>
+        <!-- ── Section: Appearance & Display ──────────────── -->
+        <section class="section display-section" id="section-appearance">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <h2>Appearance</h2>
+          </div>
+          <p class="section-desc">Customize how the Puchne overlay looks and where it appears on screen.</p>
+
+          <div class="display-container">
+            <div class="display-preview">
+              <div class="preview-label">Live Preview</div>
+              <div class="preview-box" id="previewBox">
+                <!-- Simulated Overlay for Preview -->
+                <div class="mock-overlay" id="mockOverlay">
+                  <div class="mock-header">
+                    <div class="mock-logo">
+                      <img src="../icons/app/icon-16.png" width="16" height="16" alt="Puchne"/>
+                      <span>Puchne</span>
+                    </div>
+                  </div>
+                  <div class="mock-chips" id="mockChips">
+                    <div class="mock-chip active"><img src="../icons/services/chatgpt_dark.png" class="mock-service-icon"/><span class="chip-text">ChatGPT</span></div>
+                    <div class="mock-chip"><img src="../icons/services/claude.png" class="mock-service-icon"/><span class="chip-text">Claude</span></div>
+                    <div class="mock-chip"><img src="../icons/services/gemini.png" class="mock-service-icon"/><span class="chip-text">Gemini</span></div>
+                  </div>
+                  <div class="mock-input">
+                    <div class="mock-line"></div>
+                    <div class="mock-line short"></div>
+                    <div class="mock-btn"></div>
+                  </div>
+                  <div class="mock-history" id="mockHistory">
+                    <div class="mock-hist-label">RECENT PROMPTS</div>
+                    <div class="mock-hist-item">Write a python script to...</div>
+                    <div class="mock-hist-item">Explain quantum physics...</div>
+                  </div>
+                  <div class="mock-footer" id="mockFooter">
+                    <div class="mock-shortcut" id="mockShortcut">Ctrl+Shift+A</div>
                   </div>
                 </div>
-                <div class="mock-chips" id="mockChips">
-                  <div class="mock-chip active"><img src="../icons/services/chatgpt_dark.png" class="mock-service-icon"/><span class="chip-text">ChatGPT</span></div>
-                  <div class="mock-chip"><img src="../icons/services/claude.png" class="mock-service-icon"/><span class="chip-text">Claude</span></div>
-                  <div class="mock-chip"><img src="../icons/services/gemini.png" class="mock-service-icon"/><span class="chip-text">Gemini</span></div>
+                <!-- Position Indicators -->
+                <div class="pos-indicator pos-top" id="posTop"></div>
+                <div class="pos-indicator pos-center" id="posCenter"></div>
+                <div class="pos-indicator pos-bottom" id="posBottom"></div>
+              </div>
+            </div>
+
+            <div class="display-controls">
+              <div class="setting-row">
+                <div class="setting-info">
+                  <p class="setting-label">Dark Mode</p>
+                  <p class="setting-desc">Switch between light and dark interface</p>
                 </div>
-                <div class="mock-input">
-                  <div class="mock-line"></div>
-                  <div class="mock-line short"></div>
-                  <div class="mock-btn"></div>
+                <label class="toggle">
+                  <input type="checkbox" id="darkMode">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <p class="setting-label">Overlay Position</p>
+                  <p class="setting-desc">Where the modal appears on the page</p>
                 </div>
-                <div class="mock-history" id="mockHistory">
-                  <div class="mock-hist-label">RECENT PROMPTS</div>
-                  <div class="mock-hist-item">Write a python script to...</div>
-                  <div class="mock-hist-item">Explain quantum physics...</div>
-                </div>
-                <div class="mock-footer" id="mockFooter">
-                  <div class="mock-shortcut" id="mockShortcut">Ctrl+Shift+A</div>
+                <div class="custom-select" id="overlayPositionContainer">
+                  <div class="select-trigger" id="overlayPositionTrigger">
+                    <span id="overlayPositionLabel">Top</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                  <div class="select-options" id="overlayPositionOptions">
+                    <div class="option" data-value="top">Top</div>
+                    <div class="option" data-value="center">Center</div>
+                    <div class="option" data-value="bottom">Bottom</div>
+                  </div>
+                  <input type="hidden" id="overlayPosition" value="center">
                 </div>
               </div>
-              <!-- Position Indicators -->
-              <div class="pos-indicator pos-top" id="posTop"></div>
-              <div class="pos-indicator pos-center" id="posCenter"></div>
-              <div class="pos-indicator pos-bottom" id="posBottom"></div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Behavior is now pushed below on smaller screens, but shared in grid otherwise -->
-      <section class="section behavior-section">
-        <div class="section-header">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
-          <h2>Behavior</h2>
-        </div>
-        <p class="section-desc">Control how Puchne opens tabs, submits prompts, and manages delay.</p>
-        <div class="setting-row">
-          <div class="setting-info">
-            <p class="setting-label">Auto-Submit</p>
-            <p class="setting-desc">Press Enter automatically after filling</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="autoSubmit" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <p class="setting-label">Prompt History</p>
+                  <p class="setting-desc">Save and show your recent prompts</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="showRecents">
+                  <span class="slider"></span>
+                </label>
+              </div>
 
-        <div class="setting-row">
-          <div class="setting-info">
-            <p class="setting-label">Grid View</p>
-            <p class="setting-desc">Open all AI tools in a single tab arranged in a grid</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="gridView">
-            <span class="slider"></span>
-          </label>
-        </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <p class="setting-label">AI Tools</p>
+                  <p class="setting-desc">How AI options appear in the popup</p>
+                </div>
+                <div class="custom-select" id="chipDisplayContainer">
+                  <div class="select-trigger" id="chipDisplayTrigger">
+                    <span id="chipDisplayLabel">Name with Logo</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                  <div class="select-options" id="chipDisplayOptions">
+                    <div class="option" data-value="none">None</div>
+                    <div class="option" data-value="logo">Logo only</div>
+                    <div class="option" data-value="name">Name only</div>
+                    <div class="option" data-value="logo-name">Name with Logo</div>
+                  </div>
+                  <input type="hidden" id="chipDisplay" value="logo-name">
+                </div>
+              </div>
 
-        <div class="setting-row" id="hoverExpandRow">
-          <div class="setting-info">
-            <p class="setting-label">Hover to Expand</p>
-            <p class="setting-desc">Enlarge a window when you hover your mouse over it</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="hoverExpand" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
+              <div class="setting-row" id="useSidebarRow">
+                <div class="setting-info">
+                  <p class="setting-label">Open as Sidebar</p>
+                  <p class="setting-desc">Dock Puchne to the browser sidebar instead of a floating overlay</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="useSidebar">
+                  <span class="slider"></span>
+                </label>
+              </div>
 
-        <div class="setting-row setting-row-sub" id="hoverExpandMinRow">
-          <div class="setting-info">
-            <p class="setting-label">Activate When</p>
-            <p class="setting-desc">Minimum number of windows open in the grid</p>
-          </div>
-          <div class="custom-select" id="hoverExpandMinContainer">
-            <div class="select-trigger" id="hoverExpandMinTrigger">
-              <span id="hoverExpandMinLabel">2 or more</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-            </div>
-            <div class="select-options" id="hoverExpandMinOptions">
-              <div class="option" data-value="2">2 or more</div>
-              <div class="option" data-value="3">3 or more</div>
-              <div class="option" data-value="4">4 or more</div>
-            </div>
-            <input type="hidden" id="hoverExpandMin" value="2">
-          </div>
-        </div>
-
-        <div class="setting-row setting-row-sub" id="hoverExpandDelayRow">
-          <div class="setting-info">
-            <p class="setting-label">Hover Delay</p>
-            <p class="setting-desc">Delay before a window expands under the cursor</p>
-          </div>
-          <div class="custom-select" id="hoverExpandDelayContainer">
-            <div class="select-trigger" id="hoverExpandDelayTrigger">
-              <span id="hoverExpandDelayLabel">1.5 seconds</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-            </div>
-            <div class="select-options" id="hoverExpandDelayOptions">
-              <div class="option" data-value="0">Instant (0s)</div>
-              <div class="option" data-value="200">0.2 seconds</div>
-              <div class="option" data-value="500">0.5 seconds</div>
-              <div class="option" data-value="1000">1.0 second</div>
-              <div class="option" data-value="1500">1.5 seconds</div>
-              <div class="option" data-value="2000">2.0 seconds</div>
-            </div>
-            <input type="hidden" id="hoverExpandDelay" value="1500">
-          </div>
-        </div>
-
-        <div class="setting-row" id="cookieConsentRow">
-          <div class="setting-info">
-            <p class="setting-label">Cookie Consent</p>
-            <p class="setting-desc">Auto-handle cookie popups in grid iframes</p>
-          </div>
-          <div class="custom-select" id="cookieConsentContainer">
-            <div class="select-trigger" id="cookieConsentTrigger">
-              <span id="cookieConsentLabel">Accept All</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-            </div>
-            <div class="select-options" id="cookieConsentOptions">
-              <div class="option" data-value="accept">Accept All</div>
-              <div class="option" data-value="reject">Reject All</div>
-              <div class="option" data-value="off">Off (Manual)</div>
-            </div>
-            <input type="hidden" id="cookieConsent" value="accept">
-          </div>
-        </div>
-
-        <div class="setting-row" id="groupTabsRow">
-          <div class="setting-info">
-            <p class="setting-label">Group Tabs</p>
-            <p class="setting-desc">Organize into a single Chrome tab group</p>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" id="groupTabs" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <div class="setting-info">
-            <p class="setting-label">Page Load Delay</p>
-            <p class="setting-desc">Wait time (ms) before typing prompt</p>
-          </div>
-          <div class="input-group">
-            <div class="num-input-wrapper">
-              <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
-              <div class="num-spinners">
-                <button class="num-spin up" data-target="delayMs" tabindex="-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
-                </button>
-                <button class="num-spin down" data-target="delayMs" tabindex="-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <p class="setting-label">Shortcut Hint</p>
+                  <p class="setting-desc">Show keyboard shortcut at the bottom of the popup</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="showShortcutHint" checked>
+                  <span class="slider"></span>
+                </label>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="setting-row">
-          <div class="setting-info">
-            <p class="setting-label">History Limit</p>
-            <p class="setting-desc">Max number of recent prompts to save</p>
+        <!-- ── Section: Behavior ──────────────────────────── -->
+        <section class="section behavior-section" id="section-behavior">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+            <h2>Behavior</h2>
           </div>
-          <div class="input-group">
-            <div class="num-input-wrapper">
-              <input type="number" id="historyLimit" min="5" max="100" step="5" value="20" class="num-input">
-              <div class="num-spinners">
-                <button class="num-spin up" data-target="historyLimit" tabindex="-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
-                </button>
-                <button class="num-spin down" data-target="historyLimit" tabindex="-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
+          <p class="section-desc">Control how Puchne opens tabs, submits prompts, and manages delay.</p>
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">Auto-Submit</p>
+              <p class="setting-desc">Press Enter automatically after filling</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoSubmit" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">Grid View</p>
+              <p class="setting-desc">Open all AI tools in a single tab arranged in a grid</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="gridView">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row" id="hoverExpandRow">
+            <div class="setting-info">
+              <p class="setting-label">Hover to Expand</p>
+              <p class="setting-desc">Enlarge a window when you hover your mouse over it</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="hoverExpand" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row setting-row-sub" id="hoverExpandMinRow">
+            <div class="setting-info">
+              <p class="setting-label">Activate When</p>
+              <p class="setting-desc">Minimum number of windows open in the grid</p>
+            </div>
+            <div class="custom-select" id="hoverExpandMinContainer">
+              <div class="select-trigger" id="hoverExpandMinTrigger">
+                <span id="hoverExpandMinLabel">2 or more</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="select-options" id="hoverExpandMinOptions">
+                <div class="option" data-value="2">2 or more</div>
+                <div class="option" data-value="3">3 or more</div>
+                <div class="option" data-value="4">4 or more</div>
+              </div>
+              <input type="hidden" id="hoverExpandMin" value="2">
+            </div>
+          </div>
+
+          <div class="setting-row setting-row-sub" id="hoverExpandDelayRow">
+            <div class="setting-info">
+              <p class="setting-label">Hover Delay</p>
+              <p class="setting-desc">Delay before a window expands under the cursor</p>
+            </div>
+            <div class="custom-select" id="hoverExpandDelayContainer">
+              <div class="select-trigger" id="hoverExpandDelayTrigger">
+                <span id="hoverExpandDelayLabel">1.5 seconds</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="select-options" id="hoverExpandDelayOptions">
+                <div class="option" data-value="0">Instant (0s)</div>
+                <div class="option" data-value="200">0.2 seconds</div>
+                <div class="option" data-value="500">0.5 seconds</div>
+                <div class="option" data-value="1000">1.0 second</div>
+                <div class="option" data-value="1500">1.5 seconds</div>
+                <div class="option" data-value="2000">2.0 seconds</div>
+              </div>
+              <input type="hidden" id="hoverExpandDelay" value="1500">
+            </div>
+          </div>
+
+          <div class="setting-row" id="cookieConsentRow">
+            <div class="setting-info">
+              <p class="setting-label">Cookie Consent</p>
+              <p class="setting-desc">Auto-handle cookie popups in grid iframes</p>
+            </div>
+            <div class="custom-select" id="cookieConsentContainer">
+              <div class="select-trigger" id="cookieConsentTrigger">
+                <span id="cookieConsentLabel">Accept All</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="select-options" id="cookieConsentOptions">
+                <div class="option" data-value="accept">Accept All</div>
+                <div class="option" data-value="reject">Reject All</div>
+                <div class="option" data-value="off">Off (Manual)</div>
+              </div>
+              <input type="hidden" id="cookieConsent" value="accept">
+            </div>
+          </div>
+
+          <div class="setting-row" id="groupTabsRow">
+            <div class="setting-info">
+              <p class="setting-label">Group Tabs</p>
+              <p class="setting-desc">Organize into a single Chrome tab group</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="groupTabs" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">Page Load Delay</p>
+              <p class="setting-desc">Wait time (ms) before typing prompt</p>
+            </div>
+            <div class="input-group">
+              <div class="num-input-wrapper">
+                <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
+                <div class="num-spinners">
+                  <button class="num-spin up" data-target="delayMs" tabindex="-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                  </button>
+                  <button class="num-spin down" data-target="delayMs" tabindex="-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">History Limit</p>
+              <p class="setting-desc">Max number of recent prompts to save</p>
+            </div>
+            <div class="input-group">
+              <div class="num-input-wrapper">
+                <input type="number" id="historyLimit" min="5" max="100" step="5" value="20" class="num-input">
+                <div class="num-spinners">
+                  <button class="num-spin up" data-target="historyLimit" tabindex="-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                  </button>
+                  <button class="num-spin down" data-target="historyLimit" tabindex="-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Section: Keyboard Shortcut ─────────────────── -->
+        <section class="section" id="section-shortcut">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
+            <h2>Global Shortcut</h2>
+          </div>
+
+          <p class="section-desc">Press this key combination to open the Puchne overlay on any website.</p>
+          <div class="shortcut-container">
+            <div class="shortcut-action">
+              <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
+              <button id="openShortcuts" class="btn-action">Change Shortcut ↗</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Section: Maintenance ────────────────────────── -->
+        <section class="section" id="section-maintenance">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <h2>Maintenance</h2>
+          </div>
+          <p class="section-desc">Manage your saved data and restore factory defaults.</p>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">Prompt History</p>
+              <p class="setting-desc">Clear your locally saved recent prompts</p>
+            </div>
+            <button id="clearHistory" class="btn-danger">Clear History</button>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <p class="setting-label">Reset Extension</p>
+              <p class="setting-desc">Restore all settings to factory defaults</p>
+            </div>
+            <button id="resetAll" class="btn-danger">Reset All</button>
+          </div>
+        </section>
+      </main>
     </div>
-
-    <!-- ── Section: Keyboard Shortcut ─────────────────── -->
-    <section class="section" id="shortcut-section">
-      <div class="section-header">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
-        <h2>Global Shortcut</h2>
-      </div>
-
-      <p class="section-desc">Press this key combination to open the Puchne overlay on any website.</p>
-      <div class="shortcut-container">
-        <div class="shortcut-action">
-          <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
-          <button id="openShortcuts" class="btn-action">Change Shortcut ↗</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Section: Maintenance ────────────────────────── -->
-    <section class="section">
-      <div class="section-header">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        <h2>Maintenance</h2>
-      </div>
-      <p class="section-desc">Manage your saved data and restore factory defaults.</p>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Prompt History</p>
-          <p class="setting-desc">Clear your locally saved recent prompts</p>
-        </div>
-        <button id="clearHistory" class="btn-danger">Clear History</button>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-info">
-          <p class="setting-label">Reset Extension</p>
-          <p class="setting-desc">Restore all settings to factory defaults</p>
-        </div>
-        <button id="resetAll" class="btn-danger">Reset All</button>
-      </div>
-    </section>
 
     <!-- ── Toast ──────────────────────────────────────── -->
     <div id="toast" class="toast hidden">Settings saved</div>

@@ -48,6 +48,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font);
   background: var(--bg-primary);
@@ -56,7 +60,7 @@ body {
 }
 
 .container {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 48px 32px;
   display: flex;
@@ -161,26 +165,24 @@ body {
 
 .display-container {
   display: flex;
+  flex-direction: column;
   margin: 0 -24px -24px;
   align-items: stretch;
 }
 
 .display-controls {
-  flex: 1;
-  padding: 0 24px;
+  padding: 24px;
 }
 
 .display-preview {
-  width: 460px;
-  flex-shrink: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 32px 40px;
-  border-left: 1px solid var(--border);
   border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
-  border-bottom-right-radius: var(--radius);
 }
 
 .preview-label {
@@ -431,14 +433,11 @@ body {
 }
 
 @media (max-width: 768px) {
-  .display-container {
-    flex-direction: column;
-    margin: 0;
-  }
   .display-preview {
-    width: 100%;
-    border-left: none;
-    padding: 24px 0 0;
+    padding: 24px 16px;
+  }
+  .display-controls {
+    padding: 16px;
   }
 }
 
@@ -533,16 +532,25 @@ body {
 
 /* ── Selector Editor ───────────────────────────────────────── */
 .selector-editor {
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px 20px 20px;
-  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-rows: minmax(0, 0fr);
+  transition: grid-template-rows 250ms ease, border-top-width 250ms ease;
+  overflow: hidden;
+  border-top: 0 solid var(--border);
   background: var(--bg-primary);
 }
 
 .selector-editor.open {
+  grid-template-rows: minmax(0, 1fr);
+  border-top-width: 1px;
+}
+
+.selector-editor-inner {
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px;
 }
 
 .selector-field {
@@ -676,8 +684,7 @@ body {
 
 /* Top separator — works whether a section-desc is present or not */
 .section-header + .setting-row,
-.section-desc + .setting-row,
-.display-controls .setting-row:first-child {
+.section-desc + .setting-row {
   border-top: 1px solid var(--border);
 }
 
@@ -1306,4 +1313,106 @@ body {
 
 .modal-overlay.hidden {
   display: flex; /* Overriding hidden class but opacity/visibility handles it */
+}
+
+/* ── Layout & Sidebar ──────────────────────────────────────── */
+.settings-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.settings-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 32px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  z-index: 10;
+}
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: stroke var(--transition), color var(--transition);
+}
+
+.nav-item:hover svg {
+  color: var(--text-primary);
+}
+
+.nav-item.active svg {
+  color: var(--accent);
+  stroke: var(--accent);
+}
+
+.settings-content {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Hide inactive sections */
+.settings-content .section:not(.active) {
+  display: none !important;
+}
+
+/* Responsive layout adjustments */
+@media (max-width: 1024px) {
+  .settings-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .settings-sidebar {
+    width: 100%;
+    position: relative;
+    top: 0;
+  }
+  .nav-menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .nav-item {
+    flex-grow: 1;
+    justify-content: center;
+  }
 }
