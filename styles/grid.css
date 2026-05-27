@@ -126,7 +126,11 @@ html, body {
 }
 
 .grid-cell.drag-ghost {
-  opacity: 0.2;
+  opacity: 0.4;
+  border: 2px dashed var(--accent);
+  background: var(--accent-light);
+  border-radius: var(--radius-sm);
+  z-index: 1;
 }
 
 .grid-cell.drop-target {

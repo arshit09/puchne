@@ -239,6 +239,19 @@ function initDrag(cellObj, startX, startY) {
   // Get cell's current bounding rect to position the fixed clone
   const rect = cellObj.el.getBoundingClientRect();
   let dropTarget = null;
+  let dragSwapTimeout = null;
+
+  // Capture initial layout and original rects of all cells before any drag transformations
+  const initialLayout = new Map();
+  const originalRects = new Map();
+  for (const c of cellMap) {
+    initialLayout.set(c, {
+      row: c.row,
+      col: c.col,
+      colSpan: c.colSpan
+    });
+    originalRects.set(c, c.el.getBoundingClientRect());
+  }
 
   // Create a placeholder to keep grid structure
   const ghost = document.createElement("div");
@@ -256,6 +269,128 @@ function initDrag(cellObj, startX, startY) {
   if (header) header.classList.add("grabbing");
   document.body.style.cursor = "grabbing";
 
+  function cellUnderPointOriginal(px, py) {
+    for (const [c, r] of originalRects) {
+      if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  function swapPositionsWithAnimation(targetCell) {
+    if (dragSwapTimeout) {
+      clearTimeout(dragSwapTimeout);
+    }
+
+    // 1. Record first positions of all cells (except dragged) and ghost
+    const firstRects = new Map();
+    for (const c of cellMap) {
+      if (c !== cellObj) {
+        firstRects.set(c, c.el.getBoundingClientRect());
+      }
+    }
+    const ghostFirst = ghost.getBoundingClientRect();
+
+    // 2. Reset all cells to their initial layout coordinates
+    for (const c of cellMap) {
+      const init = initialLayout.get(c);
+      c.row = init.row;
+      c.col = init.col;
+      c.colSpan = init.colSpan;
+    }
+
+    // 3. Swap coordinates of cellObj and targetCell (if provided)
+    if (targetCell) {
+      const initA = initialLayout.get(cellObj);
+      const initB = initialLayout.get(targetCell);
+
+      cellObj.row = initB.row;
+      cellObj.col = initB.col;
+      cellObj.colSpan = initB.colSpan;
+
+      targetCell.row = initA.row;
+      targetCell.col = initA.col;
+      targetCell.colSpan = initA.colSpan;
+    }
+
+    // 4. Update DOM placement of ghost and all other cells
+    ghost.style.gridColumn = `${cellObj.col + 1} / span ${cellObj.colSpan}`;
+    ghost.style.gridRow    = `${cellObj.row + 1}`;
+    for (const c of cellMap) {
+      if (c !== cellObj) {
+        placeCellInGrid(c);
+      }
+    }
+
+    // 5. Record last positions
+    const lastRects = new Map();
+    for (const c of cellMap) {
+      if (c !== cellObj) {
+        lastRects.set(c, c.el.getBoundingClientRect());
+      }
+    }
+    const ghostLast = ghost.getBoundingClientRect();
+
+    // 6. Apply FLIP transition: set to original offsets instantly
+    for (const c of cellMap) {
+      if (c === cellObj) continue;
+      const first = firstRects.get(c);
+      const last = lastRects.get(c);
+      if (first && last) {
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx !== 0 || dy !== 0) {
+          c.el.style.transition = 'none';
+          c.el.style.transform = `translate(${dx}px, ${dy}px)`;
+        }
+      }
+    }
+
+    const gDx = ghostFirst.left - ghostLast.left;
+    const gDy = ghostFirst.top - ghostLast.top;
+    if (gDx !== 0 || gDy !== 0) {
+      ghost.style.transition = 'none';
+      ghost.style.transform = `translate(${gDx}px, ${gDy}px)`;
+    }
+
+    // Force layout calculation (reflow) to register the start positions
+    gridContainer.offsetHeight;
+
+    // 7. Play: animate back to original layout positions (translate 0)
+    for (const c of cellMap) {
+      if (c === cellObj) continue;
+      const first = firstRects.get(c);
+      const last = lastRects.get(c);
+      if (first && last) {
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx !== 0 || dy !== 0) {
+          c.el.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          c.el.style.transform = '';
+        }
+      }
+    }
+
+    if (gDx !== 0 || gDy !== 0) {
+      ghost.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+      ghost.style.transform = '';
+    }
+
+    // Clear styles after transition ends
+    dragSwapTimeout = setTimeout(() => {
+      for (const c of cellMap) {
+        if (c !== cellObj) {
+          c.el.style.transition = '';
+          c.el.style.transform = '';
+        }
+      }
+      ghost.style.transition = '';
+      ghost.style.transform = '';
+      dragSwapTimeout = null;
+    }, 250);
+  }
+
   function onMove(e) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
@@ -263,12 +398,15 @@ function initDrag(cellObj, startX, startY) {
     cellObj.el.style.left = (rect.left + dx) + "px";
     cellObj.el.style.top  = (rect.top + dy) + "px";
 
-    // Find drop target under cursor
-    const newTarget = cellUnderPoint(e.clientX, e.clientY, cellObj);
+    // Find drop target under cursor based on original positions
+    let newTarget = cellUnderPointOriginal(e.clientX, e.clientY);
+    if (newTarget === cellObj) {
+      newTarget = null;
+    }
+
     if (newTarget !== dropTarget) {
-      if (dropTarget) dropTarget.el.classList.remove("drop-target");
+      swapPositionsWithAnimation(newTarget);
       dropTarget = newTarget;
-      if (dropTarget) dropTarget.el.classList.add("drop-target");
     }
   }
 
@@ -278,39 +416,66 @@ function initDrag(cellObj, startX, startY) {
     removeOverlay(overlay);
     gridContainer.classList.remove("no-transition");
 
-    cellObj.el.classList.remove("dragging");
-    cellObj.el.style.left = cellObj.el.style.top = cellObj.el.style.width = cellObj.el.style.height = "";
     if (header) header.classList.remove("grabbing");
     document.body.style.cursor = "";
-    if (dropTarget) dropTarget.el.classList.remove("drop-target");
+
+    // Clear any pending swap timeout
+    if (dragSwapTimeout) {
+      clearTimeout(dragSwapTimeout);
+      dragSwapTimeout = null;
+    }
+
+    // Record first position of dragged cell (which is current cursor position)
+    const draggedFirst = cellObj.el.getBoundingClientRect();
 
     // Remove ghost
     ghost.remove();
 
-    if (dropTarget) {
-      // Swap grid positions
-      const aRow = cellObj.row, aCol = cellObj.col, aSpan = cellObj.colSpan;
-      const bRow = dropTarget.row, bCol = dropTarget.col, bSpan = dropTarget.colSpan;
+    // Clean up dragging and inline placement styles from cellObj.el
+    cellObj.el.classList.remove("dragging");
+    cellObj.el.style.left = cellObj.el.style.top = cellObj.el.style.width = cellObj.el.style.height = "";
 
-      cellObj.row = bRow;   cellObj.col = bCol;   cellObj.colSpan = bSpan;
-      dropTarget.row = aRow; dropTarget.col = aCol; dropTarget.colSpan = aSpan;
+    // Place cell in its final grid slot
+    placeCellInGrid(cellObj);
 
-      placeCellInGrid(cellObj);
-      placeCellInGrid(dropTarget);
+    // Record last position of dragged cell in its grid slot
+    const draggedLast = cellObj.el.getBoundingClientRect();
 
-      // Update resize handle visibility for both cells
-      refreshHandles(cellObj);
-      refreshHandles(dropTarget);
+    // Clear temporary inline styles on all cells to prevent lingering transition issues
+    cellMap.forEach(c => {
+      c.el.style.transition = '';
+      c.el.style.transform = '';
+    });
 
-      // Persist new cell order
-      const cellOrder = [...cellMap]
-        .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
-        .map(c => c.service.id);
-      chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
-    } else {
-      // Snap back — just re-place in grid
-      placeCellInGrid(cellObj);
+    // Apply snap back animation to the dragged cell using FLIP
+    const dx = draggedFirst.left - draggedLast.left;
+    const dy = draggedFirst.top - draggedLast.top;
+
+    if (dx !== 0 || dy !== 0) {
+      cellObj.el.style.transition = 'none';
+      cellObj.el.style.transform = `translate(${dx}px, ${dy}px)`;
+
+      // Force style recalculation/reflow
+      gridContainer.offsetHeight;
+
+      cellObj.el.style.transition = 'transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+      cellObj.el.style.transform = '';
+
+      // Clean up snap styles after transition
+      setTimeout(() => {
+        cellObj.el.style.transition = '';
+        cellObj.el.style.transform = '';
+      }, 250);
     }
+
+    // Update resize handle visibility for all cells
+    cellMap.forEach(c => refreshHandles(c));
+
+    // Persist new cell order
+    const cellOrder = [...cellMap]
+      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
+      .map(c => c.service.id);
+    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
   }
 
   document.addEventListener("mousemove", onMove);
