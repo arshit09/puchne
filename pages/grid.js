@@ -373,6 +373,80 @@ function collapseCell() {
   updateGridTemplate();
 }
 
+/* ── Close Cell & Re-layout ────────────────────────────────── */
+
+function closeCell(cellObj) {
+  if (expandState && expandState.cellObj === cellObj) {
+    collapseCell();
+  }
+
+  // Smooth fade-out and scale-down before removal
+  cellObj.el.style.transition = "opacity 200ms ease, transform 200ms ease";
+  cellObj.el.style.opacity = "0";
+  cellObj.el.style.transform = "scale(0.95)";
+
+  setTimeout(() => {
+    // Remove element from DOM
+    cellObj.el.remove();
+
+    // Remove from cellMap
+    cellMap = cellMap.filter(c => c !== cellObj);
+
+    const count = cellMap.length;
+    if (count === 0) {
+      showEmpty("No services to display. Enable some AI services in Settings.");
+      return;
+    }
+
+    // Compute new grid dimensions
+    cols = Math.min(count, 3);
+    rows = Math.ceil(count / cols);
+
+    // Reset to equal fractions for the new dimensions
+    colFracs = Array(cols).fill(1 / cols);
+    rowFracs = Array(rows).fill(1 / rows);
+
+    // Update layout and placement of remaining cells
+    updateGridTemplate();
+
+    const lastRowCount = count - cols * (rows - 1);
+    cellMap.forEach((c, idx) => {
+      const row = Math.floor(idx / cols);
+      const col = idx % cols;
+      const isLastRow = row === rows - 1 && lastRowCount < cols;
+
+      let colStart, colSpan;
+      if (isLastRow) {
+        const baseSpan = Math.floor(cols / lastRowCount);
+        const extra    = cols % lastRowCount;
+        const lastIdx  = idx - cols * (rows - 1);
+        colStart = 0;
+        for (let j = 0; j < lastIdx; j++) {
+          colStart += baseSpan + (j < extra ? 1 : 0);
+        }
+        colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
+      } else {
+        colStart = col;
+        colSpan  = 1;
+      }
+
+      c.row = row;
+      c.col = colStart;
+      c.colSpan = colSpan;
+      c.index = idx;
+
+      placeCellInGrid(c);
+      refreshHandles(c);
+    });
+
+    // Save the updated layout
+    const cellOrder = [...cellMap]
+      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
+      .map(c => c.service.id);
+    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
+  }, 200);
+}
+
 /* ── Main ──────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", async () => {
   const stored   = await chrome.storage.sync.get("settings");
@@ -506,10 +580,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         <img src="../${iconSrc}" alt="${service.name}">
         <span>${service.name}</span>
       </div>
-      <button class="cell-open-btn" title="Open in a separate tab">Open in tab \u2197</button>
+      <div class="cell-header-right">
+        <button class="cell-open-btn" title="Open in a separate tab">Open in tab \u2197</button>
+        <button class="cell-close-btn" title="Close window">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
     `;
     header.querySelector(".cell-open-btn").addEventListener("click", () => {
       chrome.tabs.create({ url: service.url });
+    });
+    header.querySelector(".cell-close-btn").addEventListener("click", () => {
+      closeCell(cellObj);
     });
 
     // Loading indicator
@@ -575,7 +660,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       let hoverTimer = null;
 
       cell.addEventListener("mouseenter", () => {
-        if (!hoverExpand || targets.length < hoverExpandMin) return;
+        if (!hoverExpand || cellMap.length < hoverExpandMin) return;
         if (expandState) return;
         hoverTimer = setTimeout(() => {
           hoverTimer = null;

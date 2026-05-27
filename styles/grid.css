@@ -208,10 +208,45 @@ html, body {
 }
 
 .cell-open-btn:hover {
-  background: var(--accent-light);
-  color: var(--accent);
-  border-color: var(--accent);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
 }
+
+.cell-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cell-close-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cell-close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  transform: scale(1.05);
+}
+
+.cell-close-btn svg {
+  transition: transform 150ms ease;
+}
+
+.cell-close-btn:hover svg {
+  transform: rotate(90deg);
+}
+
 
 /* ── Iframe ─────────────────────────────────────────────────── */
 .cell-iframe {
