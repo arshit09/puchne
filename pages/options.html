@@ -212,15 +212,22 @@
             </label>
           </div>
 
-          <div class="setting-row">
+          <div class="setting-row mode-selector-row">
             <div class="setting-info">
-              <p class="setting-label">Grid View</p>
-              <p class="setting-desc">Open all AI tools in a single tab arranged in a grid</p>
+              <p class="setting-label">Opening Mode</p>
+              <p class="setting-desc">How Puchne opens AI tools when you send a prompt</p>
             </div>
-            <label class="toggle">
-              <input type="checkbox" id="gridView" checked>
-              <span class="slider"></span>
-            </label>
+            <div class="mode-option-group">
+              <button class="mode-option" id="modeGridBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span>Grid View</span>
+              </button>
+              <button class="mode-option" id="modeTabsBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="13" rx="2"/><path d="M2 12h20"/><path d="M7 12V9a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3"/></svg>
+                <span>New Tabs</span>
+              </button>
+            </div>
+            <input type="checkbox" id="gridView" style="display:none" aria-hidden="true">
           </div>
 
           <div class="setting-row" id="hoverExpandRow">
@@ -234,7 +241,7 @@
             </label>
           </div>
 
-          <div class="setting-row setting-row-sub" id="hoverExpandMinRow">
+          <div class="setting-row" id="hoverExpandMinRow">
             <div class="setting-info">
               <p class="setting-label">Activate When</p>
               <p class="setting-desc">Minimum number of windows open in the grid</p>
@@ -253,7 +260,7 @@
             </div>
           </div>
 
-          <div class="setting-row setting-row-sub" id="hoverExpandDelayRow">
+          <div class="setting-row" id="hoverExpandDelayRow">
             <div class="setting-info">
               <p class="setting-label">Hover Delay</p>
               <p class="setting-desc">Delay before a window expands under the cursor</p>

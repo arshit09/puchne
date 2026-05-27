@@ -24,6 +24,8 @@ const historyLimitEl = document.getElementById("historyLimit");
 const clearHistoryBtn = document.getElementById("clearHistory");
 const resetAllBtn = document.getElementById("resetAll");
 const gridViewEl = document.getElementById("gridView");
+const modeGridBtn = document.getElementById("modeGridBtn");
+const modeTabsBtn = document.getElementById("modeTabsBtn");
 const groupTabsRow = document.getElementById("groupTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
@@ -71,6 +73,10 @@ const mockOverlay = document.getElementById("mockOverlay");
 const mockHistory = document.getElementById("mockHistory");
 const mockShortcut = document.getElementById("mockShortcut");
 
+// ── Animated row wrappers (set up in DOMContentLoaded) ───────
+let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
+    cookieConsentWrap, groupTabsWrap;
+
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
 let enabledServiceIds = [];
@@ -98,8 +104,31 @@ const DEFAULTS = {
   customSelectors: {},
 };
 
+/**
+ * Wraps a setting row in a collapsible container for smooth show/hide animation.
+ * Sets no-transition initially so the page load state renders instantly.
+ */
+function makeCollapsible(row) {
+  const wrap = document.createElement("div");
+  wrap.className = "row-collapse-wrap";
+  row.parentNode.insertBefore(wrap, row);
+  wrap.appendChild(row);
+  return wrap;
+}
+
 // ── Initialization ───────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
+  // Wrap animated rows before any state updates so initial render is instant
+  hoverExpandWrap      = makeCollapsible(hoverExpandRow);
+  hoverExpandMinWrap   = makeCollapsible(hoverExpandMinRow);
+  hoverExpandDelayWrap = makeCollapsible(hoverExpandDelayRow);
+  cookieConsentWrap    = makeCollapsible(cookieConsentRow);
+  groupTabsWrap        = makeCollapsible(groupTabsRow);
+
+  // Disable transitions for initial state so page load doesn't animate
+  [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
+   cookieConsentWrap, groupTabsWrap].forEach(w => w.style.transition = "none");
+
   // Fetch service registry from the background worker
   allServices = await new Promise((resolve) => {
     chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
@@ -118,6 +147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   useSidebarEl.checked = settings.useSidebar || false;
   updateOverlayPositionState();
   gridViewEl.checked = settings.gridView || false;
+  updateModeButtons();
   hoverExpandEl.checked = settings.hoverExpand !== false;
   const savedHoverExpandMin = String(settings.hoverExpandMin ?? 2);
   hoverExpandMinEl.value = savedHoverExpandMin;
@@ -135,6 +165,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   cookieConsentEl.value = savedCookieConsent;
   updateCookieConsentLabel(savedCookieConsent);
   updateCookieConsentSelected(savedCookieConsent);
+  updateCookieConsentState();
+
+  // Re-enable transitions after initial state is painted
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
+     cookieConsentWrap, groupTabsWrap].forEach(w => w.style.transition = "");
+  }));
+
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
   showRecentsEl.checked = settings.showRecents === true;
@@ -183,6 +221,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     updatePreview();
   });
   gridViewEl.addEventListener("change", () => {
+    updateModeButtons();
+    updateGroupTabsState();
+    updateCookieConsentState();
+    updateHoverExpandState();
+    save();
+  });
+  modeGridBtn.addEventListener("click", () => {
+    gridViewEl.checked = true;
+    updateModeButtons();
+    updateGroupTabsState();
+    updateCookieConsentState();
+    updateHoverExpandState();
+    save();
+  });
+  modeTabsBtn.addEventListener("click", () => {
+    gridViewEl.checked = false;
+    updateModeButtons();
     updateGroupTabsState();
     updateCookieConsentState();
     updateHoverExpandState();
@@ -210,7 +265,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCookieConsentSelect();
   initHoverExpandMinSelect();
   initHoverExpandDelaySelect();
-  updateCookieConsentState();
 
   // Init custom number spinners
   initNumSpinners();
@@ -371,14 +425,14 @@ function initClickableRows() {
 }
 
 
-/**
- * Disables the Group Tabs row when Grid View is active (since
- * grid mode opens a single tab, grouping is irrelevant).
- */
+function updateModeButtons() {
+  const isGrid = gridViewEl.checked;
+  modeGridBtn.classList.toggle("active", isGrid);
+  modeTabsBtn.classList.toggle("active", !isGrid);
+}
+
 function updateGroupTabsState() {
-  const disabled = gridViewEl.checked;
-  groupTabsRow.style.opacity = disabled ? "0.45" : "1";
-  groupTabsRow.style.pointerEvents = disabled ? "none" : "";
+  groupTabsWrap.classList.toggle("collapsed", gridViewEl.checked);
 }
 
 function updateOverlayPositionState() {
@@ -391,21 +445,16 @@ function updateOverlayPositionState() {
 }
 
 function updateCookieConsentState() {
-  const disabled = !gridViewEl.checked;
-  cookieConsentRow.style.opacity = disabled ? "0.45" : "1";
-  cookieConsentRow.style.pointerEvents = disabled ? "none" : "";
+  cookieConsentWrap.classList.toggle("collapsed", !gridViewEl.checked);
 }
 
 function updateHoverExpandState() {
-  const gridDisabled = !gridViewEl.checked;
-  hoverExpandRow.style.opacity = gridDisabled ? "0.45" : "1";
-  hoverExpandRow.style.pointerEvents = gridDisabled ? "none" : "";
+  const isGrid = gridViewEl.checked;
+  hoverExpandWrap.classList.toggle("collapsed", !isGrid);
 
-  const minDisabled = gridDisabled || !hoverExpandEl.checked;
-  hoverExpandMinRow.style.opacity = minDisabled ? "0.45" : "1";
-  hoverExpandMinRow.style.pointerEvents = minDisabled ? "none" : "";
-  hoverExpandDelayRow.style.opacity = minDisabled ? "0.45" : "1";
-  hoverExpandDelayRow.style.pointerEvents = minDisabled ? "none" : "";
+  const showSub = isGrid && hoverExpandEl.checked;
+  hoverExpandMinWrap.classList.toggle("collapsed", !showSub);
+  hoverExpandDelayWrap.classList.toggle("collapsed", !showSub);
 }
 
 function initHoverExpandMinSelect() {

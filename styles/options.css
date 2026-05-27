@@ -747,6 +747,77 @@ body {
   margin-top: 4px;
 }
 
+/* ── Row Collapse Animation ────────────────────────────────── */
+.row-collapse-wrap {
+  min-height: 0;
+  margin: 0 -24px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.row-collapse-wrap.collapsed {
+  grid-template-rows: minmax(0, 0fr);
+}
+
+.row-collapse-wrap > .setting-row {
+  min-height: 0;
+  margin-left: 0;
+  margin-right: 0;
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+.row-collapse-wrap.collapsed > .setting-row {
+  opacity: 0;
+}
+
+/* ── Mode Selector ─────────────────────────────────────────── */
+.mode-selector-row,
+.mode-selector-row:hover {
+  cursor: default !important;
+  background: transparent !important;
+}
+
+.mode-option-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.mode-option:hover {
+  border-color: var(--accent);
+}
+
+.mode-option.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mode-option svg {
+  flex-shrink: 0;
+}
+
 /* ── Toggle Switch ─────────────────────────────────────────── */
 .toggle {
   position: relative;
