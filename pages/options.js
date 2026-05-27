@@ -225,6 +225,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (area === "local" && changes.highlightShortcut?.newValue === true) {
       checkShortcutHighlight();
     }
+
+    // Sync settings changed externally (e.g. from the Grid tab)
+    if (area === "sync" && changes.settings) {
+      const newSettings = changes.settings.newValue || {};
+      const isChecked = newSettings.hoverExpand !== false;
+      if (hoverExpandEl.checked !== isChecked) {
+        hoverExpandEl.checked = isChecked;
+        updateHoverExpandState();
+      }
+    }
   });
 });
 

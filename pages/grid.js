@@ -34,6 +34,8 @@ const HOVER_EXPAND_DELAY = 1500;  // ms of dwell before expanding
 const HOVER_EXPAND_FRAC  = 0.60;  // target fraction the hovered cell's span will occupy
 
 let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell is expanded
+let hoverExpand = true;
+let hoverExpandMin = 2;
 
 /* ── Grid Template Helpers ─────────────────────────────────── */
 
@@ -378,8 +380,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const theme    = settings.theme || "dark";
   applyTheme(document.documentElement, theme);
 
-  const hoverExpand    = settings.hoverExpand !== false;
-  const hoverExpandMin = settings.hoverExpandMin ?? 2;
+  hoverExpand    = settings.hoverExpand !== false;
+  hoverExpandMin = settings.hoverExpandMin ?? 2;
 
   const data     = await chrome.storage.local.get("gridData");
   const gridData = data.gridData;
@@ -394,6 +396,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   const autoSubmit    = gridData.autoSubmit;
   const cookieConsent = gridData.cookieConsent || "accept";
   const delayMs       = gridData.delayMs;
+
+  // Initialize header toggle switch state and sync listeners
+  const toggleEl = document.getElementById("hoverExpandToggle");
+  if (toggleEl) {
+    toggleEl.checked = hoverExpand;
+    toggleEl.addEventListener("change", async () => {
+      const isEnabled = toggleEl.checked;
+      hoverExpand = isEnabled;
+      if (!isEnabled) {
+        collapseCell();
+      }
+
+      // Save setting to sync storage
+      const stored = await chrome.storage.sync.get("settings");
+      const settings = stored.settings || {};
+      settings.hoverExpand = isEnabled;
+      await chrome.storage.sync.set({ settings });
+    });
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.settings) {
+      const newSettings = changes.settings.newValue || {};
+      const isEnabled = newSettings.hoverExpand !== false;
+      hoverExpand = isEnabled;
+      hoverExpandMin = newSettings.hoverExpandMin ?? 2;
+
+      const toggleEl = document.getElementById("hoverExpandToggle");
+      if (toggleEl && toggleEl.checked !== isEnabled) {
+        toggleEl.checked = isEnabled;
+      }
+
+      if (!isEnabled) {
+        collapseCell();
+      }
+    }
+  });
 
   if (query) {
     const display = query.length > 80 ? query.slice(0, 80) + "\u2026" : query;
@@ -532,10 +571,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // ── Hover-to-expand ──
-    if (hoverExpand && targets.length >= hoverExpandMin) {
+    if (targets.length >= 2) {
       let hoverTimer = null;
 
       cell.addEventListener("mouseenter", () => {
+        if (!hoverExpand || targets.length < hoverExpandMin) return;
         if (expandState) return;
         hoverTimer = setTimeout(() => {
           hoverTimer = null;
