@@ -37,12 +37,24 @@ let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell
 let hoverExpand = true;
 let hoverExpandMin = 2;
 let isClosing = false;
+let transitioningTimeout = null;
 
 /* ── Grid Template Helpers ─────────────────────────────────── */
 
 function updateGridTemplate() {
   gridContainer.style.gridTemplateColumns = colFracs.map(f => (f * 100) + "%").join(" ");
   gridContainer.style.gridTemplateRows    = rowFracs.map(f => (f * 100) + "%").join(" ");
+}
+
+function triggerTransition() {
+  gridContainer.classList.add("transitioning");
+  if (transitioningTimeout) {
+    clearTimeout(transitioningTimeout);
+  }
+  transitioningTimeout = setTimeout(() => {
+    gridContainer.classList.remove("transitioning");
+    transitioningTimeout = null;
+  }, 300);
 }
 
 function placeCellInGrid(c) {
@@ -357,7 +369,7 @@ function computeExpandedFracs(fracs, startIdx, spanLen, expandTarget) {
 function expandCell(cellObj) {
   if (isClosing) return;
   if (expandState) return;
-  gridContainer.classList.add("transitioning");
+  triggerTransition();
   expandState = {
     savedColFracs: [...colFracs],
     savedRowFracs: [...rowFracs],
@@ -370,7 +382,7 @@ function expandCell(cellObj) {
 
 function collapseCell() {
   if (!expandState) return;
-  gridContainer.classList.add("transitioning");
+  triggerTransition();
   colFracs = expandState.savedColFracs;
   rowFracs = expandState.savedRowFracs;
   expandState = null;
@@ -411,7 +423,7 @@ function closeCell(cellObj) {
     colFracs = Array(cols).fill(1 / cols);
     rowFracs = Array(rows).fill(1 / rows);
 
-    gridContainer.classList.add("transitioning");
+    triggerTransition();
     // Update layout and placement of remaining cells
     updateGridTemplate();
 
@@ -520,6 +532,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   gridContainer.addEventListener("transitionend", (e) => {
     if (e.target === gridContainer) {
       gridContainer.classList.remove("transitioning");
+      if (transitioningTimeout) {
+        clearTimeout(transitioningTimeout);
+        transitioningTimeout = null;
+      }
     }
   });
 
