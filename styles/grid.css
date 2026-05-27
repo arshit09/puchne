@@ -201,24 +201,6 @@ html, body {
   font-weight: 500;
 }
 
-.cell-open-btn {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font);
-  transition: all 150ms ease;
-}
-
-.cell-open-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-}
-
 .cell-header-right {
   display: flex;
   align-items: center;

@@ -596,7 +596,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         <span>${service.name}</span>
       </div>
       <div class="cell-header-right">
-        <button class="cell-open-btn" title="Open in a separate tab">Open in tab \u2197</button>
         <button class="cell-close-btn" title="Close window">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -605,9 +604,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         </button>
       </div>
     `;
-    header.querySelector(".cell-open-btn").addEventListener("click", () => {
-      chrome.tabs.create({ url: service.url });
-    });
     header.querySelector(".cell-close-btn").addEventListener("click", () => {
       closeCell(cellObj);
     });

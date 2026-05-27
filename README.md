@@ -4,121 +4,72 @@
 
 # Puchne — Ask Every AI at Once
 
-> One prompt. Every AI. Simultaneously.
+> **One prompt. Every AI. Simultaneously.**
 
-Puchne is a powerful, open-source Chrome extension that lets you send a single prompt to **ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity** — all at once. Compare results instantly without manual copy-pasting.
+**Puchne** (Hindi for *"to ask"*) is a lightweight, open-source Chrome extension that broadcasts a single prompt to multiple AI services at the same time. 
 
----
-
-## Features
-
-- **Multicast Prompting** — Type once, blast your query to all selected AI models.
-- **Modern Flat Design** — A fast, minimal UI that feels like an integrated command palette.
-- **Standardized UI** — Consistent popup dimensions and layout across all websites.
-- **Smart Selection** — Toggle specific AIs on/off. ChatGPT, Claude, and Gemini are pre-enabled by default.
-- **Prompt History** — Access recent prompts with one click. Clear or hide history based on your preference.
-- **Customizable Shortcuts** — Quickly trigger the overlay with `Ctrl+Shift+X` (customizable in Chrome settings).
-- **Auto-Submit** — Automatically starts the conversation for you, or just pre-fills the text area.
-- **Vertical Positioning** — Fine-tune where the overlay appears on your screen using an intuitive slider.
-- **Tab Grouping** — Keeps your workspace organized by grouping all AI tabs automatically.
-- **Open Source** — Built with privacy and transparency in mind.
-
-## Supported AI Services
-
-| Service    | URL                   | Status |
-| ---------- | --------------------- | ------ |
-| ChatGPT    | chatgpt.com           | Active |
-| Claude     | claude.ai             | Active |
-| Gemini     | gemini.google.com     | Active |
-| Copilot    | copilot.microsoft.com | Active |
-| DeepSeek   | chat.deepseek.com     | Active |
-| Perplexity | perplexity.ai         | Active |
-
-> **Note:** You must be logged into each service for the extension to work. Puchne does not handle authentication.
+*   **For Everyone:** Type your question once and watch it automatically load in ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity. No more copy-pasting across different tabs!
+*   **For Developers:** A clean extension built with Manifest V3 that simulates native input events and uses DOM prototype overrides to reliably bypass virtual DOM state-tracking in modern framework-based text areas (React, Vue, ProseMirror).
 
 ---
 
-## Installation
+## 🌟 Key Features
 
-### From Source (Developer Mode)
-
-1. **Clone** this repository:
-   ```bash
-   git clone https://github.com/arshit09/puchne.git
-   ```
-
-2. Open Chrome and navigate to `chrome://extensions/`
-
-3. Enable **Developer mode** (toggle in the top-right corner)
-
-4. Click **Load unpacked** and select the `puchne` folder
-
-5. Pin the extension icon for the best experience!
-
-### Keyboard Shortcut Setup
-
-1. Go to `chrome://extensions/shortcuts`
-2. Find **Puchne**
-3. Set your preferred key combination for "Open Puchne popup"
+*   **Multicast Prompting:** Input one prompt and blast it to all selected AI models at once.
+*   **Dual Display Modes:**
+    *   **Grid View:** Compare all AI responses side-by-side in real-time within a single tab.
+    *   **Tab Grouping:** Auto-organize independent service tabs into a neat Chrome Tab Group.
+*   **Unified Controls:** Easily customize which AI models are active, access recent prompts, or clear history.
+*   **Global Shortcut:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`.
+*   **Intelligent Injector:** Seamlessly handles iframe cookie consent popups and manages site authentication automatically.
 
 ---
 
-## Project Structure
+## ⚙️ Customization Settings
 
-```
-puchne/
-├── manifest.json              # Extension metadata & permissions
-├── scripts/
-│   ├── background.js          # Tab orchestration & service registry
-│   ├── content.js             # UI Overlay & prompt injection logic
-│   ├── constants.js           # Shared constants & service definitions
-│   └── cookie-dismiss.js      # Auto-dismiss cookie banners on AI sites
-├── pages/
-│   ├── popup.html             # Main blast interface
-│   ├── popup.js               # Popup logic & event handling
-│   ├── options.html           # Settings & customization page
-│   ├── options.js             # Options page logic
-│   ├── grid.html              # Grid view for comparing AI responses
-│   └── grid.js                # Grid view logic
-├── styles/
-│   ├── popup.css              # Custom themes & layout tokens
-│   ├── options.css            # Settings page styling
-│   └── grid.css               # Grid view styling
-├── rules/
-│   └── grid_headers.json      # Declarative net request rules for grid
-└── icons/
-    ├── chatgpt_dark.png, gemini.png... # Brand icons for services
-    └── icon-16.png, icon-48.png, icon-128.png # Extension identity icons
-```
+Puchne features a highly customizable settings panel grouped into intuitive sections:
+
+### 1. AI Tools
+*   **Select Providers:** Toggle which models (ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity) are active.
+
+### 2. Appearance
+*   **Theme:** Switch between Light Mode and Dark Mode.
+*   **Layout Options:** Floating Overlay (Top, Center, Bottom of screen) or Docked Sidebar.
+*   **UI Details:** Custom AI chips display (logos only, names only, or both) and keyboard shortcut hint toggle.
+
+### 3. Behavior & Automation
+*   **Auto-Submit:** Automate sending prompts (simulates pressing "Enter" after injecting) or just pre-fill input textareas.
+*   **Page Load Delay:** Set custom delays (in ms) to wait for slower pages to load before injecting.
+*   **Cookie Consent:** Set auto-handling behavior for iframe cookie banners (Accept All, Reject All, or Off).
+*   **Hover to Expand:** Customize hover enlargement behavior for Grid View cells (delay from instant to 2 seconds, activation count threshold).
+*   **Prompt History:** Toggle history saving and customize the limit (from 5 to 100 stored prompts).
 
 ---
 
-## Technical Overview
+## 🛠️ Technical Under the Hood
 
-Puchne handles the complexities of modern web apps (React/Vue/ProseMirror) by intelligently simulating user input:
-
-- **Bypassing Virtual DOMs:** Uses native prototype hooks to ensure state updates trigger in AI textareas.
-- **Event Simulation:** Replicates `InputEvent` and `DataTransfer` to work with advanced editors like ProseMirror (Claude/ChatGPT).
-- **Tab Synchronization:** Background workers ensure prompts are only injected once the page is fully ready.
-
----
-
-## Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create.
-
-1. **Bug Reports:** If a service's selector breaks, please open an issue.
-2. **New Services:** Add new AI providers to the registry in `scripts/background.js`.
-3. **UI Improvements:** Feel free to suggest design refinements.
+To work reliably across modern AI web interfaces, Puchne:
+*   **Bypasses Virtual DOMs:** Simulates native prototype inputs on textareas to trigger state updates in frameworks like React and Vue.
+*   **Simulates Complex Input Events:** Mimics `InputEvent` and `DataTransfer` sequences for rich-text editors (ProseMirror used by Claude and ChatGPT).
+*   **Header Modification:** Uses Chrome Declarative Net Request rules (`rules/grid_headers.json`) to strip headers like `X-Frame-Options` and `Content-Security-Policy` to permit rendering inside the Grid View's iframes.
 
 ---
 
-## License
+## 🚀 Getting Started (Developer Mode)
 
-Distributed under the MIT License. See `LICENSE` for more information.
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/arshit09/puchne.git
+    ```
+2.  **Install in Chrome:**
+    *   Go to `chrome://extensions/`
+    *   Turn on **Developer mode** (top-right toggle).
+    *   Click **Load unpacked** and select the root directory of the cloned project.
+3.  **Set Up Shortcut:** Go to `chrome://extensions/shortcuts` to customize the shortcut key if desired.
 
 ---
 
-## Support
+## 📝 License & Contributing
 
-If you like this project, please consider giving it a star on GitHub! It helps more developers find and improve it.
+*   Distributed under the **MIT License**. See `LICENSE` for details.
+*   Contributions (bug reports, selectors updates, UI refinements) are welcome!
