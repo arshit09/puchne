@@ -30,7 +30,7 @@ let cellMap   = [];   // [{ el, row, col, colSpan, service, index }]
 const MIN_FRAC = 0.10; // minimum fraction for any track (10%)
 
 /* ── Hover-to-Expand State ─────────────────────────────────── */
-let hoverExpandDelay = 1500;  // ms of dwell before expanding
+let hoverExpandDelay = 0;  // ms of dwell before expanding
 const HOVER_EXPAND_FRAC  = 0.60;  // target fraction the hovered cell's span will occupy
 
 let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell is expanded
@@ -463,7 +463,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   hoverExpand    = settings.hoverExpand !== false;
   hoverExpandMin = settings.hoverExpandMin ?? 2;
-  hoverExpandDelay = settings.hoverExpandDelay ?? 1500;
+  hoverExpandDelay = settings.hoverExpandDelay ?? 0;
 
   const data     = await chrome.storage.local.get("gridData");
   const gridData = data.gridData;
@@ -504,7 +504,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const isEnabled = newSettings.hoverExpand !== false;
       hoverExpand = isEnabled;
       hoverExpandMin = newSettings.hoverExpandMin ?? 2;
-      hoverExpandDelay = newSettings.hoverExpandDelay ?? 1500;
+      hoverExpandDelay = newSettings.hoverExpandDelay ?? 0;
 
       const toggleEl = document.getElementById("hoverExpandToggle");
       if (toggleEl && toggleEl.checked !== isEnabled) {

@@ -6,7 +6,7 @@
 
 > **One prompt. Every AI. Simultaneously.**
 
-**Puchne** (Hindi for *"to ask"*) is a lightweight, open-source Chrome extension that broadcasts a single prompt to multiple AI services at the same time. 
+**Puchne** (derived from the Gujarati word **'પૂછવું'** (*Puchhvu*), meaning **"to ask"**) is a lightweight, open-source Chrome extension that broadcasts a single prompt to multiple AI services at the same time. 
 
 *   **For Everyone:** Type your question once and watch it automatically load in ChatGPT, Claude, Gemini, Copilot, DeepSeek, and Perplexity. No more copy-pasting across different tabs!
 *   **For Developers:** A clean extension built with Manifest V3 that simulates native input events and uses DOM prototype overrides to reliably bypass virtual DOM state-tracking in modern framework-based text areas (React, Vue, ProseMirror).
@@ -43,15 +43,6 @@ Puchne features a highly customizable settings panel grouped into intuitive sect
 *   **Cookie Consent:** Set auto-handling behavior for iframe cookie banners (Accept All, Reject All, or Off).
 *   **Hover to Expand:** Customize hover enlargement behavior for Grid View cells (delay from instant to 2 seconds, activation count threshold).
 *   **Prompt History:** Toggle history saving and customize the limit (from 5 to 100 stored prompts).
-
----
-
-## 🛠️ Technical Under the Hood
-
-To work reliably across modern AI web interfaces, Puchne:
-*   **Bypasses Virtual DOMs:** Simulates native prototype inputs on textareas to trigger state updates in frameworks like React and Vue.
-*   **Simulates Complex Input Events:** Mimics `InputEvent` and `DataTransfer` sequences for rich-text editors (ProseMirror used by Claude and ChatGPT).
-*   **Header Modification:** Uses Chrome Declarative Net Request rules (`rules/grid_headers.json`) to strip headers like `X-Frame-Options` and `Content-Security-Policy` to permit rendering inside the Grid View's iframes.
 
 ---
 

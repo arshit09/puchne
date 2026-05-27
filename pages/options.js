@@ -81,11 +81,11 @@ const DEFAULTS = {
   enabledServices: ["chatgpt", "claude", "gemini"],
   autoSubmit: true,
   useSidebar: false,
-  gridView: false,
+  gridView: true,
   hoverExpand: true,
   hoverExpandMin: 2,
-  hoverExpandDelay: 1500,
-  groupTabs: true,
+  hoverExpandDelay: 0,
+  groupTabs: false,
   delayMs: 2000,
   historyLimit: 20,
   enableHistory: false,
@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandMinEl.value = savedHoverExpandMin;
   updateHoverExpandMinLabel(savedHoverExpandMin);
   updateHoverExpandMinSelected(savedHoverExpandMin);
-  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? 1500);
+  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? 0);
   hoverExpandDelayEl.value = savedHoverExpandDelay;
   updateHoverExpandDelayLabel(savedHoverExpandDelay);
   updateHoverExpandDelaySelected(savedHoverExpandDelay);
@@ -472,7 +472,7 @@ function initHoverExpandDelaySelect() {
     hoverExpandDelayContainer.classList.remove("open");
   });
 
-  updateHoverExpandDelaySelected(hoverExpandDelayEl.value || "1500");
+  updateHoverExpandDelaySelected(hoverExpandDelayEl.value || "0");
 }
 
 function updateHoverExpandDelayLabel(val) {
@@ -795,7 +795,7 @@ async function _doSave() {
     gridView: gridViewEl.checked,
     hoverExpand: hoverExpandEl.checked,
     hoverExpandMin: parseInt(hoverExpandMinEl.value, 10) || 2,
-    hoverExpandDelay: isNaN(parseInt(hoverExpandDelayEl.value, 10)) ? 1500 : parseInt(hoverExpandDelayEl.value, 10),
+    hoverExpandDelay: isNaN(parseInt(hoverExpandDelayEl.value, 10)) ? 0 : parseInt(hoverExpandDelayEl.value, 10),
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
