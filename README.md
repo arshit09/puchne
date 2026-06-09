@@ -64,3 +64,9 @@ Puchne features a highly customizable settings panel grouped into intuitive sect
 
 *   Distributed under the **MIT License**. See `LICENSE` for details.
 *   Contributions (bug reports, selectors updates, UI refinements) are welcome!
+
+---
+
+## 📋 ToDo
+
+*   **Feedback Feature:** A simple input field to take user input from the extension itself quickly and show it in a Google Sheet easily to simplify the feedback iteration loop.
