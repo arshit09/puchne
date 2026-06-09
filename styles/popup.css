@@ -409,7 +409,7 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   padding-top: 8px;
-  margin-top: 2px;
+  margin-top: auto;
 }
 
 .shortcut-hint {

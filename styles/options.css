@@ -66,6 +66,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  min-height: 100vh;
 }
 
 /* ── Header ────────────────────────────────────────────────── */
@@ -1213,7 +1214,7 @@ body {
 
 /* ── Footer ────────────────────────────────────────────────── */
 .footer {
-  margin-top: 32px;
+  margin-top: auto;
   padding-top: 24px;
   display: flex;
   align-items: center;
