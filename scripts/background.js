@@ -138,6 +138,7 @@ async function getSettings() {
     delayMs: 2000,
     enableHistory: false,
     showRecents: false,
+    showFollowUpInput: true,
     customSelectors: {},
   };
 

@@ -660,6 +660,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandMin = settings.hoverExpandMin ?? 2;
   hoverExpandDelay = settings.hoverExpandDelay ?? 0;
 
+  if (settings.showFollowUpInput === false && gridQueryForm) {
+    gridQueryForm.style.display = "none";
+  }
+
   const data     = await chrome.storage.local.get("gridData");
   const gridData = data.gridData;
 
@@ -708,6 +712,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (!isEnabled) {
         collapseCell();
+      }
+
+      if (gridQueryForm) {
+        gridQueryForm.style.display = newSettings.showFollowUpInput === false ? "none" : "";
       }
     }
   });

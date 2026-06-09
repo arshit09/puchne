@@ -1719,7 +1719,12 @@ class PuchneFollowUpBar {
 chrome.runtime.sendMessage({ action: "amIInActiveSession" }, (response) => {
   if (chrome.runtime.lastError) return;
   if (response && response.isInSession) {
-    new PuchneFollowUpBar(response.activeSessionTabs);
+    chrome.storage.sync.get("settings", (stored) => {
+      const showFollowUpInput = stored.settings?.showFollowUpInput !== false;
+      if (showFollowUpInput) {
+        new PuchneFollowUpBar(response.activeSessionTabs);
+      }
+    });
   }
 });
 

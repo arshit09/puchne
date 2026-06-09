@@ -32,6 +32,7 @@ const toastEl = document.getElementById("toast");
 const darkModeEl = document.getElementById("darkMode");
 const showRecentsEl = document.getElementById("showRecents");
 const showShortcutHintEl = document.getElementById("showShortcutHint");
+const showFollowUpInputEl = document.getElementById("showFollowUpInput");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 const overlayPositionEl = document.getElementById("overlayPosition");
 const overlayPositionContainer = document.getElementById("overlayPositionContainer");
@@ -97,6 +98,7 @@ const DEFAULTS = {
   enableHistory: false,
   showRecents: false,
   showShortcutHint: true,
+  showFollowUpInput: true,
   overlayPosition: "center",
   chipDisplay: "logo-name",
   theme: "dark",
@@ -177,6 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   historyLimitEl.value = settings.historyLimit || 20;
   showRecentsEl.checked = settings.showRecents === true;
   showShortcutHintEl.checked = settings.showShortcutHint !== false;
+  showFollowUpInputEl.checked = settings.showFollowUpInput !== false;
 
   // Init chipDisplay
   const savedChipDisplay = settings.chipDisplay || "logo-name";
@@ -207,6 +210,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   showShortcutHintEl.addEventListener("change", () => {
     save();
     updatePreview();
+  });
+  showFollowUpInputEl.addEventListener("change", () => {
+    save();
   });
 
   // Render the service list
@@ -852,6 +858,7 @@ async function _doSave() {
     showRecents: showRecentsEl.checked,
     theme: darkModeEl.checked ? "dark" : "light",
     showShortcutHint: showShortcutHintEl.checked,
+    showFollowUpInput: showFollowUpInputEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
     cookieConsent: cookieConsentEl.value || "accept",
