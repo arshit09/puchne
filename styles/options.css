@@ -1467,6 +1467,21 @@ body {
   display: none !important;
 }
 
+@keyframes section-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-content .section.active {
+  animation: section-fade-in 350ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* Responsive layout adjustments */
 @media (max-width: 1024px) {
   .settings-layout {
