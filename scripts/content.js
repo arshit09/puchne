@@ -50,6 +50,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message.action === "toggleOverlay") {
+      if (window !== window.top) {
+        sendResponse({ ok: false, error: "Not top frame" });
+        return true;
+      }
       toggleOverlay();
       sendResponse({ ok: true });
       return true;

@@ -183,7 +183,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 
   try {
-    await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
+    await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" }, { frameId: 0 });
   } catch (err) {
     // If connection fails, the script might not be injected yet
     if (err.message.includes("Could not establish connection")) {
@@ -193,7 +193,7 @@ chrome.action.onClicked.addListener(async (tab) => {
           files: ["scripts/constants.js", "scripts/content.js"]
         });
         // Try again after injection
-        await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
+        await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" }, { frameId: 0 });
       } catch (injectErr) {
         console.warn("[Puchne] Manual injection failed:", injectErr);
       }
