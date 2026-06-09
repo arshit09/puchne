@@ -80,10 +80,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ── Service Chips ────────────────────────────────────────────
 
-/**
- * Renders clickable chips for each AI service.
- * Active chips are highlighted; clicking toggles them.
- */
 function renderServiceChips() {
   serviceChipsEl.innerHTML = "";
 
@@ -127,9 +123,6 @@ function toggleService(id) {
 
 // ── Prompt Submission ────────────────────────────────────────
 
-/**
- * Sends the user's prompt to all enabled AI services.
- */
 async function handleSend() {
   const query = promptInput.value.trim();
   if (!query || enabledServiceIds.length === 0) return;
@@ -144,25 +137,18 @@ async function handleSend() {
   // Save to prompt history
   addToHistory(query);
 
-  // Send the multicast command to the background worker
-  chrome.runtime.sendMessage(
-    {
-      action: "multicast",
-      query: query,
-    },
-    () => {
-      // Close the popup after a beat if not in sidebar mode
-      if (!isSidebarMode()) {
-        setTimeout(() => window.close(), 300);
-      } else {
-        // Just reset the input
-        promptInput.value = "";
-        promptInput.disabled = false;
-        updateSendButton();
-        promptInput.focus();
-      }
+  chrome.runtime.sendMessage({ action: "multicast", query: query }, () => {
+    // Close the popup after a beat if not in sidebar mode
+    if (!isSidebarMode()) {
+      setTimeout(() => window.close(), 300);
+    } else {
+      // Just reset the input
+      promptInput.value = "";
+      promptInput.disabled = false;
+      updateSendButton();
+      promptInput.focus();
     }
-  );
+  });
 }
 
 function isSidebarMode() {

@@ -113,6 +113,7 @@ class PuchneOverlay {
     this.promptHistory = [];
     this.overlayPosition = "center";
     this._chipFingerprint = "";
+    this.activeSessionTabs = [];
 
     this.initPromise = this.init();
   }
@@ -341,8 +342,12 @@ class PuchneOverlay {
     this._chipFingerprint = fp;
 
     const serviceChipsEl = this.shadow.getElementById("serviceChips");
+    const promptInput = this.shadow.getElementById("promptInput");
+    
+    // Normal mode
     serviceChipsEl.style.display = (mode === "none") ? "none" : "flex";
     serviceChipsEl.innerHTML = "";
+    promptInput.placeholder = "Type your prompt here…";
 
     if (mode === "none") {
       this.updateSendButton();
@@ -1465,5 +1470,253 @@ async function initLoginCheck() {
 
 // Login check is triggered only by a "checkLogin" message from the background,
 // which is sent exclusively to tabs opened by a Puchne search, after the page fully loads.
+
+// ── Persistent Follow-Up Bar ─────────────────────────────────
+
+class PuchneFollowUpBar {
+  constructor(activeSessionTabs) {
+    this.activeSessionTabs = activeSessionTabs;
+    this.container = null;
+    this.shadow = null;
+    this.init();
+  }
+
+  init() {
+    this.container = document.createElement("div");
+    this.container.id = "puchne-follow-up-bar-root";
+    this.container.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      max-width: 90%;
+      z-index: 2147483647;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      pointer-events: none; /* Let clicks pass through outside the bar */
+    `;
+
+    this.shadow = this.container.attachShadow({ mode: "closed" });
+
+    // Check theme preference
+    chrome.storage.sync.get("settings", (stored) => {
+      const theme = stored.settings?.theme || "dark";
+      
+      const style = document.createElement("style");
+      style.textContent = this.getStyles(theme);
+      this.shadow.appendChild(style);
+
+      this.shadow.innerHTML += this.getHTML();
+      this.setupListeners();
+
+      this.attachToDOM();
+    });
+  }
+
+  attachToDOM() {
+    if (!document.body.contains(this.container)) {
+      document.body.appendChild(this.container);
+    }
+    
+    // Set up a MutationObserver to ensure it stays in the DOM
+    if (!this.observer) {
+      this.observer = new MutationObserver(() => {
+        if (document.body && !document.body.contains(this.container)) {
+          document.body.appendChild(this.container);
+        }
+      });
+      // Observe the whole documentElement in case the body itself gets replaced
+      this.observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  }
+
+  getStyles(theme) {
+    const isDark = theme === "dark";
+    const bg = isDark ? "#3c4043" : "#e8eaed";
+    const border = isDark ? "#5f6368" : "#dadce0";
+    const text = isDark ? "#e8eaed" : "#202124";
+    const accent = "#fb923c";
+    
+    return `
+      .follow-up-bar {
+        display: flex;
+        align-items: center;
+        background: ${bg};
+        border: 1px solid ${border};
+        border-radius: 24px;
+        padding: 6px 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        pointer-events: auto; /* Re-enable pointer events for the bar itself */
+        transition: border-color 150ms ease;
+      }
+      .follow-up-bar:focus-within {
+        border-color: ${accent};
+      }
+      .drag-handle {
+        cursor: grab;
+        padding: 4px;
+        margin-right: 8px;
+        margin-left: -8px;
+        color: ${isDark ? "#9aa0a6" : "#80868b"};
+        opacity: 0.5;
+        transition: opacity 150ms ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .drag-handle:hover {
+        opacity: 1;
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+      .logo {
+        width: 20px;
+        height: 20px;
+        margin-right: 12px;
+        opacity: 0.8;
+      }
+      .input-field {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: ${text};
+        font-size: 14px;
+      }
+      .input-field::placeholder {
+        color: ${isDark ? "#9aa0a6" : "#80868b"};
+      }
+      .send-btn {
+        background: none;
+        border: none;
+        color: ${accent};
+        cursor: pointer;
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 150ms ease;
+      }
+      .send-btn:hover {
+        transform: scale(1.1);
+      }
+      .send-btn.sending {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `;
+  }
+
+  getHTML() {
+    return `
+      <form id="followUpForm" class="follow-up-bar">
+        <div id="dragHandle" class="drag-handle" title="Drag to move">
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="currentColor">
+            <circle cx="4" cy="4" r="1.5"></circle>
+            <circle cx="8" cy="4" r="1.5"></circle>
+            <circle cx="4" cy="10" r="1.5"></circle>
+            <circle cx="8" cy="10" r="1.5"></circle>
+            <circle cx="4" cy="16" r="1.5"></circle>
+            <circle cx="8" cy="16" r="1.5"></circle>
+          </svg>
+        </div>
+        <img class="logo" src="${chrome.runtime.getURL('icons/app/icon-48.png')}" alt="Puchne" title="Puchne Active Session" />
+        <input type="text" id="followUpInput" class="input-field" placeholder="Ask a follow-up question to all Active AIs..." autocomplete="off">
+        <button type="submit" id="sendBtn" class="send-btn" title="Send to all">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    `;
+  }
+
+  setupListeners() {
+    const form = this.shadow.getElementById("followUpForm");
+    const input = this.shadow.getElementById("followUpInput");
+    const sendBtn = this.shadow.getElementById("sendBtn");
+    const dragHandle = this.shadow.getElementById("dragHandle");
+
+    // Drag functionality
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      this.container.style.left = `${e.clientX - offsetX}px`;
+      this.container.style.top = `${e.clientY - offsetY}px`;
+    };
+
+    const onMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      }
+    };
+
+    dragHandle.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      isDragging = true;
+      
+      const rect = this.container.getBoundingClientRect();
+      
+      this.container.style.bottom = "auto";
+      this.container.style.right = "auto";
+      this.container.style.transform = "none";
+      this.container.style.left = `${rect.left}px`;
+      this.container.style.top = `${rect.top}px`;
+      
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Stop propagation so host sites don't hijack enter key
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+    });
+    input.addEventListener("keyup", (e) => {
+      e.stopPropagation();
+    });
+    input.addEventListener("keypress", (e) => {
+      e.stopPropagation();
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
+
+      sendBtn.disabled = true;
+      sendBtn.classList.add("sending");
+      input.disabled = true;
+
+      chrome.runtime.sendMessage(
+        { action: "followUpMulticast", query: query, tabs: this.activeSessionTabs },
+        () => {
+          setTimeout(() => {
+            sendBtn.classList.remove("sending");
+            sendBtn.disabled = false;
+            input.disabled = false;
+            input.value = "";
+          }, 300);
+        }
+      );
+    });
+  }
+}
+
+// ── Initialization Check ──────────────────────────────────────
+chrome.runtime.sendMessage({ action: "amIInActiveSession" }, (response) => {
+  if (chrome.runtime.lastError) return;
+  if (response && response.isInSession) {
+    new PuchneFollowUpBar(response.activeSessionTabs);
+  }
+});
 
 } // end of PuchneLoaded guard

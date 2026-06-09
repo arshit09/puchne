@@ -17,8 +17,9 @@
  * ============================================================
  */
 
-const gridContainer = document.getElementById("gridContainer");
-const queryBadge    = document.getElementById("queryBadge");
+const gridContainer  = document.getElementById("gridContainer");
+const gridQueryForm  = document.getElementById("gridQueryForm");
+const gridQueryInput = document.getElementById("gridQueryInput");
 
 /* ── Layout State ──────────────────────────────────────────── */
 let cols = 0;
@@ -721,9 +722,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  if (query) {
-    const display = query.length > 80 ? query.slice(0, 80) + "\u2026" : query;
-    queryBadge.textContent = `\u2014 "${display}"`;
+  if (query && gridQueryInput) {
+    gridQueryInput.value = query;
   }
 
   // Compute grid dimensions
@@ -931,6 +931,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
   );
+
+  if (gridQueryForm) {
+    gridQueryForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const newQuery = gridQueryInput.value.trim();
+      if (!newQuery) return;
+      
+      console.log(`[Puchne Grid] Requesting follow-up injection for ${loadedTargets.length} frames...`);
+      // We pass delayMs: 0 since the pages are already fully loaded
+      chrome.runtime.sendMessage(
+        { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query: newQuery, autoSubmit: true, cookieConsent: "off", delayMs: 0 },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
+          } else {
+            console.log("[Puchne Grid] Follow-up injection results:", response);
+          }
+        }
+      );
+    });
+  }
 });
 
 /* ── Utility Functions ─────────────────────────────────────── */

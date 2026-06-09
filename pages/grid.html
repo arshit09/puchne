@@ -12,7 +12,14 @@
     <div class="grid-header-left">
       <img src="../icons/app/icon-48.png" width="20" height="20" alt="Puchne"/>
       <h1>Puchne</h1>
-      <span class="query-badge" id="queryBadge"></span>
+    </div>
+    <div class="grid-header-center">
+      <form id="gridQueryForm" class="grid-query-form">
+        <input type="text" id="gridQueryInput" class="grid-query-input" placeholder="Ask follow-up..." autocomplete="off">
+        <button type="submit" class="grid-query-btn" title="Send to all">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
     </div>
     <div class="grid-header-right">
       <span class="toggle-label">Hover to Expand</span>

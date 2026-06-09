@@ -226,6 +226,45 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.action === "followUpMulticast") {
+    console.log("[Puchne] Starting follow-up multicast for query:", message.query);
+    handleFollowUpMulticast(message.query, message.tabs).then(() => {
+      console.log("[Puchne] Follow-up Multicast completed.");
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.action === "verifyActiveTabs") {
+    (async () => {
+      const validTabs = [];
+      if (message.tabs && Array.isArray(message.tabs)) {
+        for (const t of message.tabs) {
+          try {
+            const tab = await chrome.tabs.get(t.tabId);
+            if (tab) validTabs.push(t);
+          } catch {
+            // Tab closed
+          }
+        }
+      }
+      sendResponse({ validTabs });
+    })();
+    return true;
+  }
+
+  if (message.action === "amIInActiveSession") {
+    (async () => {
+      const sessionData = await chrome.storage.local.get("activeSessionTabs");
+      const activeSessionTabs = sessionData.activeSessionTabs || [];
+      const senderTabId = _sender.tab?.id;
+      
+      const isInSession = senderTabId && activeSessionTabs.some(t => t.tabId === senderTabId);
+      sendResponse({ isInSession, activeSessionTabs });
+    })();
+    return true;
+  }
+
   if (message.action === "openOptions") {
     (async () => {
       // If there's already an options tab open, focus it instead of opening a new one
@@ -445,6 +484,10 @@ async function handleMulticast(query) {
   );
   const tabs = await Promise.all(tabPromises);
 
+  // Save active session tabs for follow-up queries
+  const activeSessionTabs = tabs.map((t, idx) => ({ tabId: t.id, target: targets[idx] }));
+  await chrome.storage.local.set({ activeSessionTabs });
+
   // Group the tabs if the setting is enabled
   if (settings.groupTabs && chrome.tabs.group) {
     try {
@@ -604,4 +647,47 @@ function injectQuery(tabId, service, query, autoSubmit, waitMs) {
       }
     );
   });
+}
+
+/**
+ * Sends a follow-up query to the currently active session tabs.
+ */
+async function handleFollowUpMulticast(query, activeTabs) {
+  const settings = await getSettings();
+  
+  if (!activeTabs || activeTabs.length === 0) {
+    console.warn("[Puchne] No active session tabs provided for follow-up.");
+    return;
+  }
+  
+  console.log(`[Puchne] Follow-up Target services: ${activeTabs.map(t => t.target.name).join(", ")}`);
+
+  // Activate the first tab immediately
+  chrome.tabs.update(activeTabs[0].tabId, { active: true });
+
+  const injectionPromises = activeTabs.map(async (t) => {
+    try {
+      await ensureContentScript(t.tabId);
+      console.log(`[Puchne] Injecting follow-up into ${t.target.name}...`);
+      // Use waitMs = 0 because the tabs are already loaded
+      return await injectQuery(t.tabId, t.target, query, settings.autoSubmit, 0);
+    } catch (err) {
+      console.warn(`[Puchne] Follow-up pipeline failed for ${t.target.name}:`, err);
+    }
+  });
+
+  console.log("[Puchne] Waiting for all tabs to process follow-up query...");
+  const results = await Promise.allSettled(injectionPromises);
+
+  const failures = results.filter(
+    (r) => r.status === "rejected" || (r.status === "fulfilled" && r.value && !r.value.ok)
+  );
+  if (failures.length > 0) {
+    chrome.action.setBadgeText({ text: "!" });
+    chrome.action.setBadgeBackgroundColor({ color: "#e74c3c" });
+    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 10_000);
+    console.warn(`[Puchne] ${failures.length}/${results.length} follow-up service(s) failed.`);
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
 }
