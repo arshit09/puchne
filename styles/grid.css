@@ -128,7 +128,7 @@ html, body {
 .grid-container {
   display: grid;
   height: calc(100vh - 48px);
-  overflow: hidden;
+  overflow: clip;
   gap: 1px;
   background: var(--border);   /* the gap color becomes the shared divider line */
   will-change: grid-template-columns, grid-template-rows;
@@ -152,7 +152,7 @@ html, body {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  overflow: hidden;
+  overflow: clip;
   min-height: 0;
   min-width: 0;
 }
