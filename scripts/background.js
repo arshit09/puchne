@@ -170,6 +170,14 @@ async function applySidebarMode(useSidebar) {
   await applySidebarMode(settings.useSidebar);
 })();
 
+// Set default settings on first install
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === "install") {
+    const settings = await getSettings();
+    await chrome.storage.sync.set({ settings });
+  }
+});
+
 // ── Action Click Listener ────────────────────────────────────
 // When the extension icon is clicked, tell the content script to
 // toggle the UI overlay. If the content script isn't found (e.g.
