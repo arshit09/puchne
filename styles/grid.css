@@ -220,7 +220,10 @@ html, body {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  box-sizing: border-box;
   height: 34px;
+  min-height: 34px;
+  max-height: 34px;
   cursor: grab;
   user-select: none;
 }
@@ -244,6 +247,9 @@ html, body {
 .cell-header-left span {
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cell-header-right {
