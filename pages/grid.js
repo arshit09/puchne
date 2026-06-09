@@ -722,9 +722,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  if (query && gridQueryInput) {
-    gridQueryInput.value = query;
-  }
+
 
   // Compute grid dimensions
   const logicalCols = Math.min(targets.length, 3);
@@ -947,6 +945,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
           } else {
             console.log("[Puchne Grid] Follow-up injection results:", response);
+            gridQueryInput.value = "";
           }
         }
       );
