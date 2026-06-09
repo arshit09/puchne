@@ -581,8 +581,16 @@ function closeCell(cellObj) {
     }
 
     // Compute new grid dimensions
-    cols = Math.min(count, 3);
-    rows = Math.ceil(count / cols);
+    const logicalCols = Math.min(count, 3);
+    rows = Math.ceil(count / logicalCols);
+
+    const lastRowCount = count - logicalCols * (rows - 1);
+
+    if (logicalCols === 3 && lastRowCount === 2) {
+      cols = 6;
+    } else {
+      cols = logicalCols;
+    }
 
     // Reset to equal fractions for the new dimensions
     colFracs = Array(cols).fill(1 / cols);
@@ -592,25 +600,34 @@ function closeCell(cellObj) {
     // Update layout and placement of remaining cells
     updateGridTemplate();
 
-    const lastRowCount = count - cols * (rows - 1);
     cellMap.forEach((c, idx) => {
-      const row = Math.floor(idx / cols);
-      const col = idx % cols;
-      const isLastRow = row === rows - 1 && lastRowCount < cols;
+      const row = Math.floor(idx / logicalCols);
+      const colIdx = idx % logicalCols;
+      const isLastRow = row === rows - 1 && lastRowCount < logicalCols;
 
       let colStart, colSpan;
-      if (isLastRow) {
-        const baseSpan = Math.floor(cols / lastRowCount);
-        const extra    = cols % lastRowCount;
-        const lastIdx  = idx - cols * (rows - 1);
-        colStart = 0;
-        for (let j = 0; j < lastIdx; j++) {
-          colStart += baseSpan + (j < extra ? 1 : 0);
+      if (cols === 6 && logicalCols === 3) {
+        if (isLastRow) {
+          colStart = colIdx * 3;
+          colSpan = 3;
+        } else {
+          colStart = colIdx * 2;
+          colSpan = 2;
         }
-        colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
       } else {
-        colStart = col;
-        colSpan  = 1;
+        if (isLastRow) {
+          const baseSpan = Math.floor(cols / lastRowCount);
+          const extra    = cols % lastRowCount;
+          const lastIdx  = idx - logicalCols * (rows - 1);
+          colStart = 0;
+          for (let j = 0; j < lastIdx; j++) {
+            colStart += baseSpan + (j < extra ? 1 : 0);
+          }
+          colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
+        } else {
+          colStart = colIdx;
+          colSpan  = 1;
+        }
       }
 
       c.row = row;
@@ -710,8 +727,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Compute grid dimensions
-  cols = Math.min(targets.length, 3);
-  rows = Math.ceil(targets.length / cols);
+  const logicalCols = Math.min(targets.length, 3);
+  rows = Math.ceil(targets.length / logicalCols);
+
+  const lastRowCount = targets.length - logicalCols * (rows - 1);
+
+  if (logicalCols === 3 && lastRowCount === 2) {
+    cols = 6;
+  } else {
+    cols = logicalCols;
+  }
 
   // Initialize equal fractions
   colFracs = Array(cols).fill(1 / cols);
@@ -735,32 +760,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   updateGridTemplate();
 
-  // Determine last-row spanning
-  const lastRowCount = targets.length - cols * (rows - 1);
-
   const isDark = theme === "dark";
   const iframeLoadPromises = [];
 
   targets.forEach((service, i) => {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
-    const isLastRow = row === rows - 1 && lastRowCount < cols;
+    const row = Math.floor(i / logicalCols);
+    const colIdx = i % logicalCols;
+    const isLastRow = row === rows - 1 && lastRowCount < logicalCols;
 
     let colStart, colSpan;
-    if (isLastRow) {
-      // Distribute last-row cells evenly across all columns
-      const baseSpan = Math.floor(cols / lastRowCount);
-      const extra    = cols % lastRowCount;
-      const lastIdx  = i - cols * (rows - 1);   // index within last row
-      // Compute start by summing previous last-row cells' spans
-      colStart = 0;
-      for (let j = 0; j < lastIdx; j++) {
-        colStart += baseSpan + (j < extra ? 1 : 0);
+    if (cols === 6 && logicalCols === 3) {
+      if (isLastRow) {
+        colStart = colIdx * 3;
+        colSpan = 3;
+      } else {
+        colStart = colIdx * 2;
+        colSpan = 2;
       }
-      colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
     } else {
-      colStart = col;
-      colSpan  = 1;
+      if (isLastRow) {
+        // Distribute last-row cells evenly across all columns
+        const baseSpan = Math.floor(cols / lastRowCount);
+        const extra    = cols % lastRowCount;
+        const lastIdx  = i - logicalCols * (rows - 1);   // index within last row
+        // Compute start by summing previous last-row cells' spans
+        colStart = 0;
+        for (let j = 0; j < lastIdx; j++) {
+          colStart += baseSpan + (j < extra ? 1 : 0);
+        }
+        colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
+      } else {
+        colStart = colIdx;
+        colSpan  = 1;
+      }
     }
 
     const cell = document.createElement("div");
