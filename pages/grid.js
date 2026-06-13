@@ -939,13 +939,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
   if (gridQueryForm) {
-    gridQueryForm.addEventListener("submit", (e) => {
-      e.preventDefault();
+    function submitFollowUp() {
       const newQuery = gridQueryInput.value.trim();
       if (!newQuery) return;
-      
+
+      gridQueryInput.value = "";
+
       console.log(`[Puchne Grid] Requesting follow-up injection for ${loadedTargets.length} frames...`);
-      // We pass delayMs: 0 since the pages are already fully loaded
       chrome.runtime.sendMessage(
         { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query: newQuery, autoSubmit: true, cookieConsent: "off", delayMs: 0 },
         (response) => {
@@ -953,13 +953,55 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
           } else {
             console.log("[Puchne Grid] Follow-up injection results:", response);
-            gridQueryInput.value = "";
           }
         }
       );
+    }
+
+    // Enter submits; Shift+Enter inserts a newline
+    gridQueryInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        submitFollowUp();
+      }
+    });
+
+    // Keep form submit working for any other trigger (e.g. the send button)
+    gridQueryForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitFollowUp();
     });
   }
 });
+
+/* ── Follow-up Input Focus Guard ───────────────────────────── */
+/*
+ * Injecting a prompt focuses the editor inside each iframe, which
+ * steals focus from the follow-up input while the user is typing.
+ * If focus jumps to an iframe and the user didn't deliberately
+ * click into a cell (pointer outside the grid, or they were typing
+ * a moment ago), give focus back to the input.
+ */
+let pointerInGrid = false;
+let lastInputTypeTs = 0;
+
+gridContainer.addEventListener("mouseenter", () => { pointerInGrid = true; });
+gridContainer.addEventListener("mouseleave", () => { pointerInGrid = false; });
+
+if (gridQueryInput) {
+  gridQueryInput.addEventListener("input", () => { lastInputTypeTs = Date.now(); });
+
+  gridQueryInput.addEventListener("blur", () => {
+    // Let the browser settle on the new focus target first
+    setTimeout(() => {
+      if (document.activeElement?.tagName !== "IFRAME") return;
+      const typedRecently = Date.now() - lastInputTypeTs < 1000;
+      if (!pointerInGrid || typedRecently) {
+        gridQueryInput.focus();
+      }
+    }, 0);
+  });
+}
 
 /* ── Utility Functions ─────────────────────────────────────── */
 

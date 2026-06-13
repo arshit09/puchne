@@ -104,6 +104,12 @@ html, body {
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
+  resize: none;
+  overflow: hidden;
+  height: 1.4em;
+  line-height: 1.4;
+  padding: 2px 0;
+  font-family: inherit;
 }
 
 .grid-query-btn {
