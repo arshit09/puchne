@@ -14,7 +14,8 @@
     "https://gemini.google.com/*",
     "https://copilot.microsoft.com/*",
     "https://chat.deepseek.com/*",
-    "https://www.perplexity.ai/*"
+    "https://www.perplexity.ai/*",
+    "https://grok.com/*"
   ],
 
   "declarative_net_request": {
@@ -77,7 +78,8 @@
         "https://gemini.google.com/*",
         "https://copilot.microsoft.com/*",
         "https://chat.deepseek.com/*",
-        "https://www.perplexity.ai/*"
+        "https://www.perplexity.ai/*",
+        "https://grok.com/*"
       ],
       "js": ["scripts/constants.js", "scripts/content.js"],
       "run_at": "document_idle"

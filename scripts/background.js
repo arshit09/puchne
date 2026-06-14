@@ -113,6 +113,18 @@ const AI_SERVICES = [
     iconPath: 'icons/services/perplexity.png',
     loginSelector: 'a[href*="/login"], button[class*="login" i], button[class*="sign-in" i]'
   },
+  {
+    id: "grok",
+    name: "Grok",
+    url: "https://grok.com/",
+    inputType: "prosemirror",
+    selector: 'div.ProseMirror[aria-label="Ask Grok anything"], textarea[aria-label="Ask Grok anything"], [contenteditable="true"][aria-label="Ask Grok anything"]',
+    submitType: "button",
+    buttonSel: 'button[data-testid="chat-submit"], button[aria-label="Submit"]',
+    waitMs: 2500,
+    iconPath: 'icons/services/grok.svg',
+    loginSelector: 'button[class*="sign-in" i], a[href*="/login"]'
+  }
 ];
 
 // Export the registry so other parts of the extension can import it

@@ -103,5 +103,20 @@
       "urlFilter": "||perplexity.ai",
       "resourceTypes": ["sub_frame"]
     }
+  },
+  {
+    "id": 8,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "X-Frame-Options", "operation": "remove" },
+        { "header": "Content-Security-Policy", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||grok.com",
+      "resourceTypes": ["sub_frame"]
+    }
   }
 ]
