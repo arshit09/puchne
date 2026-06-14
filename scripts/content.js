@@ -178,6 +178,16 @@ class PuchneOverlay {
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
     this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+    if (settings.serviceOrder) {
+      this.allServices.sort((a, b) => {
+        const indexA = settings.serviceOrder.indexOf(a.id);
+        const indexB = settings.serviceOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
 
     // Apply saved theme to the shadow host
     applyTheme(this.container, settings.theme || "dark");
@@ -233,6 +243,43 @@ class PuchneOverlay {
     // Prevent clicks inside the modal from bubbling up to the backdrop
     modal.addEventListener("click", (e) => {
       e.stopPropagation();
+    });
+
+    // Drag functionality
+    const header = this.shadow.querySelector(".header");
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let currentX = 0;
+    let currentY = 0;
+
+    header.addEventListener("mousedown", (e) => {
+      if (e.target.closest('button')) return;
+      isDragging = true;
+      header.style.cursor = "grabbing";
+      dragStartX = e.clientX - currentX;
+      dragStartY = e.clientY - currentY;
+      e.preventDefault();
+    });
+
+    this.container.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      currentX = e.clientX - dragStartX;
+      currentY = e.clientY - dragStartY;
+      modal.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    });
+
+    this.container.addEventListener("mouseup", () => {
+      if (isDragging) {
+        isDragging = false;
+        header.style.cursor = "grab";
+      }
+    });
+    this.container.addEventListener("mouseleave", () => {
+      if (isDragging) {
+        isDragging = false;
+        header.style.cursor = "grab";
+      }
     });
 
     // Close on Escape + focus trap within the overlay
@@ -306,6 +353,16 @@ class PuchneOverlay {
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
     this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+    if (settings.serviceOrder) {
+      this.allServices.sort((a, b) => {
+        const indexA = settings.serviceOrder.indexOf(a.id);
+        const indexB = settings.serviceOrder.indexOf(b.id);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
     this.enableHistory = settings.enableHistory === true;
     this.showRecents = settings.showRecents === true;
     this.overlayPosition = settings.overlayPosition || "center";
@@ -338,7 +395,7 @@ class PuchneOverlay {
   renderServiceChips(force = false) {
     const mode = this.chipDisplay || "logo-name";
     const theme = this.container.dataset.theme || "dark";
-    const fp = `${mode}|${theme}|${this.enabledServiceIds.slice().sort().join(",")}`;
+    const fp = `${mode}|${theme}|${this.enabledServiceIds.slice().sort().join(",")}|${this.allServices.map(s => s.id).join(",")}`;
     if (!force && fp === this._chipFingerprint) {
       this.updateSendButton();
       return;
@@ -358,6 +415,8 @@ class PuchneOverlay {
       return;
     }
 
+    let draggedChip = null;
+
     this.allServices.forEach((service) => {
       const chip = document.createElement("button");
       chip.className = "chip";
@@ -373,6 +432,81 @@ class PuchneOverlay {
         showName ? service.name : ""
       ].join("");
       chip.addEventListener("click", () => this.toggleService(service.id));
+
+      chip.draggable = true;
+      chip.dataset.id = service.id;
+      
+      chip.addEventListener("dragstart", (e) => {
+        draggedChip = chip;
+        e.dataTransfer.setData("text/plain", service.id);
+        e.dataTransfer.effectAllowed = "move";
+        // setTimeout ensures the drag ghost looks normal before opacity is applied
+        setTimeout(() => chip.style.opacity = "0.5", 0);
+      });
+      
+      chip.addEventListener("dragend", () => {
+        draggedChip = null;
+        chip.style.opacity = "1";
+        
+        // Save new order based on DOM
+        const newOrder = Array.from(serviceChipsEl.children).map(c => c.dataset.id);
+        this.allServices.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+        this.saveSettings();
+        
+        // Ensure no lingering inline styles
+        Array.from(serviceChipsEl.children).forEach(c => {
+          c.style.transform = '';
+          c.style.transition = '';
+        });
+      });
+      
+      chip.addEventListener("dragover", (e) => {
+        e.preventDefault(); // allow drop
+        e.dataTransfer.dropEffect = "move";
+      });
+
+      chip.addEventListener("dragenter", (e) => {
+        e.preventDefault();
+        if (draggedChip && draggedChip !== chip) {
+          const children = Array.from(serviceChipsEl.children);
+          const firstRects = new Map();
+          children.forEach(c => firstRects.set(c, c.getBoundingClientRect()));
+          
+          const draggedIndex = children.indexOf(draggedChip);
+          const targetIndex = children.indexOf(chip);
+          
+          if (draggedIndex < targetIndex) {
+            chip.after(draggedChip);
+          } else {
+            chip.before(draggedChip);
+          }
+          
+          // FLIP animation
+          children.forEach(c => {
+            const first = firstRects.get(c);
+            const last = c.getBoundingClientRect();
+            const dx = first.left - last.left;
+            const dy = first.top - last.top;
+            
+            if (dx !== 0 || dy !== 0) {
+              c.style.transition = "none";
+              c.style.transform = `translate(${dx}px, ${dy}px)`;
+              c.style.pointerEvents = "none";
+              requestAnimationFrame(() => {
+                c.style.transition = "transform 0.25s cubic-bezier(0.2, 0, 0, 1)";
+                c.style.transform = "";
+                setTimeout(() => c.style.pointerEvents = "", 250);
+              });
+            }
+          });
+        }
+      });
+
+      chip.addEventListener("drop", (e) => {
+        e.preventDefault();
+        // Reordering is already handled in dragenter, dragend saves it
+      });
+
       serviceChipsEl.appendChild(chip);
     });
 
@@ -508,6 +642,7 @@ class PuchneOverlay {
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
     settings.enabledServices = this.enabledServiceIds;
+    settings.serviceOrder = this.allServices.map(s => s.id);
     return chrome.storage.sync.set({ settings });
   }
 
@@ -656,8 +791,8 @@ class PuchneOverlay {
       }
 
       .modal-container {
-        width: 800px;
-        max-width: 90vw;
+        width: max-content;
+        max-width: 95vw;
         background: var(--bg-primary);
         color: var(--text-primary);
         border: 1px solid var(--border);
@@ -672,7 +807,8 @@ class PuchneOverlay {
 
       /* slideUp removed */
 
-      .header { display: flex; align-items: center; justify-content: space-between; }
+      .header { display: flex; align-items: center; justify-content: space-between; cursor: grab; }
+      .header:active { cursor: grabbing; }
       .logo { display: flex; align-items: center; gap: 10px; }
       .logo h1 { font-size: 22px; font-weight: 700; }
 
