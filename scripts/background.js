@@ -1,5 +1,7 @@
-// Import shared constants (must be first statement in MV3 service worker)
-importScripts("constants.js");
+// Import shared constants (must be first statement in MV3 service worker).
+// Use an extension-root-absolute path ("/scripts/...") so resolution does not
+// depend on the worker's subfolder location.
+importScripts("/scripts/constants.js");
 
 /**
  * ============================================================
