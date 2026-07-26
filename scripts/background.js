@@ -193,6 +193,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
+// ── Grid Data Cleanup ────────────────────────────────────────
+// A grid tab's payload lives for as long as the tab does, so a reload
+// re-renders the same layout. Drop it once the tab is gone.
+chrome.tabs.onRemoved.addListener((tabId) => {
+  chrome.storage.local.remove(`${GRID_DATA_PREFIX}${tabId}`);
+});
+
+// Tabs closed while the browser was shut down never fire onRemoved, so
+// sweep any payloads whose tab no longer exists on startup.
+chrome.runtime.onStartup.addListener(async () => {
+  const all = await chrome.storage.local.get(null);
+  const stale = Object.keys(all).filter((k) => k.startsWith(GRID_DATA_PREFIX));
+  if (stale.length > 0) await chrome.storage.local.remove(stale);
+});
+
 // ── Action Click Listener ────────────────────────────────────
 // When the extension icon is clicked, tell the content script to
 // toggle the UI overlay. If the content script isn't found (e.g.
@@ -475,8 +490,13 @@ async function handleMulticast(query) {
 
   // ── Grid View mode: open all services in a single tab as iframes ──
   if (settings.gridView) {
+    const gridUrl = chrome.runtime.getURL("pages/grid.html");
+    const gridTab = await chrome.tabs.create({ url: gridUrl, active: true });
+
+    // Keyed by tab id so the payload survives a reload of the grid page;
+    // it is dropped again in chrome.tabs.onRemoved.
     await chrome.storage.local.set({
-      gridData: {
+      [`${GRID_DATA_PREFIX}${gridTab.id}`]: {
         query,
         autoSubmit: settings.autoSubmit,
         cookieConsent: settings.cookieConsent || "accept",
@@ -495,8 +515,6 @@ async function handleMulticast(query) {
         })),
       },
     });
-    const gridUrl = chrome.runtime.getURL("pages/grid.html");
-    await chrome.tabs.create({ url: gridUrl, active: true });
     console.log("[Puchne] Opened grid view tab.");
     return;
   }

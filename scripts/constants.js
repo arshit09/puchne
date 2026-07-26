@@ -9,6 +9,8 @@ var RETRY_INTERVAL     = 1_000;   // ms between injection retries (safety-net po
 var SUBMIT_DELAY       = 100;     // ms before submitting after filling input
 var TAB_LOAD_TIMEOUT   = 10_000;  // Max wait for a tab to reach "complete" status
 var INJECT_TIMEOUT_MS  = 15_000;  // Per-tab safety timeout for query injection
+var GRID_DATA_PREFIX   = "gridData_";  // local storage key prefix, suffixed with the grid tab id
+var GRID_DATA_WAIT_MS  = 5_000;   // Max wait for the background to write a grid tab's payload
 
 /**
  * Applies a theme to an element by setting data-theme="dark"|"light".

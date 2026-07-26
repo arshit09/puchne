@@ -649,6 +649,33 @@ function closeCell(cellObj) {
   }, 200);
 }
 
+/**
+ * Reads this tab's grid payload. The background writes the key right after
+ * creating the tab, so on a cold open it may not have landed yet — wait for
+ * it instead of giving up. On a reload the key is already there and this
+ * resolves immediately, which is what makes refresh re-render the layout.
+ * @param {number} tabId
+ * @returns {Promise<object|null>}
+ */
+async function readGridData(tabId) {
+  const key    = `${GRID_DATA_PREFIX}${tabId}`;
+  const stored = await chrome.storage.local.get(key);
+  if (stored[key]) return stored[key];
+
+  return new Promise((resolve) => {
+    const done = (value) => {
+      chrome.storage.onChanged.removeListener(onChanged);
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const onChanged = (changes, area) => {
+      if (area === "local" && changes[key]?.newValue) done(changes[key].newValue);
+    };
+    const timer = setTimeout(() => done(null), GRID_DATA_WAIT_MS);
+    chrome.storage.onChanged.addListener(onChanged);
+  });
+}
+
 /* ── Main ──────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", async () => {
   const stored   = await chrome.storage.sync.get("settings");
@@ -664,8 +691,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     gridQueryForm.style.display = "none";
   }
 
-  const data     = await chrome.storage.local.get("gridData");
-  const gridData = data.gridData;
+  const selfTab  = await chrome.tabs.getCurrent();
+  const gridData = selfTab ? await readGridData(selfTab.id) : null;
 
   if (!gridData || !gridData.targets || gridData.targets.length === 0) {
     showEmpty("No services to display. Enable some AI services in Settings.");
@@ -911,9 +938,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Clean up one-time grid data
-  await chrome.storage.local.remove("gridData");
-
   // Wait for all iframes
   const loadResults  = await Promise.all(iframeLoadPromises);
   const loadedTargets = loadResults.filter(r => r.ok).map(r => r.service);
@@ -923,12 +947,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const tab = await chrome.tabs.getCurrent();
-  if (!tab) return;
-
   console.log(`[Puchne Grid] Requesting injection for ${loadedTargets.length} frames...`);
   chrome.runtime.sendMessage(
-    { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query, autoSubmit, cookieConsent, delayMs },
+    { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query, autoSubmit, cookieConsent, delayMs },
     (response) => {
       if (chrome.runtime.lastError) {
         console.error("[Puchne Grid] Injection request failed:", chrome.runtime.lastError.message);
@@ -947,7 +968,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       console.log(`[Puchne Grid] Requesting follow-up injection for ${loadedTargets.length} frames...`);
       chrome.runtime.sendMessage(
-        { action: "injectGridQueries", tabId: tab.id, targets: loadedTargets, query: newQuery, autoSubmit: true, cookieConsent: "off", delayMs: 0 },
+        { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query: newQuery, autoSubmit: true, cookieConsent: "off", delayMs: 0 },
         (response) => {
           if (chrome.runtime.lastError) {
             console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
