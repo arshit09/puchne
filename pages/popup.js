@@ -31,7 +31,7 @@ let enabledServiceIds = [];  // Which ones are currently active
 let promptHistory = [];      // Last N prompts
 let historyLimit = MAX_HISTORY; // Configurable cap
 let enableHistory = false;   // Whether to record history
-let showToolNames = true;    // UI preference
+let chipDisplay = "logo-name"; // "logo-name" | "logo" | "name" | "none"
 let showShortcutHint = true; // Shortcut hint visibility
 
 // ── Initialization ───────────────────────────────────────────
@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
   enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+  applyServiceOrder(settings.serviceOrder);
 
   // Apply sidebar layout if the page is running in the side panel
   const isSidebar = settings.useSidebar || window.location.search.includes("mode=sidebar");
@@ -51,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   historyLimit = settings.historyLimit || MAX_HISTORY;
   enableHistory = settings.enableHistory === true;
-  showToolNames = settings.showToolNames !== false;
+  chipDisplay = settings.chipDisplay || "logo-name";
   showShortcutHint = settings.showShortcutHint !== false;
 
   // 2b. Apply theme
@@ -80,8 +81,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ── Service Chips ────────────────────────────────────────────
 
+/**
+ * Sorts allServices by the user's saved drag order. Services missing from
+ * the saved order (e.g. newly added ones) keep their registry position at
+ * the end of the list.
+ */
+function applyServiceOrder(serviceOrder) {
+  if (!serviceOrder) return;
+  allServices.sort((a, b) => {
+    const indexA = serviceOrder.indexOf(a.id);
+    const indexB = serviceOrder.indexOf(b.id);
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+}
+
 function renderServiceChips() {
+  const mode = chipDisplay || "logo-name";
+  serviceChipsEl.style.display = (mode === "none") ? "none" : "flex";
   serviceChipsEl.innerHTML = "";
+
+  if (mode === "none") {
+    updateSendButton();
+    return;
+  }
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  const showLogo = mode === "logo-name" || mode === "logo";
+  const showName = mode === "logo-name" || mode === "name";
+
+  let draggedChip = null;
 
   allServices.forEach((service) => {
     const chip = document.createElement("button");
@@ -92,11 +123,85 @@ function renderServiceChips() {
       chip.classList.add("active");
     }
 
-    const isDark = document.documentElement.dataset.theme === "dark";
     const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
-    const nameText = showToolNames ? service.name : "";
-    chip.innerHTML = `<img src="../${icon}" class="service-icon" />${nameText}`;
+    chip.innerHTML = [
+      showLogo ? `<img src="../${icon}" class="service-icon" />` : "",
+      showName ? service.name : "",
+    ].join("");
+    chip.title = service.name;
     chip.addEventListener("click", () => toggleService(service.id));
+
+    // ── Drag-to-reorder (mirrors the overlay's behaviour) ──
+    chip.draggable = true;
+
+    chip.addEventListener("dragstart", (e) => {
+      draggedChip = chip;
+      e.dataTransfer.setData("text/plain", service.id);
+      e.dataTransfer.effectAllowed = "move";
+      // setTimeout ensures the drag ghost looks normal before opacity is applied
+      setTimeout(() => (chip.style.opacity = "0.5"), 0);
+    });
+
+    chip.addEventListener("dragend", () => {
+      draggedChip = null;
+      chip.style.opacity = "1";
+
+      // Save the new order based on the DOM
+      const newOrder = Array.from(serviceChipsEl.children).map((c) => c.dataset.id);
+      allServices.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+      saveSettings();
+
+      // Ensure no lingering inline styles
+      Array.from(serviceChipsEl.children).forEach((c) => {
+        c.style.transform = "";
+        c.style.transition = "";
+      });
+    });
+
+    chip.addEventListener("dragover", (e) => {
+      e.preventDefault(); // allow drop
+      e.dataTransfer.dropEffect = "move";
+    });
+
+    chip.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+      if (!draggedChip || draggedChip === chip) return;
+
+      const children = Array.from(serviceChipsEl.children);
+      const firstRects = new Map();
+      children.forEach((c) => firstRects.set(c, c.getBoundingClientRect()));
+
+      const draggedIndex = children.indexOf(draggedChip);
+      const targetIndex = children.indexOf(chip);
+      if (draggedIndex < targetIndex) {
+        chip.after(draggedChip);
+      } else {
+        chip.before(draggedChip);
+      }
+
+      // FLIP animation
+      children.forEach((c) => {
+        const first = firstRects.get(c);
+        const last = c.getBoundingClientRect();
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx === 0 && dy === 0) return;
+
+        c.style.transition = "none";
+        c.style.transform = `translate(${dx}px, ${dy}px)`;
+        c.style.pointerEvents = "none";
+        requestAnimationFrame(() => {
+          c.style.transition = "transform 0.25s cubic-bezier(0.2, 0, 0, 1)";
+          c.style.transform = "";
+          setTimeout(() => (c.style.pointerEvents = ""), 250);
+        });
+      });
+    });
+
+    chip.addEventListener("drop", (e) => {
+      e.preventDefault();
+      // Reordering already happened in dragenter; dragend persists it
+    });
 
     serviceChipsEl.appendChild(chip);
   });
@@ -208,7 +313,20 @@ function addToHistory(query) {
 
 
 /**
- * Renders the recent prompts list. Clicking one re-fills the input.
+ * Removes a single prompt from history and persists the change.
+ */
+function deleteFromHistory(prompt) {
+  promptHistory = promptHistory.filter((h) =>
+    typeof h === "string" ? h !== prompt : h.text !== prompt
+  );
+  chrome.storage.local.set({ promptHistory });
+  renderHistory();
+}
+
+
+/**
+ * Renders the recent prompts list. Clicking one re-fills the input;
+ * the trailing button removes it.
  */
 function renderHistory() {
   if (!enableHistory || promptHistory.length === 0) {
@@ -221,14 +339,43 @@ function renderHistory() {
 
   promptHistory.forEach((entry) => {
     const prompt = typeof entry === "string" ? entry : entry.text;
+    const timestamp = typeof entry === "string" ? null : entry.timestamp;
+
     const li = document.createElement("li");
-    li.textContent = prompt;
+    li.className = "history-item";
     li.title = prompt;
-    li.addEventListener("click", () => {
+
+    const textWrapper = document.createElement("div");
+    textWrapper.className = "history-item-content";
+    textWrapper.addEventListener("click", () => {
       promptInput.value = prompt;
       promptInput.focus();
       updateSendButton();
     });
+
+    const text = document.createElement("span");
+    text.className = "history-item-text";
+    text.textContent = prompt;
+    textWrapper.appendChild(text);
+
+    if (timestamp) {
+      const time = document.createElement("span");
+      time.className = "history-item-time";
+      time.textContent = formatRelativeTime(timestamp);
+      textWrapper.appendChild(time);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "history-delete-btn";
+    deleteBtn.title = "Remove from recents";
+    deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteFromHistory(prompt);
+    });
+
+    li.appendChild(textWrapper);
+    li.appendChild(deleteBtn);
     historyList.appendChild(li);
   });
 }
@@ -246,9 +393,28 @@ async function saveSettings() {
     settings: {
       ...prev,
       enabledServices: enabledServiceIds,
+      serviceOrder: allServices.map((s) => s.id),
       autoSubmit: prev.autoSubmit !== false,
       theme: document.documentElement.dataset.theme || "light",
     },
+  });
+}
+
+
+/**
+ * Formats a timestamp as a short relative string ("5m ago").
+ */
+function formatRelativeTime(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
   });
 }
 
@@ -285,9 +451,10 @@ async function updateShortcutHint() {
       shortcutHint.textContent = "No shortcut set";
     }
   } catch {
-    // commands API not available (shouldn't happen in MV3 popup)
+    // commands API not available (shouldn't happen in MV3 popup).
+    // Falls back to the manifest's suggested_key for _execute_action.
     const isMac = navigator.platform.toUpperCase().includes("MAC");
-    shortcutHint.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
+    shortcutHint.textContent = isMac ? "⌃ ⇧ X" : "Ctrl + Shift + X";
   }
 
   // Make the badge clickable — open options and highlight the shortcut section

@@ -382,25 +382,77 @@ textarea::placeholder {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4px;
-  max-height: calc(3 * 32px + 2 * 2px + 8px);
+  /* Three rows of a two-line history item (text + timestamp) */
+  max-height: calc(3 * 46px + 2 * 2px + 8px);
   overflow-y: auto;
 }
 
-.history-list li {
-  padding: 9px 12px;
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
   border-radius: var(--radius-xs);
+  transition: background var(--transition);
+}
+
+.history-item:hover {
+  background: var(--accent-light);
+}
+
+.history-item:hover .history-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.history-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.history-item-text {
   font-size: 0.9rem;
   color: var(--text-secondary);
-  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+
+.history-item:hover .history-item-text {
+  color: var(--accent-text);
+}
+
+.history-item-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.history-delete-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
   transition: all var(--transition);
 }
 
-.history-list li:hover {
-  background: var(--accent-light);
-  color: var(--accent-text);
+.history-delete-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* ── Footer ────────────────────────────────────────────────── */

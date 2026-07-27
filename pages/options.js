@@ -843,7 +843,12 @@ function save() {
  * Performs the actual write to chrome.storage.sync and trims history.
  */
 async function _doSave() {
+  // Keys this page doesn't own (serviceOrder, set by chip drag-and-drop in
+  // the overlay and popup) must survive the write.
+  const stored = await chrome.storage.sync.get("settings");
+
   const settings = {
+    ...(stored.settings || {}),
     enabledServices: enabledServiceIds,
     autoSubmit: autoSubmitEl.checked,
     useSidebar: useSidebarEl.checked,
