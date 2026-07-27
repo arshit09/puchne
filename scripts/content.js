@@ -669,12 +669,13 @@ class PuchneOverlay {
       if (response?.shortcut) {
         hintText.textContent = response.shortcut.replace(/\+/g, " + ");
       } else {
+        // Falls back to the manifest's suggested_key for _execute_action.
         const isMac = navigator.platform.toUpperCase().includes("MAC");
-        hintText.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
+        hintText.textContent = isMac ? "⌃ ⇧ X" : "Ctrl + Shift + X";
       }
     } catch {
       const isMac = navigator.platform.toUpperCase().includes("MAC");
-      hintText.textContent = isMac ? "⌃ ⇧ A" : "Ctrl + Shift + A";
+      hintText.textContent = isMac ? "⌃ ⇧ X" : "Ctrl + Shift + X";
     }
 
     // Make it clickable: open options and scroll to keyboard shortcut section
