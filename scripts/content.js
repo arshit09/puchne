@@ -1031,15 +1031,15 @@ async function fillAndSubmit({
       }
       if (btn) {
         await sleep(SUBMIT_DELAY);
-        submit(element, submitType, resolvedButtonSel);
+        await submit(element, submitType, resolvedButtonSel);
       } else {
         console.warn("[Puchne] Submit button NOT found after filling:", buttonSel);
         // Fallback: try enter key anyway
-        submit(element, "enter", null);
+        await submit(element, "enter", null);
       }
     } else {
       await sleep(SUBMIT_DELAY);
-      submit(element, submitType, buttonSel);
+      await submit(element, submitType, buttonSel);
     }
   }
 
@@ -1199,14 +1199,19 @@ function fillProseMirror(el, query) {
 
 /**
  * Submits the query using the configured strategy.
+ *
+ * @returns {Promise<void>} Resolves once the submit attempt has finished.
  */
-function submit(inputEl, submitType, buttonSel) {
+async function submit(inputEl, submitType, buttonSel) {
   switch (submitType) {
     case "button":
-      clickSubmitButton(buttonSel) || pressEnter(inputEl);
+      // Await the click (it retries for up to ~1.5s) so Enter is only used
+      // as a fallback when the button truly never became clickable —
+      // otherwise the prompt would be sent twice.
+      if (!(await clickSubmitButton(buttonSel))) pressEnter(inputEl);
       break;
     case "both":
-      clickSubmitButton(buttonSel);
+      await clickSubmitButton(buttonSel);
       pressEnter(inputEl);
       break;
     case "enter":
@@ -1257,27 +1262,25 @@ function pressEnter(el) {
  * Finds and clicks the send/submit button.
  * Retries a few times because some sites enable the button
  * only after detecting input (with a short delay).
+ *
+ * @returns {Promise<boolean>} True if the button was clicked, false if it
+ *   never appeared/enabled within the retry window (~1.5s).
  */
-function clickSubmitButton(buttonSel) {
+async function clickSubmitButton(buttonSel) {
   if (!buttonSel) return false;
 
-  let attempts = 0;
   const maxAttempts = 5;
 
-  function tryClick() {
+  for (let attempt = 0; attempt <= maxAttempts; attempt++) {
     const btn = document.querySelector(buttonSel);
     if (btn && !btn.disabled) {
       btn.click();
       return true;
     }
-    if (attempts < maxAttempts) {
-      attempts++;
-      setTimeout(tryClick, 300);
-    }
-    return false;
+    if (attempt < maxAttempts) await sleep(300);
   }
 
-  return tryClick();
+  return false;
 }
 
 
