@@ -1,0 +1,514 @@
+/**
+ * ============================================================
+ *  Puchne — Shared Prompt Panel Styles
+ * ============================================================
+ *
+ *  The one stylesheet for the compose UI rendered by
+ *  scripts/prompt-panel.js. Loaded by BOTH surfaces:
+ *
+ *    - the overlay, as a constructable sheet adopted into the
+ *      shadow root (see getPanelSheets() in scripts/content.js)
+ *    - the popup / side panel, as a <link> in popup.html
+ *
+ *  It deliberately declares no colour variables of its own and
+ *  never selects :host or :root — each surface supplies the
+ *  palette, so this file stays surface-agnostic. Anything that
+ *  belongs to only one surface (backdrop, drag, side-panel
+ *  layout) lives in overlay.css / popup.css instead.
+ * ============================================================
+ */
+
+.pb-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.pb-panel *,
+.pb-panel *::before,
+.pb-panel *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.pb-panel .hidden { display: none !important; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.pb-panel .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pb-panel .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pb-panel .logo h1 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.pb-panel .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pb-panel .icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.pb-panel .icon-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ── Section labels ─────────────────────────────────────────── */
+.pb-panel .section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Service chips ──────────────────────────────────────────── */
+.pb-panel .service-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-height: 44px; /* Space for at least one row of chips */
+}
+
+.pb-panel .chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 14px;
+  min-width: 44px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  transition: none;
+}
+
+.pb-panel .chip:hover {
+  border-color: var(--border);
+  background: var(--bg-hover);
+}
+
+.pb-panel .chip.active { border-color: var(--accent); }
+
+.pb-panel .chip.active:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-light);
+}
+
+.pb-panel .service-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+  aspect-ratio: 1 / 1; /* Stabilize layout if the image loads late */
+  filter: grayscale(1) opacity(0.55);
+  transition: all var(--transition);
+}
+
+.pb-panel .chip.active .service-icon { filter: none; }
+
+/* ── Prompt input ───────────────────────────────────────────── */
+.pb-panel .input-area {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 8px 8px 16px;
+  transition: border-color var(--transition);
+}
+
+.pb-panel .input-area:focus-within { border-color: var(--accent); }
+
+.pb-panel textarea {
+  flex: 1;
+  min-width: 200px;
+  min-height: 24px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.pb-panel textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+.pb-panel .input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: transparent;
+}
+
+.pb-panel .send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  transition: all var(--transition);
+}
+
+.pb-panel .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+
+.pb-panel .send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pb-panel .send-btn.sending {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ── Inline helper text (e.g. "no AI tools selected") ───────── */
+.pb-panel .panel-hint {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.pb-panel .link-btn,
+.pb-panel .text-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.pb-panel .text-btn {
+  text-decoration: none;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.pb-panel .text-btn:hover { color: var(--text-primary); }
+
+/* ── Delivery status ────────────────────────────────────────── */
+.pb-panel .status-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.pb-panel .status-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pb-panel .status-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.pb-panel .status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.pb-panel .status-item.state-failed { border-color: #e0685f; }
+
+.pb-panel .status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pb-panel .status-row .service-icon { filter: none; }
+
+.pb-panel .status-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb-panel .status-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  color: var(--text-muted);
+}
+
+/* Badge colours are literal rather than variable-driven: they read the same
+   against both the light and dark surface palettes. */
+.pb-panel .state-pending   .status-badge { color: #b0873c; }
+.pb-panel .state-filled    .status-badge { color: #4a86c8; }
+.pb-panel .state-submitted .status-badge { color: #2e9e63; }
+.pb-panel .state-failed    .status-badge { color: #e0685f; }
+
+/* A pending row is still working — make that legible at a glance. */
+.pb-panel .state-pending .status-badge {
+  animation: pb-status-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pb-status-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+.pb-panel .status-error {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
+.pb-panel .status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pb-panel .status-action {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font);
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pb-panel .status-action:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ── History ────────────────────────────────────────────────── */
+.pb-panel .history-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.pb-panel .history-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.pb-panel .history-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  /* Three rows of a two-line history item (text + timestamp) */
+  max-height: calc(3 * 46px + 2 * 2px + 8px);
+  overflow-y: auto;
+}
+
+.pb-panel .history-note {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pb-panel .history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  border-radius: var(--radius-xs);
+  transition: background var(--transition);
+}
+
+.pb-panel .history-item:hover { background: var(--accent-light); }
+
+.pb-panel .history-item:hover .history-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pb-panel .history-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.pb-panel .history-item-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+
+.pb-panel .history-item:hover .history-item-text { color: var(--accent-text); }
+
+.pb-panel .history-item-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pb-panel .history-delete-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--transition);
+}
+
+.pb-panel .history-delete-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ── Footer / shortcut hint ─────────────────────────────────── */
+.pb-panel .footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
+  margin-top: auto;
+}
+
+.pb-panel .shortcut-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.pb-panel .shortcut-hint:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.pb-panel .shortcut-icon {
+  stroke: var(--text-muted);
+  transition: stroke var(--transition);
+}
+
+.pb-panel .shortcut-hint:hover .shortcut-icon { stroke: var(--text-primary); }
+
+.pb-panel .shortcut-label { font-weight: 500; margin-right: -2px; }
+
+/* ── Scrollbars ─────────────────────────────────────────────── */
+.pb-panel ::-webkit-scrollbar { width: 4px; }
+.pb-panel ::-webkit-scrollbar-track { background: transparent; }
+.pb-panel ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.pb-panel ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+.pb-panel ::-webkit-scrollbar-button { display: none; }
+
+/* ── Overlay variant ────────────────────────────────────────── */
+/* The overlay is a command palette, not a settings pane: tighter
+   rhythm, larger type in the box the user is actually typing into. */
+.pb-panel[data-variant="overlay"] { gap: 4px; }
+.pb-panel[data-variant="overlay"] .header { margin-bottom: 12px; }
+.pb-panel[data-variant="overlay"] .logo h1 { font-size: 22px; }
+.pb-panel[data-variant="overlay"] .service-chips { margin-bottom: 12px; }
+.pb-panel[data-variant="overlay"] .chip { font-size: 15px; }
+.pb-panel[data-variant="overlay"] textarea { font-size: 18px; }
+.pb-panel[data-variant="overlay"] .send-btn { width: 48px; height: 48px; }
+.pb-panel[data-variant="overlay"] .input-area { border-width: 1px; }

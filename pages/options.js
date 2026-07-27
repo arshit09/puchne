@@ -95,8 +95,10 @@ const DEFAULTS = {
   groupTabs: false,
   delayMs: 2000,
   historyLimit: 20,
-  enableHistory: false,
-  showRecents: false,
+  // Prompt history is on by default: it never leaves this device, and
+  // off-by-default meant most people never discovered recents at all.
+  enableHistory: true,
+  showRecents: true,
   showShortcutHint: true,
   showFollowUpInput: true,
   overlayPosition: "center",
@@ -177,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   delayMsEl.value = settings.delayMs;
   historyLimitEl.value = settings.historyLimit || 20;
-  showRecentsEl.checked = settings.showRecents === true;
+  showRecentsEl.checked = settings.showRecents !== false;
   showShortcutHintEl.checked = settings.showShortcutHint !== false;
   showFollowUpInputEl.checked = settings.showFollowUpInput !== false;
 
@@ -294,11 +296,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load live shortcut & check if we need to scroll+blink
   loadCurrentShortcut();
   checkShortcutHighlight();
+  checkSelectorRequest();
 
   // Listen for re-triggering while page is already open
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.highlightShortcut?.newValue === true) {
       checkShortcutHighlight();
+    }
+
+    if (area === "local" && changes.editSelectorFor?.newValue) {
+      checkSelectorRequest();
     }
 
     // Sync settings changed externally (e.g. from the Grid tab)
@@ -595,6 +602,7 @@ function renderServices() {
   allServices.forEach((service) => {
     const item = document.createElement("div");
     item.className = "service-item";
+    item.dataset.serviceId = service.id;
 
     // ── Main row ──────────────────────────────────────────────
     const row = document.createElement("div");
@@ -983,6 +991,41 @@ async function checkShortcutHighlight() {
     section.addEventListener("animationend", () => {
       section.classList.remove("highlight-blink");
     }, { once: true });
+  }, 400);
+}
+
+/**
+ * Handles the "Edit selector" action from a failed delivery row: opens that
+ * service's selector editor, scrolls to it and flashes it, so the user lands
+ * on the exact field to fix rather than on the settings page in general.
+ */
+async function checkSelectorRequest() {
+  const data = await chrome.storage.local.get("editSelectorFor");
+  const serviceId = data.editSelectorFor;
+  if (!serviceId) return;
+
+  // Clear the flag immediately so it doesn't re-trigger on refresh
+  await chrome.storage.local.remove("editSelectorFor");
+
+  switchTab("tools");
+  history.pushState(null, null, "#tools");
+
+  const item = serviceListEl.querySelector(`.service-item[data-service-id="${serviceId}"]`);
+  if (!item) return;
+
+  item.querySelector(".selector-editor")?.classList.add("open");
+  item.querySelector(".expand-btn")?.classList.add("open");
+  item.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // Wait for the scroll to settle, then blink and focus the input selector
+  setTimeout(() => {
+    item.classList.remove("highlight-blink"); // Force reset
+    void item.offsetWidth;                    // Trigger reflow
+    item.classList.add("highlight-blink");
+    item.addEventListener("animationend", () => {
+      item.classList.remove("highlight-blink");
+    }, { once: true });
+    item.querySelector(".selector-input")?.focus();
   }, 400);
 }
 

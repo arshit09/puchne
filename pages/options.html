@@ -141,7 +141,7 @@
               <div class="setting-row">
                 <div class="setting-info">
                   <p class="setting-label">Prompt History</p>
-                  <p class="setting-desc">Save and show your recent prompts</p>
+                  <p class="setting-desc">Save and show your recent prompts — stored locally on this device only, never synced or uploaded</p>
                 </div>
                 <label class="toggle">
                   <input type="checkbox" id="showRecents">
@@ -443,6 +443,9 @@
   </div>
 
   <script src="../scripts/constants.js"></script>
+  <!-- content.js builds its overlay from PuchnePromptPanel, so the panel
+       must load first anywhere content.js is loaded. -->
+  <script src="../scripts/prompt-panel.js"></script>
   <script src="../scripts/content.js"></script>
   <script src="options.js"></script>
 </body>

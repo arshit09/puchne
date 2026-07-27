@@ -25,6 +25,16 @@
       </form>
     </div>
     <div class="grid-header-right">
+      <!-- Closed cells are recoverable: this menu lists them for re-adding. -->
+      <div class="grid-menu" id="closedMenu" hidden>
+        <button type="button" class="grid-btn" id="closedTrigger" title="Re-open a closed cell">
+          Closed <span class="grid-btn-count" id="closedCount">0</span>
+        </button>
+        <div class="grid-menu-list" id="closedList"></div>
+      </div>
+      <button type="button" class="grid-btn" id="resetLayoutBtn" title="Restore every cell and even out the layout">
+        Reset layout
+      </button>
       <span class="toggle-label">Hover to Expand</span>
       <label class="toggle sm">
         <input type="checkbox" id="hoverExpandToggle">
@@ -34,6 +44,7 @@
   </div>
 
   <script src="../scripts/constants.js"></script>
+  <script src="../scripts/prompt-panel.js"></script>
   <script src="../scripts/content.js"></script>
   <script src="grid.js"></script>
 </body>

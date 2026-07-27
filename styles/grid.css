@@ -264,7 +264,7 @@ html, body {
   gap: 6px;
 }
 
-.cell-close-btn {
+.cell-icon-btn {
   background: none;
   border: 1px solid var(--border);
   color: var(--text-secondary);
@@ -277,7 +277,7 @@ html, body {
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cell-close-btn:hover {
+.cell-icon-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border-color: var(--text-secondary);
@@ -290,6 +290,34 @@ html, body {
 
 .cell-close-btn:hover svg {
   transform: rotate(90deg);
+}
+
+/* ── Maximized Cell ─────────────────────────────────────────
+ * Siblings are hidden rather than unmounted, so every embedded
+ * conversation survives a maximize/restore round trip.
+ * ──────────────────────────────────────────────────────────── */
+.grid-container.has-maximized > .grid-cell {
+  display: none;
+}
+
+.grid-container.has-maximized > .grid-cell.maximized {
+  display: flex;
+  grid-column: 1 / -1 !important;
+  grid-row: 1 / -1 !important;
+}
+
+.grid-container.has-maximized .resize-handle {
+  display: none;
+}
+
+/* Brief ring when a cell is selected with Alt + number */
+.grid-cell.cell-flash {
+  animation: cell-flash 700ms ease-out;
+}
+
+@keyframes cell-flash {
+  0%   { box-shadow: inset 0 0 0 3px var(--accent); }
+  100% { box-shadow: inset 0 0 0 3px transparent; }
 }
 
 
@@ -398,6 +426,98 @@ html, body {
   font-weight: 500;
   color: var(--text-secondary);
   user-select: none;
+}
+
+.grid-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+
+.grid-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.grid-btn-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── Closed-cells menu ─────────────────────────────────────── */
+.grid-menu {
+  position: relative;
+}
+
+.grid-menu[hidden] {
+  display: none;
+}
+
+.grid-menu-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+}
+
+.grid-menu.open .grid-menu-list {
+  display: flex;
+}
+
+.grid-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.grid-menu-item:hover {
+  background: var(--accent-light);
+}
+
+.grid-menu-item img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 /* ── Toggle Switch ─────────────────────────────────────────── */

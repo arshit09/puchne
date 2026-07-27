@@ -99,40 +99,45 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 // ── Overlay Implementation ───────────────────────────────────
 let overlayInstance = null;
 
-// The overlay's CSS lives in styles/overlay.css, not in a JS template. It is
-// fetched and parsed once per page and shared by every shadow root that adopts
-// it, instead of re-parsing ~200 lines of CSS on each construction.
-const OVERLAY_CSS_PATH = "styles/overlay.css";
-let _overlaySheetPromise = null;
+// The overlay's CSS lives in stylesheets, not JS templates: panel.css is the
+// compose UI shared with the popup, overlay.css is this surface's own chrome.
+// Both are fetched and parsed once per page and shared by every shadow root
+// that adopts them, instead of re-parsing on each construction.
+const PANEL_CSS_PATHS = ["styles/panel.css", "styles/overlay.css"];
+let _panelSheetsPromise = null;
 
-function getOverlaySheet() {
-  if (!_overlaySheetPromise) {
-    _overlaySheetPromise = (async () => {
-      const res = await fetch(chrome.runtime.getURL(OVERLAY_CSS_PATH));
-      const sheet = new CSSStyleSheet();
-      sheet.replaceSync(await res.text());
-      return sheet;
-    })();
+function getPanelSheets() {
+  if (!_panelSheetsPromise) {
+    _panelSheetsPromise = Promise.all(
+      PANEL_CSS_PATHS.map(async (path) => {
+        const res = await fetch(chrome.runtime.getURL(path));
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(await res.text());
+        return sheet;
+      })
+    );
   }
-  return _overlaySheetPromise;
+  return _panelSheetsPromise;
 }
 
 /**
- * Styles a shadow root with the overlay stylesheet. Falls back to a <link>
- * if the sheet can't be fetched (e.g. a host that blocks the request), so the
- * overlay is never rendered unstyled.
+ * Styles a shadow root with the shared sheets. Falls back to <link> elements
+ * if they can't be fetched (e.g. a host that blocks the request), so nothing
+ * is ever rendered unstyled.
  * @param {ShadowRoot} shadow
  */
-async function adoptOverlayStyles(shadow) {
+async function adoptPanelStyles(shadow) {
   try {
-    shadow.adoptedStyleSheets = [await getOverlaySheet()];
+    shadow.adoptedStyleSheets = await getPanelSheets();
   } catch (err) {
-    console.warn("[Puchne] Overlay stylesheet fetch failed, linking instead:", err);
-    _overlaySheetPromise = null;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = chrome.runtime.getURL(OVERLAY_CSS_PATH);
-    shadow.prepend(link);
+    console.warn("[Puchne] Stylesheet fetch failed, linking instead:", err);
+    _panelSheetsPromise = null;
+    for (const path of PANEL_CSS_PATHS) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = chrome.runtime.getURL(path);
+      shadow.appendChild(link);
+    }
   }
 }
 
@@ -149,18 +154,14 @@ class PuchneOverlay {
     this.visible = false;
     this.container = null;
     this.shadow = null;
-    this.allServices = [];
-    this.enabledServiceIds = [];
-    this.promptHistory = [];
+    this.panel = null;
     this.overlayPosition = "center";
-    this._chipFingerprint = "";
-    this.activeSessionTabs = [];
 
     this.initPromise = this.init();
   }
 
   async init() {
-    // 1. Create the container
+    // 1. Create the backdrop container
     this.container = document.createElement("div");
     this.container.id = "prompt-blast-root";
     this.container.style.cssText = `
@@ -172,83 +173,47 @@ class PuchneOverlay {
       box-sizing: border-box;
       z-index: 2147483647;
       display: none;
-      align-items: flex-start;
-      padding-top: 40px;
+      align-items: center;
       justify-content: center;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     `;
 
-    // 2. Attach Shadow DOM
+    // 2. Attach Shadow DOM and adopt the shared stylesheets
     this.shadow = this.container.attachShadow({ mode: "closed" });
+    await adoptPanelStyles(this.shadow);
 
-    // 3. Adopt the shared stylesheet (parsed once per page)
-    await adoptOverlayStyles(this.shadow);
+    // 3. Mount the shared compose panel inside this surface's modal card
+    const modal = document.createElement("div");
+    modal.className = "modal-container";
+    this.shadow.appendChild(modal);
 
-    // 4. Inject HTML (appended, so the <link> fallback above survives)
-    this.shadow.appendChild(
-      document.createRange().createContextualFragment(this.getHTML())
-    );
+    this.panel = new PuchnePromptPanel({
+      mount: modal,
+      themeTarget: this.container,
+      variant: "overlay",
+      // Settings opens in another tab, so there is nothing left to look at here.
+      onOpenSettings: () => this.hide(),
+      // Deliberately stays open after a send: the delivery status list is the
+      // whole point of not closing the moment the prompt leaves.
+    });
+    await this.panel.initPromise;
 
-    // 5. Setup Local State & Listeners
-    await this.loadData();
+    this.applyPosition();
     this.setupListeners();
-    this.renderServiceChips();
-    this.renderHistory();
-    this.updateShortcutHint();
 
     document.body.appendChild(this.container);
   }
 
-  async loadData() {
-    // Fetch services from background
-    const response = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
-        if (chrome.runtime.lastError) { resolve(null); return; }
-        resolve(res);
-      });
-    });
-    this.allServices = response?.services || [];
-
-    // Load settings
-    const stored = await chrome.storage.sync.get("settings");
-    const settings = stored.settings || {};
-    this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
-    if (settings.serviceOrder) {
-      this.allServices.sort((a, b) => {
-        const indexA = settings.serviceOrder.indexOf(a.id);
-        const indexB = settings.serviceOrder.indexOf(b.id);
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-    }
-
-    // Apply saved theme to the shadow host
-    applyTheme(this.container, settings.theme || "dark");
-
-    // Load history (handle legacy plain-string format)
-    const historyData = await chrome.storage.local.get("promptHistory");
-    this.promptHistory = (historyData.promptHistory || []).map((h) =>
-      typeof h === "string" ? { text: h, timestamp: Date.now() } : h
-    );
-    this.historyLimit = settings.historyLimit || MAX_HISTORY;
-    this.enableHistory = settings.enableHistory === true;
-    this.showRecents = settings.showRecents === true;
-    this.overlayPosition = settings.overlayPosition || "center";
-    this.chipDisplay = settings.chipDisplay || "logo-name";
-    this.showShortcutHint = settings.showShortcutHint !== false;
-    this.applyPosition();
-  }
-
+  /** Where the modal sits in the viewport — an overlay-only setting. */
   applyPosition() {
     if (!this.container) return;
+    this.overlayPosition = this.panel?.settings?.overlayPosition || "center";
     switch (this.overlayPosition) {
-      case "center":
-        this.container.style.alignItems = "center";
-        this.container.style.paddingTop = "0";
+      case "top":
+        this.container.style.alignItems = "flex-start";
+        this.container.style.paddingTop = "40px";
         this.container.style.paddingBottom = "0";
         break;
       case "bottom":
@@ -256,68 +221,25 @@ class PuchneOverlay {
         this.container.style.paddingTop = "0";
         this.container.style.paddingBottom = "40px";
         break;
-      case "top":
+      case "center":
       default:
-        this.container.style.alignItems = "flex-start";
-        this.container.style.paddingTop = "40px";
+        this.container.style.alignItems = "center";
+        this.container.style.paddingTop = "0";
         this.container.style.paddingBottom = "0";
         break;
     }
   }
 
   setupListeners() {
-    const promptInput = this.shadow.getElementById("promptInput");
-    const sendBtn = this.shadow.getElementById("sendBtn");
-    const settingsBtn = this.shadow.getElementById("settingsBtn");
-
     const modal = this.shadow.querySelector(".modal-container");
 
     // Close on backdrop click (but NOT when clicking inside the modal)
     this.container.addEventListener("click", (e) => {
       if (e.target === this.container) this.hide();
     });
+    modal.addEventListener("click", (e) => e.stopPropagation());
 
-    // Prevent clicks inside the modal from bubbling up to the backdrop
-    modal.addEventListener("click", (e) => {
-      e.stopPropagation();
-    });
-
-    // Drag functionality
-    const header = this.shadow.querySelector(".header");
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let currentX = 0;
-    let currentY = 0;
-
-    header.addEventListener("mousedown", (e) => {
-      if (e.target.closest('button')) return;
-      isDragging = true;
-      header.style.cursor = "grabbing";
-      dragStartX = e.clientX - currentX;
-      dragStartY = e.clientY - currentY;
-      e.preventDefault();
-    });
-
-    this.container.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      currentX = e.clientX - dragStartX;
-      currentY = e.clientY - dragStartY;
-      modal.style.transform = `translate(${currentX}px, ${currentY}px)`;
-    });
-
-    this.container.addEventListener("mouseup", () => {
-      if (isDragging) {
-        isDragging = false;
-        header.style.cursor = "grab";
-      }
-    });
-    this.container.addEventListener("mouseleave", () => {
-      if (isDragging) {
-        isDragging = false;
-        header.style.cursor = "grab";
-      }
-    });
+    this.setupDrag(modal);
 
     // Close on Escape + focus trap within the overlay
     this.container.addEventListener("keydown", (e) => {
@@ -342,35 +264,50 @@ class PuchneOverlay {
         }
       }
     });
+  }
 
-    // Send button click
-    sendBtn.addEventListener("click", () => this.handleSend());
+  /**
+   * Drag-by-header, on Pointer Events rather than mouse events: one code path
+   * covers mouse, touch and pen, and setPointerCapture keeps the drag alive
+   * (and correctly terminated) even when the pointer leaves the window.
+   * @param {HTMLElement} modal
+   */
+  setupDrag(modal) {
+    const header = this.panel.$("panelHeader");
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
 
-    // Enter to send, Shift+Enter for newline
-    promptInput.addEventListener("keydown", (e) => {
-      e.stopPropagation(); // Prevent the host page from seeing this keydown
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        this.handleSend();
-      }
+    header.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.target.closest("button")) return;
+
+      pointerId = e.pointerId;
+      header.setPointerCapture(pointerId);
+      header.classList.add("dragging");
+      startX = e.clientX - currentX;
+      startY = e.clientY - currentY;
+      e.preventDefault();
     });
 
-    promptInput.addEventListener("keyup", (e) => {
-      e.stopPropagation();
+    header.addEventListener("pointermove", (e) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      currentX = e.clientX - startX;
+      currentY = e.clientY - startY;
+      modal.style.transform = `translate(${currentX}px, ${currentY}px)`;
     });
 
-    promptInput.addEventListener("keypress", (e) => {
-      e.stopPropagation();
-    });
+    const endDrag = (e) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      if (header.hasPointerCapture(pointerId)) header.releasePointerCapture(pointerId);
+      header.classList.remove("dragging");
+      pointerId = null;
+    };
 
-    // Enable/disable send button based on input
-    promptInput.addEventListener("input", () => this.updateSendButton());
-
-    // Settings button
-    settingsBtn.addEventListener("click", () => {
-      chrome.runtime.sendMessage({ action: "openOptions" });
-      this.hide();
-    });
+    header.addEventListener("pointerup", endDrag);
+    header.addEventListener("pointercancel", endDrag);
   }
 
   toggle() {
@@ -385,397 +322,16 @@ class PuchneOverlay {
     this.visible = true;
     this.container.style.display = "flex";
 
-    // Refresh all settings from storage each time the overlay opens
-    // (user may have changed them in the options page since last open)
-    const stored = await chrome.storage.sync.get("settings");
-    const settings = stored.settings || {};
-    this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
-    if (settings.serviceOrder) {
-      this.allServices.sort((a, b) => {
-        const indexA = settings.serviceOrder.indexOf(a.id);
-        const indexB = settings.serviceOrder.indexOf(b.id);
-        if (indexA === -1 && indexB === -1) return 0;
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
-    }
-    this.enableHistory = settings.enableHistory === true;
-    this.showRecents = settings.showRecents === true;
-    this.overlayPosition = settings.overlayPosition || "center";
-    this.chipDisplay = settings.chipDisplay || "logo-name";
-    this.showShortcutHint = settings.showShortcutHint !== false;
-    this.historyLimit = settings.historyLimit || MAX_HISTORY;
-    applyTheme(this.container, settings.theme || "dark");
+    // Settings may have changed in the options page since the last open.
+    await this.panel.refresh();
     this.applyPosition();
-    this.renderServiceChips();
 
-    // Refresh history from storage
-    const historyData = await chrome.storage.local.get("promptHistory");
-    this.promptHistory = (historyData.promptHistory || []).map((h) =>
-      typeof h === "string" ? { text: h, timestamp: Date.now() } : h
-    );
-    this.renderHistory();
-    this.updateShortcutHint();
-
-    setTimeout(() => {
-      const input = this.shadow.getElementById("promptInput");
-      input.focus();
-    }, 50);
+    setTimeout(() => this.panel.focusInput(), 50);
   }
 
   hide() {
     this.visible = false;
     this.container.style.display = "none";
-  }
-
-  renderServiceChips(force = false) {
-    const mode = this.chipDisplay || "logo-name";
-    const theme = this.container.dataset.theme || "dark";
-    const fp = `${mode}|${theme}|${this.enabledServiceIds.slice().sort().join(",")}|${this.allServices.map(s => s.id).join(",")}`;
-    if (!force && fp === this._chipFingerprint) {
-      this.updateSendButton();
-      return;
-    }
-    this._chipFingerprint = fp;
-
-    const serviceChipsEl = this.shadow.getElementById("serviceChips");
-    const promptInput = this.shadow.getElementById("promptInput");
-    
-    // Normal mode
-    serviceChipsEl.style.display = (mode === "none") ? "none" : "flex";
-    serviceChipsEl.innerHTML = "";
-    promptInput.placeholder = "Type your prompt here…";
-
-    if (mode === "none") {
-      this.updateSendButton();
-      return;
-    }
-
-    let draggedChip = null;
-
-    this.allServices.forEach((service) => {
-      const chip = document.createElement("button");
-      chip.className = "chip";
-      if (this.enabledServiceIds.includes(service.id)) {
-        chip.classList.add("active");
-      }
-      const isDark = this.container.dataset.theme === "dark";
-      const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
-      const showLogo = mode === "logo-name" || mode === "logo";
-      const showName = mode === "name" || mode === "logo-name";
-      chip.innerHTML = [
-        showLogo ? `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" />` : "",
-        showName ? service.name : ""
-      ].join("");
-      chip.addEventListener("click", () => this.toggleService(service.id));
-
-      chip.draggable = true;
-      chip.dataset.id = service.id;
-      
-      chip.addEventListener("dragstart", (e) => {
-        draggedChip = chip;
-        e.dataTransfer.setData("text/plain", service.id);
-        e.dataTransfer.effectAllowed = "move";
-        // setTimeout ensures the drag ghost looks normal before opacity is applied
-        setTimeout(() => chip.style.opacity = "0.5", 0);
-      });
-      
-      chip.addEventListener("dragend", () => {
-        draggedChip = null;
-        chip.style.opacity = "1";
-        
-        // Save new order based on DOM
-        const newOrder = Array.from(serviceChipsEl.children).map(c => c.dataset.id);
-        this.allServices.sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
-        this.saveSettings();
-        
-        // Ensure no lingering inline styles
-        Array.from(serviceChipsEl.children).forEach(c => {
-          c.style.transform = '';
-          c.style.transition = '';
-        });
-      });
-      
-      chip.addEventListener("dragover", (e) => {
-        e.preventDefault(); // allow drop
-        e.dataTransfer.dropEffect = "move";
-      });
-
-      chip.addEventListener("dragenter", (e) => {
-        e.preventDefault();
-        if (draggedChip && draggedChip !== chip) {
-          const children = Array.from(serviceChipsEl.children);
-          const firstRects = new Map();
-          children.forEach(c => firstRects.set(c, c.getBoundingClientRect()));
-          
-          const draggedIndex = children.indexOf(draggedChip);
-          const targetIndex = children.indexOf(chip);
-          
-          if (draggedIndex < targetIndex) {
-            chip.after(draggedChip);
-          } else {
-            chip.before(draggedChip);
-          }
-          
-          // FLIP animation
-          children.forEach(c => {
-            const first = firstRects.get(c);
-            const last = c.getBoundingClientRect();
-            const dx = first.left - last.left;
-            const dy = first.top - last.top;
-            
-            if (dx !== 0 || dy !== 0) {
-              c.style.transition = "none";
-              c.style.transform = `translate(${dx}px, ${dy}px)`;
-              c.style.pointerEvents = "none";
-              requestAnimationFrame(() => {
-                c.style.transition = "transform 0.25s cubic-bezier(0.2, 0, 0, 1)";
-                c.style.transform = "";
-                setTimeout(() => c.style.pointerEvents = "", 250);
-              });
-            }
-          });
-        }
-      });
-
-      chip.addEventListener("drop", (e) => {
-        e.preventDefault();
-        // Reordering is already handled in dragenter, dragend saves it
-      });
-
-      serviceChipsEl.appendChild(chip);
-    });
-
-    this.updateSendButton();
-  }
-
-  toggleService(id) {
-    const index = this.enabledServiceIds.indexOf(id);
-    if (index >= 0) {
-      this.enabledServiceIds.splice(index, 1);
-    } else {
-      this.enabledServiceIds.push(id);
-    }
-    this.renderServiceChips();
-    this.saveSettings();
-  }
-
-  updateSendButton() {
-    const promptInput = this.shadow.getElementById("promptInput");
-    const sendBtn = this.shadow.getElementById("sendBtn");
-    const hasQuery = promptInput.value.trim().length > 0;
-    const hasServices = this.enabledServiceIds.length > 0;
-    sendBtn.disabled = !(hasQuery && hasServices);
-  }
-
-  async handleSend() {
-    const promptInput = this.shadow.getElementById("promptInput");
-    const query = promptInput.value.trim();
-    if (!query || this.enabledServiceIds.length === 0) return;
-
-    const sendBtn = this.shadow.getElementById("sendBtn");
-    sendBtn.disabled = true;
-    sendBtn.classList.add("sending");
-    promptInput.disabled = true;
-
-    const resetUI = () => {
-      sendBtn.classList.remove("sending");
-      promptInput.disabled = false;
-      this.updateSendButton();
-    };
-
-    // Safety valve: re-enable the UI after 15 s if the callback never fires
-    const abortTimer = setTimeout(() => {
-      resetUI();
-    }, 15000);
-
-    await this.saveSettings();
-    this.addToHistory(query);
-
-    chrome.runtime.sendMessage(
-      { action: "multicast", query: query },
-      () => {
-        clearTimeout(abortTimer);
-        if (chrome.runtime.lastError) {
-          resetUI();
-          return;
-        }
-        setTimeout(() => {
-          this.hide();
-          promptInput.value = "";
-          resetUI();
-        }, 300);
-      }
-    );
-  }
-
-  addToHistory(query) {
-    if (!this.enableHistory) return;
-    this.promptHistory = this.promptHistory.filter((h) => h.text !== query);
-    this.promptHistory.unshift({ text: query, timestamp: Date.now() });
-    this.promptHistory = this.promptHistory.slice(0, this.historyLimit || MAX_HISTORY);
-    // Persist (don't re-render now — history updates on next open)
-    chrome.storage.local.set({ promptHistory: this.promptHistory });
-  }
-
-  deleteFromHistory(prompt) {
-    this.promptHistory = this.promptHistory.filter((h) => h.text !== prompt);
-    chrome.storage.local.set({ promptHistory: this.promptHistory });
-    this.renderHistory();
-  }
-
-  renderHistory() {
-    const historySection = this.shadow.getElementById("historySection");
-    const historyList = this.shadow.getElementById("historyList");
-    if (!this.showRecents || this.promptHistory.length === 0) {
-      historySection.classList.add("hidden");
-      return;
-    }
-    historySection.classList.remove("hidden");
-    historyList.innerHTML = "";
-    this.promptHistory.forEach((entry) => {
-      const prompt = entry.text;
-      const li = document.createElement("li");
-      li.className = "history-item";
-      li.title = prompt;
-
-      const textWrapper = document.createElement("div");
-      textWrapper.className = "history-item-content";
-      textWrapper.addEventListener("click", () => {
-        const input = this.shadow.getElementById("promptInput");
-        input.value = prompt;
-        input.focus();
-        this.updateSendButton();
-      });
-
-      const text = document.createElement("span");
-      text.className = "history-item-text";
-      text.textContent = prompt;
-
-      const time = document.createElement("span");
-      time.className = "history-item-time";
-      time.textContent = formatRelativeTime(entry.timestamp);
-
-      textWrapper.appendChild(text);
-      textWrapper.appendChild(time);
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.className = "history-delete-btn";
-      deleteBtn.title = "Remove from recents";
-      deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.deleteFromHistory(prompt);
-      });
-
-      li.appendChild(textWrapper);
-      li.appendChild(deleteBtn);
-      historyList.appendChild(li);
-    });
-  }
-
-  async saveSettings() {
-    const stored = await chrome.storage.sync.get("settings");
-    const settings = stored.settings || {};
-    settings.enabledServices = this.enabledServiceIds;
-    settings.serviceOrder = this.allServices.map(s => s.id);
-    return chrome.storage.sync.set({ settings });
-  }
-
-  async updateShortcutHint() {
-    const hint = this.shadow.getElementById("shortcutHint");
-    const hintText = this.shadow.getElementById("shortcutText");
-    if (!hint || !hintText) return;
-
-    if (!this.showShortcutHint) {
-      hint.style.display = "none";
-      return;
-    }
-    hint.style.display = "flex";
-
-    // Read the real shortcut from Chrome (via background script)
-    try {
-      const response = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: "getShortcut" }, (res) => {
-          if (chrome.runtime.lastError) { resolve(null); return; }
-          resolve(res);
-        });
-      });
-      
-      if (response?.shortcut) {
-        hintText.textContent = response.shortcut.replace(/\+/g, " + ");
-      } else {
-        // Falls back to the manifest's suggested_key for _execute_action.
-        const isMac = navigator.platform.toUpperCase().includes("MAC");
-        hintText.textContent = isMac ? "⌃ ⇧ X" : "Ctrl + Shift + X";
-      }
-    } catch {
-      const isMac = navigator.platform.toUpperCase().includes("MAC");
-      hintText.textContent = isMac ? "⌃ ⇧ X" : "Ctrl + Shift + X";
-    }
-
-    // Make it clickable: open options and scroll to keyboard shortcut section
-    hint.style.cursor = "pointer";
-    hint.title = "Click to change shortcut";
-    // Avoid double listeners if show() is called multiple times
-    if (!hint.dataset.listenerSet) {
-      hint.addEventListener("click", async () => {
-        await chrome.storage.local.set({ highlightShortcut: true });
-        chrome.runtime.sendMessage({ action: "openOptions" });
-        this.hide();
-      });
-      hint.dataset.listenerSet = "true";
-    }
-  }
-
-  getHTML() {
-    return `
-      <div class="modal-container">
-        <header class="header">
-          <div class="logo">
-            <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" width="24" height="24" alt="Puchne"/>
-            <h1>Puchne</h1>
-          </div>
-          <button id="settingsBtn" class="icon-btn" title="Settings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          </button>
-        </header>
-
-        <div id="serviceChips" class="service-chips"></div>
-
-        <div class="input-area">
-          <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus></textarea>
-          <div class="input-footer" style="justify-content: flex-end;">
-            <button id="sendBtn" class="send-btn" disabled title="Send Multicast">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"/>
-                <polyline points="12 5 19 12 12 19"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div id="historySection" class="history-section hidden">
-          <p class="history-label">Recent prompts</p>
-          <ul id="historyList" class="history-list"></ul>
-        </div>
-
-        <footer class="footer">
-          <div class="shortcut-hint" id="shortcutHint">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shortcut-icon">
-              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
-              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
-            </svg>
-            <span class="shortcut-label">Shortcut:</span>
-            <span id="shortcutText"></span>
-          </div>
-        </footer>
-      </div>
-    `;
   }
 }
 
@@ -793,6 +349,10 @@ class PuchneOverlay {
  * @param {string} [params.buttonSel] — CSS selector for the send button
  * @param {number} [params.waitMs]    — Settle window after the input is found,
  *                                      capped at SETTLE_CAP_MS
+ *
+ * @returns {Promise<{ok: boolean, filled?: boolean, submitted?: boolean, error?: string}>}
+ *   `filled` and `submitted` are what the delivery status list reports back
+ *   to the user, so they distinguish "typed but never sent" from "sent".
  */
 async function fillAndSubmit({
   query,
@@ -857,31 +417,33 @@ async function fillAndSubmit({
   }
 
   // Step 5: Submit if auto-submit is enabled
-  if (autoSubmit) {
-    // If we have a button selector, wait for it to be visible/enabled
-    if (buttonSel && submitType !== "enter") {
-      let btn = await waitForElement(buttonSel, true);
-      let resolvedButtonSel = buttonSel;
-      if (!btn) {
-        console.warn(`[Puchne] Button selector failed ("${buttonSel}"), trying generic fallback`);
-        btn = await waitForElement(GENERIC_BUTTON_FALLBACKS, true);
-        resolvedButtonSel = GENERIC_BUTTON_FALLBACKS;
-      }
-      if (btn) {
-        await sleep(SUBMIT_DELAY);
-        await submit(element, submitType, resolvedButtonSel);
-      } else {
-        console.warn("[Puchne] Submit button NOT found after filling:", buttonSel);
-        // Fallback: try enter key anyway
-        await submit(element, "enter", null);
-      }
-    } else {
-      await sleep(SUBMIT_DELAY);
-      await submit(element, submitType, buttonSel);
-    }
+  if (!autoSubmit) {
+    return { ok: true, filled: true, submitted: false };
   }
 
-  return { ok: true };
+  // If we have a button selector, wait for it to be visible/enabled
+  if (buttonSel && submitType !== "enter") {
+    let btn = await waitForElement(buttonSel, true);
+    let resolvedButtonSel = buttonSel;
+    if (!btn) {
+      console.warn(`[Puchne] Button selector failed ("${buttonSel}"), trying generic fallback`);
+      btn = await waitForElement(GENERIC_BUTTON_FALLBACKS, true);
+      resolvedButtonSel = GENERIC_BUTTON_FALLBACKS;
+    }
+    if (btn) {
+      await sleep(SUBMIT_DELAY);
+      await submit(element, submitType, resolvedButtonSel);
+    } else {
+      console.warn("[Puchne] Submit button NOT found after filling:", buttonSel);
+      // Fallback: try enter key anyway
+      await submit(element, "enter", null);
+    }
+  } else {
+    await sleep(SUBMIT_DELAY);
+    await submit(element, submitType, buttonSel);
+  }
+
+  return { ok: true, filled: true, submitted: true };
 }
 
 
@@ -1192,26 +754,6 @@ function waitForElement(selector, checkEnabled = false) {
 
 
 /**
- * Returns a human-readable relative time string (e.g. "2h ago").
- * @param {number} timestamp - Unix timestamp in ms
- */
-function formatRelativeTime(timestamp) {
-  const diff = Date.now() - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleString(undefined, {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
-
-
-/**
  * Simple sleep utility.
  * @param {number} ms - Milliseconds to wait
  */
@@ -1219,165 +761,89 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ── Login Detection & Overlay ────────────────────────────────
+// ── Login Detection & Notice ─────────────────────────────────
 
-class LoginNoticeOverlay {
+// How long the login toast stays up before dismissing itself.
+const LOGIN_TOAST_MS = 12_000;
+
+/**
+ * A corner toast telling the user the current AI site needs a login.
+ *
+ * It is deliberately NOT a modal: the old implementation covered the whole
+ * page and set document.body.style.overflow = "hidden", then restored it to
+ * "" — wiping out whatever value the site had set for its own reasons. This
+ * one is an inline card that never touches the host's layout or scroll
+ * position, dismisses itself, and can be closed at any time.
+ */
+class PuchneLoginToast {
   constructor(service) {
     this.service = service;
-    this.container = document.createElement("div");
-    this.container.id = "prompt-blast-login-notice";
-    this.shadow = this.container.attachShadow({ mode: "open" });
+    this.dismissTimer = null;
     this.initPromise = this.init();
   }
 
   async init() {
+    // A zero-size fixed anchor: the toast inside it is itself position:fixed,
+    // so the host page's flow and scrolling are untouched.
+    this.container = document.createElement("div");
+    this.container.id = "puchne-login-notice";
+    this.container.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      z-index: 2147483646;
+    `;
+
+    this.shadow = this.container.attachShadow({ mode: "closed" });
+    await adoptPanelStyles(this.shadow);
+
     const stored = await chrome.storage.sync.get("settings");
-    const theme = (stored.settings || {}).theme || "light";
-    this.container.dataset.theme = theme;
+    this.container.dataset.theme = (stored.settings || {}).theme || "dark";
 
-    const style = document.createElement("style");
-    style.textContent = this.getStyles();
-    this.shadow.appendChild(style);
+    this.shadow.appendChild(
+      document.createRange().createContextualFragment(this.getHTML())
+    );
 
-    this.shadow.innerHTML += this.getHTML();
-    this.setupListeners();
-    document.body.appendChild(this.container);
-  }
-
-  setupListeners() {
-    this.shadow.getElementById("closeNotice")?.addEventListener("click", () => this.hide());
-    this.shadow.getElementById("loginAction")?.addEventListener("click", () => this.hide());
-    
-    // Close on backdrop click
-    this.shadow.querySelector(".overlay-backdrop")?.addEventListener("click", (e) => {
-      if (e.target === e.currentTarget) this.hide();
-    });
-  }
-
-  show() {
-    this.container.style.display = "block";
-    document.body.style.overflow = "hidden"; // Prevent scrolling behind modal
-  }
-
-  hide() {
-    this.container.style.display = "none";
-    document.body.style.overflow = "";
-    setTimeout(() => this.container.remove(), 500);
+    this.shadow.querySelector(".toast-close").addEventListener("click", () => this.hide());
+    // Pausing on hover keeps the message readable for anyone who wants to read it.
+    const card = this.shadow.querySelector(".login-toast");
+    card.addEventListener("mouseenter", () => clearTimeout(this.dismissTimer));
+    card.addEventListener("mouseleave", () => this.scheduleDismiss());
   }
 
   getHTML() {
     return `
-      <div class="overlay-backdrop">
-        <div class="notice-card">
-          <header class="header">
-            <div class="logo">
-              <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" width="24" height="24" alt="Puchne"/>
-              <h1>Puchne</h1>
-            </div>
-            <button id="closeNotice" class="close-btn" title="Dismiss">&times;</button>
-          </header>
-          
-          <div class="notice-content">
-            <div class="service-info">
-              <img src="${chrome.runtime.getURL(this.service.iconPath)}" class="service-icon" />
-              <span class="service-name">${this.service.name}</span>
-            </div>
-            <p>Login required to use Puchne on this tool. Please sign in to enable multi-service prompting next time.</p>
-          </div>
-
-          <div class="notice-footer">
-            <button id="loginAction" class="action-btn">Got it</button>
-          </div>
+      <div class="login-toast" role="status">
+        <img class="toast-icon" src="${chrome.runtime.getURL(this.service.iconPath)}" alt="" />
+        <div class="toast-body">
+          <p class="toast-title">Sign in to ${this.service.name}</p>
+          <p class="toast-text">Puchne can't send prompts here until you're signed in. Log in once and the next multicast will work.</p>
         </div>
+        <button class="toast-close" title="Dismiss" aria-label="Dismiss">&times;</button>
       </div>
     `;
   }
 
-  getStyles() {
-    return `
-      :host {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 2147483647;
-        font-family: system-ui, -apple-system, sans-serif;
-        display: none;
-      }
-      .overlay-backdrop {
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-      .notice-card {
-        width: 420px;
-        max-width: 95vw;
-        background: #ffffff;
-        color: #202124;
-        border: 1px solid #dadce0;
-        border-radius: 20px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-        padding: 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        animation: pb-modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        pointer-events: auto;
-      }
-      @keyframes pb-modal-in {
-        from { transform: scale(0.95) translateY(20px); opacity: 0; }
-        to { transform: scale(1) translateY(0); opacity: 1; }
-      }
-      :host([data-theme="dark"]) .notice-card {
-        background: #202124;
-        color: #e8eaed;
-        border-color: #3c4043;
-      }
-      .header { display: flex; align-items: center; justify-content: space-between; }
-      .logo { display: flex; align-items: center; gap: 10px; }
-      .logo h1 { font-size: 22px; font-weight: 700; margin: 0; color: inherit; }
-      
-      .notice-content { display: flex; flex-direction: column; gap: 12px; }
-      .service-info { display: flex; align-items: center; gap: 10px; opacity: 0.8; }
-      .service-icon { width: 20px; height: 20px; object-fit: contain; }
-      .service-name { font-weight: 600; font-size: 15px; }
-      
-      .close-btn { 
-        background: none; border: none; font-size: 28px; color: #80868b; 
-        cursor: pointer; padding: 4px; line-height: 0.5; transition: all 0.2s;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 50%;
-      }
-      .close-btn:hover { color: #202124; background: rgba(0,0,0,0.05); }
-      :host([data-theme="dark"]) .close-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  show() {
+    if (!document.body.contains(this.container)) {
+      document.body.appendChild(this.container);
+    }
+    this.scheduleDismiss();
+  }
 
-      .notice-content p { margin: 0; font-size: 16px; line-height: 1.6; color: #3c4043; }
-      :host([data-theme="dark"]) .notice-content p { color: #bdc1c6; }
+  scheduleDismiss() {
+    clearTimeout(this.dismissTimer);
+    this.dismissTimer = setTimeout(() => this.hide(), LOGIN_TOAST_MS);
+  }
 
-      .action-btn {
-        background: #fb923c;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 14px 28px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        width: 100%;
-        transition: all 0.2s;
-      }
-      .action-btn:hover { 
-        background: #f97316; 
-      }
-      .action-btn:active { transform: scale(0.98); }
-    `;
+  hide() {
+    clearTimeout(this.dismissTimer);
+    const card = this.shadow.querySelector(".login-toast");
+    if (!card) { this.container.remove(); return; }
+    card.classList.add("leaving");
+    card.addEventListener("animationend", () => this.container.remove(), { once: true });
   }
 }
 
@@ -1440,7 +906,7 @@ async function initLoginCheck() {
     }
 
     if (loginMarkerFound) {
-      const notice = new LoginNoticeOverlay(service);
+      const notice = new PuchneLoginToast(service);
       await notice.initPromise;
       notice.show();
     }
@@ -1454,24 +920,37 @@ async function initLoginCheck() {
 
 // ── Persistent Follow-Up Bar ─────────────────────────────────
 
+/**
+ * The persistent follow-up bar shown in every tab of an active session.
+ *
+ * Placement rules, learned the hard way:
+ *   - It defaults to the bottom-RIGHT corner. Bottom-centre sat directly on
+ *     top of ChatGPT's and Claude's own composers.
+ *   - A dragged position is persisted per origin, so it stops re-centring
+ *     itself on every navigation within the same site.
+ *   - It collapses to a small pill in place, so hiding it no longer means a
+ *     trip to the options page.
+ */
 class PuchneFollowUpBar {
   constructor(activeSessionTabs) {
     this.activeSessionTabs = activeSessionTabs;
     this.container = null;
     this.shadow = null;
+    this.origin = window.location.origin;
+    this.collapsed = false;
+    this.position = null; // { left, top } once the user has dragged it
     this.init();
   }
 
-  init() {
+  async init() {
     this.container = document.createElement("div");
     this.container.id = "puchne-follow-up-bar-root";
     this.container.style.cssText = `
       position: fixed;
+      right: 24px;
       bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      max-width: 90%;
+      width: 520px;
+      max-width: calc(100vw - 48px);
       z-index: 2147483647;
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
       pointer-events: none; /* Let clicks pass through outside the bar */
@@ -1479,26 +958,92 @@ class PuchneFollowUpBar {
 
     this.shadow = this.container.attachShadow({ mode: "closed" });
 
-    // Check theme preference
-    chrome.storage.sync.get("settings", (stored) => {
-      const theme = stored.settings?.theme || "dark";
-      
-      const style = document.createElement("style");
-      style.textContent = this.getStyles(theme);
-      this.shadow.appendChild(style);
+    const stored = await chrome.storage.sync.get("settings");
+    const theme = stored.settings?.theme || "dark";
 
-      this.shadow.innerHTML += this.getHTML();
-      this.setupListeners();
+    const style = document.createElement("style");
+    style.textContent = this.getStyles(theme);
+    this.shadow.appendChild(style);
+    this.shadow.appendChild(
+      document.createRange().createContextualFragment(this.getHTML())
+    );
 
-      this.attachToDOM();
+    this.setupListeners();
+    this.attachToDOM();
+    await this.restorePlacement();
+  }
+
+  // ── Placement persistence (per origin) ───────────────────────
+
+  /**
+   * Restores this origin's saved corner/offset and collapsed state. Anything
+   * off-screen (window resized since, or a different monitor) is clamped back
+   * into view rather than left unreachable.
+   */
+  async restorePlacement() {
+    let saved = null;
+    try {
+      const data = await chrome.storage.local.get(FOLLOWUP_POS_KEY);
+      saved = data[FOLLOWUP_POS_KEY]?.[this.origin] || null;
+    } catch {
+      // Storage unavailable — fall back to the default corner.
+    }
+
+    if (saved?.collapsed) this.setCollapsed(true, { persist: false });
+    if (saved && typeof saved.left === "number" && typeof saved.top === "number") {
+      this.position = { left: saved.left, top: saved.top };
+      this.applyPosition();
+    }
+
+    window.addEventListener("resize", () => {
+      if (this.position) this.applyPosition();
     });
+  }
+
+  applyPosition() {
+    if (!this.position) return;
+    const rect = this.container.getBoundingClientRect();
+    const maxLeft = Math.max(0, window.innerWidth - rect.width);
+    const maxTop = Math.max(0, window.innerHeight - rect.height);
+
+    const left = Math.min(Math.max(0, this.position.left), maxLeft);
+    const top = Math.min(Math.max(0, this.position.top), maxTop);
+
+    this.container.style.right = "auto";
+    this.container.style.bottom = "auto";
+    this.container.style.left = `${left}px`;
+    this.container.style.top = `${top}px`;
+  }
+
+  async savePlacement() {
+    try {
+      const data = await chrome.storage.local.get(FOLLOWUP_POS_KEY);
+      const all = data[FOLLOWUP_POS_KEY] || {};
+      all[this.origin] = { ...this.position, collapsed: this.collapsed };
+      await chrome.storage.local.set({ [FOLLOWUP_POS_KEY]: all });
+    } catch (err) {
+      console.warn("[Puchne] Could not save follow-up bar placement:", err);
+    }
+  }
+
+  // ── Collapse / expand ────────────────────────────────────────
+
+  setCollapsed(collapsed, { persist = true } = {}) {
+    this.collapsed = collapsed;
+    const bar = this.shadow.getElementById("followUpForm");
+    const pill = this.shadow.getElementById("followUpPill");
+    if (bar) bar.classList.toggle("hidden", collapsed);
+    if (pill) pill.classList.toggle("hidden", !collapsed);
+    // The pill is much narrower than the bar; re-clamp so it stays on screen.
+    if (this.position) requestAnimationFrame(() => this.applyPosition());
+    if (persist) this.savePlacement();
   }
 
   attachToDOM() {
     if (!document.body.contains(this.container)) {
       document.body.appendChild(this.container);
     }
-    
+
     // Set up a MutationObserver to ensure it stays in the DOM
     if (!this.observer) {
       this.observer = new MutationObserver(() => {
@@ -1516,9 +1061,12 @@ class PuchneFollowUpBar {
     const bg = isDark ? "#3c4043" : "#e8eaed";
     const border = isDark ? "#5f6368" : "#dadce0";
     const text = isDark ? "#e8eaed" : "#202124";
+    const muted = isDark ? "#9aa0a6" : "#80868b";
     const accent = "#fb923c";
-    
+
     return `
+      .hidden { display: none !important; }
+
       .follow-up-bar {
         display: flex;
         align-items: center;
@@ -1538,18 +1086,20 @@ class PuchneFollowUpBar {
         padding: 4px;
         margin-right: 8px;
         margin-left: -8px;
-        color: ${isDark ? "#9aa0a6" : "#80868b"};
+        color: ${muted};
         opacity: 0.5;
         transition: opacity 150ms ease;
         display: flex;
         align-items: center;
         justify-content: center;
+        touch-action: none; /* the pointer drag owns the gesture */
       }
       .drag-handle:hover {
         opacity: 1;
       }
-      .drag-handle:active {
+      .drag-handle.dragging {
         cursor: grabbing;
+        opacity: 1;
       }
       .logo {
         width: 20px;
@@ -1559,14 +1109,32 @@ class PuchneFollowUpBar {
       }
       .input-field {
         flex: 1;
+        min-width: 0;
         background: transparent;
         border: none;
         outline: none;
         color: ${text};
         font-size: 14px;
+        font-family: inherit;
       }
       .input-field::placeholder {
-        color: ${isDark ? "#9aa0a6" : "#80868b"};
+        color: ${muted};
+      }
+      .icon-btn {
+        background: none;
+        border: none;
+        color: ${muted};
+        cursor: pointer;
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: color 150ms ease, background 150ms ease;
+      }
+      .icon-btn:hover {
+        color: ${text};
+        background: rgba(128, 128, 128, 0.18);
       }
       .send-btn {
         background: none;
@@ -1585,6 +1153,33 @@ class PuchneFollowUpBar {
       .send-btn.sending {
         opacity: 0.5;
         cursor: not-allowed;
+      }
+
+      /* Collapsed state: a draggable pill that restores the bar on click. */
+      .follow-up-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: max-content;
+        margin-left: auto;
+        padding: 7px 12px;
+        background: ${bg};
+        border: 1px solid ${border};
+        border-radius: 999px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        color: ${text};
+        font-size: 13px;
+        cursor: pointer;
+        pointer-events: auto;
+        touch-action: none;
+      }
+      .follow-up-pill:hover {
+        border-color: ${accent};
+      }
+      .follow-up-pill img {
+        width: 18px;
+        height: 18px;
+        opacity: 0.9;
       }
     `;
   }
@@ -1610,7 +1205,18 @@ class PuchneFollowUpBar {
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
+        <button type="button" id="collapseBtn" class="icon-btn" title="Collapse to a pill">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+          </svg>
+        </button>
       </form>
+
+      <div id="followUpPill" class="follow-up-pill hidden" title="Open the Puchne follow-up bar">
+        <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" alt="" />
+        <span>Follow up</span>
+      </div>
     `;
   }
 
@@ -1618,55 +1224,27 @@ class PuchneFollowUpBar {
     const form = this.shadow.getElementById("followUpForm");
     const input = this.shadow.getElementById("followUpInput");
     const sendBtn = this.shadow.getElementById("sendBtn");
-    const dragHandle = this.shadow.getElementById("dragHandle");
+    const collapseBtn = this.shadow.getElementById("collapseBtn");
+    const pill = this.shadow.getElementById("followUpPill");
 
-    // Drag functionality
-    let isDragging = false;
-    let offsetX, offsetY;
+    collapseBtn.addEventListener("click", () => this.setCollapsed(true));
 
-    const onMouseMove = (e) => {
-      if (!isDragging) return;
-      this.container.style.left = `${e.clientX - offsetX}px`;
-      this.container.style.top = `${e.clientY - offsetY}px`;
-    };
-
-    const onMouseUp = () => {
-      if (isDragging) {
-        isDragging = false;
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-      }
-    };
-
-    dragHandle.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      isDragging = true;
-      
-      const rect = this.container.getBoundingClientRect();
-      
-      this.container.style.bottom = "auto";
-      this.container.style.right = "auto";
-      this.container.style.transform = "none";
-      this.container.style.left = `${rect.left}px`;
-      this.container.style.top = `${rect.top}px`;
-      
-      offsetX = e.clientX - rect.left;
-      offsetY = e.clientY - rect.top;
-
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+    // The pill is both a restore button and a drag handle, so a click only
+    // expands when the pointer didn't actually travel.
+    let pillDragged = false;
+    pill.addEventListener("click", () => {
+      if (pillDragged) { pillDragged = false; return; }
+      this.setCollapsed(false);
+      input.focus();
     });
 
-    // Stop propagation so host sites don't hijack enter key
-    input.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-    });
-    input.addEventListener("keyup", (e) => {
-      e.stopPropagation();
-    });
-    input.addEventListener("keypress", (e) => {
-      e.stopPropagation();
-    });
+    this.bindDrag(this.shadow.getElementById("dragHandle"));
+    this.bindDrag(pill, () => { pillDragged = true; });
+
+    // Stop propagation so host sites don't hijack the enter key
+    input.addEventListener("keydown", (e) => e.stopPropagation());
+    input.addEventListener("keyup", (e) => e.stopPropagation());
+    input.addEventListener("keypress", (e) => e.stopPropagation());
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -1680,6 +1258,7 @@ class PuchneFollowUpBar {
       chrome.runtime.sendMessage(
         { action: "followUpMulticast", query: query, tabs: this.activeSessionTabs },
         () => {
+          void chrome.runtime.lastError;
           setTimeout(() => {
             sendBtn.classList.remove("sending");
             sendBtn.disabled = false;
@@ -1689,6 +1268,57 @@ class PuchneFollowUpBar {
         }
       );
     });
+  }
+
+  /**
+   * Pointer-Events drag with capture: works with mouse, touch and pen, and
+   * survives the pointer leaving the window (which used to strand the bar
+   * mid-drag with the mousemove/mouseup pair).
+   * @param {HTMLElement} handle
+   * @param {Function} [onMoved] — called once the drag actually travels
+   */
+  bindDrag(handle, onMoved) {
+    let pointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+    let moved = false;
+
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      e.preventDefault();
+
+      pointerId = e.pointerId;
+      moved = false;
+      handle.setPointerCapture(pointerId);
+      handle.classList.add("dragging");
+
+      const rect = this.container.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      this.position = { left: rect.left, top: rect.top };
+      this.applyPosition();
+    });
+
+    handle.addEventListener("pointermove", (e) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      moved = true;
+      this.position = { left: e.clientX - offsetX, top: e.clientY - offsetY };
+      this.applyPosition();
+    });
+
+    const endDrag = (e) => {
+      if (pointerId === null || e.pointerId !== pointerId) return;
+      if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+      handle.classList.remove("dragging");
+      pointerId = null;
+      if (moved) {
+        onMoved?.();
+        this.savePlacement();
+      }
+    };
+
+    handle.addEventListener("pointerup", endDrag);
+    handle.addEventListener("pointercancel", endDrag);
   }
 }
 

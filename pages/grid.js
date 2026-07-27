@@ -10,6 +10,9 @@
  *  Features:
  *    - 8-direction resize handles on every inner edge/corner
  *    - Drag-to-reposition by grabbing the title bar
+ *    - Close a cell, and re-open it again from the Closed menu
+ *    - Reset layout, double-click a header to maximize one cell
+ *    - Alt + 1..9 to jump between cells
  *    - Window resize scales proportionally (fractions stay fixed)
  *
  *  Frame-blocking headers are stripped by declarativeNetRequest
@@ -26,9 +29,17 @@ let cols = 0;
 let rows = 0;
 let colFracs  = [];   // column width fractions, sum to 1
 let rowFracs  = [];   // row height fractions, sum to 1
-let cellMap   = [];   // [{ el, row, col, colSpan, service, index }]
+let cellMap   = [];   // [{ el, iframe, row, col, colSpan, service, index }]
 
 const MIN_FRAC = 0.10; // minimum fraction for any track (10%)
+
+/* ── Session State ─────────────────────────────────────────── */
+let closedServices = [];  // services the user closed, in close order
+let loadedTargets  = [];  // services whose iframe actually embedded
+let maximizedCell  = null;
+let selfTabId      = null;
+let lastQuery      = "";
+let sendConfig     = { autoSubmit: true, cookieConsent: "accept", delayMs: undefined };
 
 /* ── Hover-to-Expand State ─────────────────────────────────── */
 // Expanding relayouts every iframe, so a dwell is required by default:
@@ -64,6 +75,99 @@ function triggerTransition() {
 function placeCellInGrid(c) {
   c.el.style.gridColumn = `${c.col + 1} / span ${c.colSpan}`;
   c.el.style.gridRow    = `${c.row + 1}`;
+}
+
+/**
+ * Grid dimensions for `count` cells: at most three logical columns, and a
+ * six-column track when the last row holds two of three so those two can
+ * each span three and stay centred.
+ */
+function computeLayout(count) {
+  const logicalCols = Math.min(count, 3);
+  const rowCount = Math.ceil(count / logicalCols);
+  const lastRowCount = count - logicalCols * (rowCount - 1);
+  const colCount = (logicalCols === 3 && lastRowCount === 2) ? 6 : logicalCols;
+  return { logicalCols, rows: rowCount, cols: colCount, lastRowCount };
+}
+
+/**
+ * Where the cell at `idx` sits under a given layout. Cells in a short last
+ * row are stretched to fill the width instead of leaving a hole.
+ */
+function placementFor(idx, layout) {
+  const { logicalCols, rows: rowCount, cols: colCount, lastRowCount } = layout;
+  const row = Math.floor(idx / logicalCols);
+  const colIdx = idx % logicalCols;
+  const isLastRow = row === rowCount - 1 && lastRowCount < logicalCols;
+
+  if (colCount === 6 && logicalCols === 3) {
+    return isLastRow
+      ? { row, col: colIdx * 3, colSpan: 3 }
+      : { row, col: colIdx * 2, colSpan: 2 };
+  }
+
+  if (!isLastRow) return { row, col: colIdx, colSpan: 1 };
+
+  // Distribute the short last row evenly across all columns
+  const baseSpan = Math.floor(colCount / lastRowCount);
+  const extra    = colCount % lastRowCount;
+  const lastIdx  = idx - logicalCols * (rowCount - 1);
+  let colStart = 0;
+  for (let j = 0; j < lastIdx; j++) {
+    colStart += baseSpan + (j < extra ? 1 : 0);
+  }
+  return { row, col: colStart, colSpan: baseSpan + (lastIdx < extra ? 1 : 0) };
+}
+
+/**
+ * Re-places every cell for the current cellMap length. The single place
+ * that knows how cells map onto tracks — initial render, close, restore
+ * and reset all go through here.
+ *
+ * @param {{resetFracs?: boolean, animate?: boolean}} [opts]
+ */
+function applyLayout({ resetFracs = true, animate = false } = {}) {
+  if (cellMap.length === 0) {
+    showEmpty("No services to display. Enable some AI services in Settings.");
+    updateClosedMenu();
+    return;
+  }
+
+  restoreMaximize();
+  // A previous empty state may still be occupying the container.
+  gridContainer.querySelector(".grid-empty")?.remove();
+
+  const layout = computeLayout(cellMap.length);
+  cols = layout.cols;
+  rows = layout.rows;
+
+  if (resetFracs) {
+    colFracs = Array(cols).fill(1 / cols);
+    rowFracs = Array(rows).fill(1 / rows);
+  }
+
+  if (animate) triggerTransition();
+  updateGridTemplate();
+
+  cellMap.forEach((c, idx) => {
+    const p = placementFor(idx, layout);
+    c.row = p.row;
+    c.col = p.col;
+    c.colSpan = p.colSpan;
+    c.index = idx;
+    placeCellInGrid(c);
+    refreshHandles(c);
+  });
+
+  saveLayout();
+  updateClosedMenu();
+}
+
+function saveLayout() {
+  const cellOrder = [...cellMap]
+    .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
+    .map(c => c.service.id);
+  chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
 }
 
 /* ── Resize Handles ────────────────────────────────────────── */
@@ -123,13 +227,8 @@ function highlightBoundary(cellObj, dir, on) {
     }
   }
 
-  // Also highlight the SE dot at the intersection if it exists
+  // Also highlight this cell's SE dot at the intersection if it exists
   if (dir === "s" || dir === "e") {
-    const seCell = cellMap.find(c =>
-      c.row === cellObj.row && c.col + c.colSpan === (dir === "s" ? cellObj.col + cellObj.colSpan : cellObj.col + cellObj.colSpan)
-    );
-    // For "s": find SE handle on the cell that shares both this row and has an east boundary
-    // For "e": find SE handle on this cell's row
     const seHandle = cellObj.el.querySelector(".rh-se");
     if (seHandle) seHandle.classList.toggle(cls, on);
   }
@@ -144,6 +243,12 @@ function getActiveHandles(cellObj) {
   if (!atRight)               handles.push("e");
   if (!atBottom && !atRight)  handles.push("se");
   return handles;
+}
+
+/** Remove old handles and re-create based on new grid position. */
+function refreshHandles(cellObj) {
+  cellObj.el.querySelectorAll(".resize-handle").forEach(h => h.remove());
+  addResizeHandles(cellObj.el, cellObj);
 }
 
 /* ── Iframe Overlay ────────────────────────────────────────── */
@@ -206,10 +311,7 @@ function initResize(cellObj, dir, startX, startY) {
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
     gridContainer.classList.remove("no-transition");
-    const cellOrder = [...cellMap]
-      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
-      .map(c => c.service.id);
-    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
+    saveLayout();
   }
 
   document.addEventListener("mousemove", onMove);
@@ -472,35 +574,19 @@ function initDrag(cellObj, startX, startY) {
       }, 250);
     }
 
+    // Keep cellMap ordered by on-screen position so index-based features
+    // (Alt+1..9, layout recomputes) stay in sync with what the user sees.
+    cellMap.sort((a, b) => (a.row * cols + a.col) - (b.row * cols + b.col));
+    cellMap.forEach((c, idx) => { c.index = idx; });
+
     // Update resize handle visibility for all cells
     cellMap.forEach(c => refreshHandles(c));
 
-    // Persist new cell order
-    const cellOrder = [...cellMap]
-      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
-      .map(c => c.service.id);
-    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
+    saveLayout();
   }
 
   document.addEventListener("mousemove", onMove);
   document.addEventListener("mouseup", onUp);
-}
-
-/** Find a cellMap entry whose DOM element contains the given screen point. */
-function cellUnderPoint(px, py, exclude) {
-  for (const c of cellMap) {
-    if (c === exclude) continue;
-    const r = c.el.getBoundingClientRect();
-    if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom) return c;
-  }
-  return null;
-}
-
-/** Refresh which resize handles are enabled/disabled for a cell. */
-/** Remove old handles and re-create based on new grid position. */
-function refreshHandles(cellObj) {
-  cellObj.el.querySelectorAll(".resize-handle").forEach(h => h.remove());
-  addResizeHandles(cellObj.el, cellObj);
 }
 
 /* ── Hover-to-Expand ────────────────────────────────────────── */
@@ -536,7 +622,7 @@ function computeExpandedFracs(fracs, startIdx, spanLen, expandTarget) {
 }
 
 function expandCell(cellObj) {
-  if (isClosing) return;
+  if (isClosing || maximizedCell) return;
   if (expandState) return;
   triggerTransition();
   expandState = {
@@ -558,10 +644,225 @@ function collapseCell() {
   updateGridTemplate();
 }
 
-/* ── Close Cell & Re-layout ────────────────────────────────── */
+/* ── Maximize a single cell ────────────────────────────────── */
+
+/**
+ * Double-clicking a header blows one cell up to the full grid; doing it
+ * again (or pressing Escape) puts everything back. The other cells are
+ * only hidden, never unmounted, so their conversations survive.
+ */
+function toggleMaximize(cellObj) {
+  if (maximizedCell === cellObj) {
+    restoreMaximize();
+    return;
+  }
+  collapseCell();
+  maximizedCell = cellObj;
+  gridContainer.classList.add("has-maximized");
+  cellMap.forEach(c => c.el.classList.toggle("maximized", c === cellObj));
+}
+
+function restoreMaximize() {
+  if (!maximizedCell) return;
+  maximizedCell = null;
+  gridContainer.classList.remove("has-maximized");
+  cellMap.forEach(c => c.el.classList.remove("maximized"));
+}
+
+/* ── Keyboard cell switching ───────────────────────────────── */
+
+/**
+ * Focuses the nth cell: scrolls it into view, flashes a ring, and hands
+ * keyboard focus to its iframe. If a cell is maximized, switches which one.
+ * @param {number} n — 1-based cell number
+ */
+function focusCellByNumber(n) {
+  const cellObj = cellMap[n - 1];
+  if (!cellObj) return;
+
+  if (maximizedCell) toggleMaximize(cellObj);
+
+  cellObj.el.scrollIntoView({ block: "nearest", inline: "nearest" });
+  cellObj.el.classList.remove("cell-flash");
+  void cellObj.el.offsetWidth; // restart the animation if it is already running
+  cellObj.el.classList.add("cell-flash");
+  cellObj.el.addEventListener("animationend", () => {
+    cellObj.el.classList.remove("cell-flash");
+  }, { once: true });
+
+  cellObj.iframe?.focus();
+}
+
+/**
+ * Alt+1..9 jumps between cells. Ctrl is deliberately not bound: Chrome
+ * reserves Ctrl+1..9 for tab switching and consumes it before a page can
+ * see it, so binding it would only ever be dead code.
+ *
+ * This fires only while focus is in the grid's own chrome — keystrokes
+ * inside a cross-origin iframe never reach this document.
+ */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && maximizedCell) {
+    restoreMaximize();
+    return;
+  }
+
+  if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (e.key < "1" || e.key > "9") return;
+
+  const n = Number(e.key);
+  if (n > cellMap.length) return;
+  e.preventDefault();
+  focusCellByNumber(n);
+});
+
+/* ── Cell Construction ─────────────────────────────────────── */
+
+/**
+ * Builds one grid cell (header, loading state, iframe) and wires its
+ * interactions. Used by the first render and by re-opening a closed cell.
+ *
+ * @param {Object} service
+ * @param {{delay?: number, isDark: boolean}} opts
+ * @returns {{cellObj: object, loadPromise: Promise<{service: object, ok: boolean}>}}
+ */
+function createCell(service, { delay = 0, isDark }) {
+  const cell = document.createElement("div");
+  cell.className = "grid-cell";
+
+  const iconSrc = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+
+  // Header bar (drag handle)
+  const header = document.createElement("div");
+  header.className = "cell-header";
+  header.title = "Drag to move · double-click to maximize";
+  header.innerHTML = `
+    <div class="cell-header-left">
+      <img src="../${iconSrc}" alt="${service.name}">
+      <span>${service.name}</span>
+    </div>
+    <div class="cell-header-right">
+      <button class="cell-icon-btn cell-max-btn" title="Maximize / restore this cell">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+        </svg>
+      </button>
+      <button class="cell-icon-btn cell-close-btn" title="Close window">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  // Loading indicator
+  const loading = document.createElement("div");
+  loading.className = "cell-loading";
+  loading.innerHTML = `<div class="spinner"></div> Loading ${service.name}…`;
+
+  // Iframe
+  const iframe = document.createElement("iframe");
+  iframe.className = "cell-iframe";
+  iframe.title = service.name;
+  iframe.style.display = "none";
+
+  cell.appendChild(header);
+  cell.appendChild(loading);
+  cell.appendChild(iframe);
+
+  const cellObj = { el: cell, iframe, row: 0, col: 0, colSpan: 1, service, index: 0 };
+
+  header.querySelector(".cell-close-btn").addEventListener("click", () => closeCell(cellObj));
+  header.querySelector(".cell-max-btn").addEventListener("click", () => toggleMaximize(cellObj));
+  header.addEventListener("dblclick", (e) => {
+    if (e.target.closest("button")) return;
+    toggleMaximize(cellObj);
+  });
+
+  // ── Resize binding ──
+  cell.addEventListener("mousedown", (e) => {
+    const handle = e.target.closest(".resize-handle");
+    if (!handle || handle.classList.contains("rh-disabled")) return;
+    e.preventDefault();
+    initResize(cellObj, handle.dataset.dir, e.clientX, e.clientY);
+  });
+
+  // ── Drag binding (header only, excluding buttons) ──
+  header.addEventListener("mousedown", (e) => {
+    if (e.target.closest("button")) return;
+    if (maximizedCell) return; // nothing to rearrange while one cell owns the grid
+    e.preventDefault();
+    initDrag(cellObj, e.clientX, e.clientY);
+  });
+
+  // ── Hover-to-expand ──
+  let hoverTimer = null;
+  cell.addEventListener("mouseenter", () => {
+    if (isClosing || maximizedCell) return;
+    if (!hoverExpand || cellMap.length < hoverExpandMin) return;
+    if (expandState) return;
+    hoverTimer = setTimeout(() => {
+      hoverTimer = null;
+      expandCell(cellObj);
+    }, hoverExpandDelay);
+  });
+
+  cell.addEventListener("mouseleave", () => {
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    if (expandState && expandState.cellObj === cellObj) {
+      collapseCell();
+    }
+  });
+
+  // Booting every SPA in the same instant is the jankiest moment in the
+  // grid, so navigations are staggered. The load timeout starts when the
+  // navigation does, not when the cell is built.
+  const loadPromise = new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = null;
+
+    iframe.addEventListener("load", () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      loading.remove();
+      iframe.style.display = "block";
+      resolve({ service, ok: true });
+    });
+
+    setTimeout(() => {
+      if (settled) return;
+      // Cell was closed before its turn to load — nothing to navigate.
+      if (!cell.isConnected) {
+        settled = true;
+        resolve({ service, ok: false });
+        return;
+      }
+      iframe.src = service.url;
+      timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        loading.remove();
+        iframe.remove();
+        showCellError(cell, service);
+        resolve({ service, ok: false });
+      }, 12000);
+    }, delay);
+  });
+
+  return { cellObj, loadPromise };
+}
+
+/* ── Close & Re-open Cells ─────────────────────────────────── */
 
 function closeCell(cellObj) {
   isClosing = true;
+  restoreMaximize();
   if (expandState) {
     collapseCell();
   }
@@ -572,84 +873,109 @@ function closeCell(cellObj) {
   cellObj.el.style.transform = "scale(0.95)";
 
   setTimeout(() => {
-    // Remove element from DOM
     cellObj.el.remove();
-
-    // Remove from cellMap
     cellMap = cellMap.filter(c => c !== cellObj);
+    loadedTargets = loadedTargets.filter(s => s.id !== cellObj.service.id);
 
-    const count = cellMap.length;
-    if (count === 0) {
-      showEmpty("No services to display. Enable some AI services in Settings.");
-      return;
+    // Remembered so it can be re-opened from the Closed menu.
+    if (!closedServices.some(s => s.id === cellObj.service.id)) {
+      closedServices.push(cellObj.service);
     }
 
-    // Compute new grid dimensions
-    const logicalCols = Math.min(count, 3);
-    rows = Math.ceil(count / logicalCols);
-
-    const lastRowCount = count - logicalCols * (rows - 1);
-
-    if (logicalCols === 3 && lastRowCount === 2) {
-      cols = 6;
-    } else {
-      cols = logicalCols;
-    }
-
-    // Reset to equal fractions for the new dimensions
-    colFracs = Array(cols).fill(1 / cols);
-    rowFracs = Array(rows).fill(1 / rows);
-
-    triggerTransition();
-    // Update layout and placement of remaining cells
-    updateGridTemplate();
-
-    cellMap.forEach((c, idx) => {
-      const row = Math.floor(idx / logicalCols);
-      const colIdx = idx % logicalCols;
-      const isLastRow = row === rows - 1 && lastRowCount < logicalCols;
-
-      let colStart, colSpan;
-      if (cols === 6 && logicalCols === 3) {
-        if (isLastRow) {
-          colStart = colIdx * 3;
-          colSpan = 3;
-        } else {
-          colStart = colIdx * 2;
-          colSpan = 2;
-        }
-      } else {
-        if (isLastRow) {
-          const baseSpan = Math.floor(cols / lastRowCount);
-          const extra    = cols % lastRowCount;
-          const lastIdx  = idx - logicalCols * (rows - 1);
-          colStart = 0;
-          for (let j = 0; j < lastIdx; j++) {
-            colStart += baseSpan + (j < extra ? 1 : 0);
-          }
-          colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
-        } else {
-          colStart = colIdx;
-          colSpan  = 1;
-        }
-      }
-
-      c.row = row;
-      c.col = colStart;
-      c.colSpan = colSpan;
-      c.index = idx;
-
-      placeCellInGrid(c);
-      refreshHandles(c);
-    });
-
-    // Save the updated layout
-    const cellOrder = [...cellMap]
-      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
-      .map(c => c.service.id);
-    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
+    applyLayout({ animate: true });
     isClosing = false;
   }, 200);
+}
+
+/**
+ * Builds a cell for a previously closed service and attaches it. The caller
+ * runs applyLayout once afterwards, so restoring several at a time costs one
+ * relayout rather than one per cell.
+ * @returns {Promise<{service: object, ok: boolean}>} the iframe load result
+ */
+function mountService(service, delay = 0) {
+  closedServices = closedServices.filter(s => s.id !== service.id);
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  const { cellObj, loadPromise } = createCell(service, { delay, isDark });
+  cellMap.push(cellObj);
+  gridContainer.appendChild(cellObj.el);
+  return loadPromise;
+}
+
+/**
+ * Once a restored cell has loaded, sends it the prompt the other cells got,
+ * so re-opening a cell brings back its context instead of a blank chat.
+ */
+async function injectRestored(loadPromise) {
+  const result = await loadPromise;
+  if (!result.ok || !lastQuery) return;
+
+  loadedTargets.push(result.service);
+  chrome.runtime.sendMessage({
+    action: "injectGridQueries",
+    tabId: selfTabId,
+    targets: [result.service],
+    query: lastQuery,
+    autoSubmit: sendConfig.autoSubmit,
+    cookieConsent: sendConfig.cookieConsent,
+    delayMs: sendConfig.delayMs,
+  }, () => void chrome.runtime.lastError);
+}
+
+/** Re-opens one closed cell from the Closed menu. */
+async function reopenService(service) {
+  const loadPromise = mountService(service);
+  applyLayout({ animate: true });
+  await injectRestored(loadPromise);
+}
+
+/**
+ * Resets the grid to an even layout, restoring every closed cell first.
+ * The cells are mounted and laid out immediately — the reset is visible at
+ * once rather than after every restored iframe has finished loading.
+ */
+async function resetLayout() {
+  restoreMaximize();
+  collapseCell();
+
+  const loadPromises = [...closedServices].map((service, i) =>
+    mountService(service, i * GRID_STAGGER_MS)
+  );
+  applyLayout({ resetFracs: true, animate: true });
+
+  await Promise.all(loadPromises.map(injectRestored));
+}
+
+/* ── Closed-cells menu ─────────────────────────────────────── */
+
+function updateClosedMenu() {
+  const wrap  = document.getElementById("closedMenu");
+  const count = document.getElementById("closedCount");
+  const list  = document.getElementById("closedList");
+  if (!wrap || !count || !list) return;
+
+  wrap.hidden = closedServices.length === 0;
+  if (closedServices.length === 0) {
+    wrap.classList.remove("open");
+    return;
+  }
+
+  count.textContent = String(closedServices.length);
+  list.innerHTML = "";
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  closedServices.forEach((service) => {
+    const item = document.createElement("button");
+    item.className = "grid-menu-item";
+    const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+    item.innerHTML = `<img src="../${icon}" alt=""><span>${service.name}</span>`;
+    item.addEventListener("click", () => {
+      wrap.classList.remove("open");
+      reopenService(service);
+    });
+    list.appendChild(item);
+  });
 }
 
 /**
@@ -695,6 +1021,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const selfTab  = await chrome.tabs.getCurrent();
+  selfTabId = selfTab?.id ?? null;
   const gridData = selfTab ? await readGridData(selfTab.id) : null;
 
   if (!gridData || !gridData.targets || gridData.targets.length === 0) {
@@ -702,30 +1029,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const query         = gridData.query || "";
-  let   targets       = gridData.targets;
-  const autoSubmit    = gridData.autoSubmit;
-  const cookieConsent = gridData.cookieConsent || "accept";
-  const delayMs       = gridData.delayMs;
+  lastQuery  = gridData.query || "";
+  sendConfig = {
+    autoSubmit: gridData.autoSubmit,
+    cookieConsent: gridData.cookieConsent || "accept",
+    delayMs: gridData.delayMs,
+  };
+  let targets = gridData.targets;
 
-  // Initialize header toggle switch state and sync listeners
-  const toggleEl = document.getElementById("hoverExpandToggle");
-  if (toggleEl) {
-    toggleEl.checked = hoverExpand;
-    toggleEl.addEventListener("change", async () => {
-      const isEnabled = toggleEl.checked;
-      hoverExpand = isEnabled;
-      if (!isEnabled) {
-        collapseCell();
-      }
-
-      // Save setting to sync storage
-      const stored = await chrome.storage.sync.get("settings");
-      const settings = stored.settings || {};
-      settings.hoverExpand = isEnabled;
-      await chrome.storage.sync.set({ settings });
-    });
-  }
+  initHeaderControls();
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync" && changes.settings) {
@@ -760,33 +1072,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-
-
-  // Compute grid dimensions
-  const logicalCols = Math.min(targets.length, 3);
-  rows = Math.ceil(targets.length / logicalCols);
-
-  const lastRowCount = targets.length - logicalCols * (rows - 1);
-
-  if (logicalCols === 3 && lastRowCount === 2) {
-    cols = 6;
-  } else {
-    cols = logicalCols;
-  }
-
-  // Initialize equal fractions
+  // Restore a saved layout when it still fits this many services
+  const layout = computeLayout(targets.length);
+  cols = layout.cols;
+  rows = layout.rows;
   colFracs = Array(cols).fill(1 / cols);
   rowFracs = Array(rows).fill(1 / rows);
 
-  // Restore saved layout if grid dimensions match
   const savedLayout = await chrome.storage.local.get("gridLayout");
   const saved = savedLayout.gridLayout;
+  let keepFracs = false;
   if (saved && saved.cols === cols && saved.rows === rows &&
       Array.isArray(saved.colFracs) && saved.colFracs.length === cols &&
       Array.isArray(saved.rowFracs) && saved.rowFracs.length === rows) {
     colFracs = saved.colFracs;
     rowFracs = saved.rowFracs;
-    // Restore cell order if saved and valid
+    keepFracs = true;
     if (Array.isArray(saved.cellOrder) && saved.cellOrder.length === targets.length) {
       const byId = Object.fromEntries(targets.map(t => [t.id, t]));
       const reordered = saved.cellOrder.map(id => byId[id]).filter(Boolean);
@@ -794,181 +1095,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  updateGridTemplate();
-
   const isDark = theme === "dark";
   const iframeLoadPromises = [];
 
   targets.forEach((service, i) => {
-    const row = Math.floor(i / logicalCols);
-    const colIdx = i % logicalCols;
-    const isLastRow = row === rows - 1 && lastRowCount < logicalCols;
-
-    let colStart, colSpan;
-    if (cols === 6 && logicalCols === 3) {
-      if (isLastRow) {
-        colStart = colIdx * 3;
-        colSpan = 3;
-      } else {
-        colStart = colIdx * 2;
-        colSpan = 2;
-      }
-    } else {
-      if (isLastRow) {
-        // Distribute last-row cells evenly across all columns
-        const baseSpan = Math.floor(cols / lastRowCount);
-        const extra    = cols % lastRowCount;
-        const lastIdx  = i - logicalCols * (rows - 1);   // index within last row
-        // Compute start by summing previous last-row cells' spans
-        colStart = 0;
-        for (let j = 0; j < lastIdx; j++) {
-          colStart += baseSpan + (j < extra ? 1 : 0);
-        }
-        colSpan = baseSpan + (lastIdx < extra ? 1 : 0);
-      } else {
-        colStart = colIdx;
-        colSpan  = 1;
-      }
-    }
-
-    const cell = document.createElement("div");
-    cell.className = "grid-cell";
-
-    const iconSrc = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
-
-    // Header bar (drag handle)
-    const header = document.createElement("div");
-    header.className = "cell-header";
-    header.innerHTML = `
-      <div class="cell-header-left">
-        <img src="../${iconSrc}" alt="${service.name}">
-        <span>${service.name}</span>
-      </div>
-      <div class="cell-header-right">
-        <button class="cell-close-btn" title="Close window">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-    `;
-    header.querySelector(".cell-close-btn").addEventListener("click", () => {
-      closeCell(cellObj);
-    });
-
-    // Loading indicator
-    const loading = document.createElement("div");
-    loading.className = "cell-loading";
-    loading.innerHTML = `<div class="spinner"></div> Loading ${service.name}\u2026`;
-
-    // Iframe
-    const iframe = document.createElement("iframe");
-    iframe.className = "cell-iframe";
-    iframe.style.display = "none";
-
-    // Booting every SPA in the same instant is the jankiest moment in the
-    // grid, so navigations are staggered. The load timeout starts when the
-    // navigation does, not when the cell is built.
-    const loadPromise = new Promise((resolve) => {
-      let settled = false;
-      let timeoutId = null;
-
-      iframe.addEventListener("load", () => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        loading.remove();
-        iframe.style.display = "block";
-        resolve({ service, ok: true });
-      });
-
-      setTimeout(() => {
-        if (settled) return;
-        // Cell was closed before its turn to load — nothing to navigate.
-        if (!cell.isConnected) {
-          settled = true;
-          resolve({ service, ok: false });
-          return;
-        }
-        iframe.src = service.url;
-        timeoutId = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          loading.remove();
-          iframe.remove();
-          showCellError(cell, service);
-          resolve({ service, ok: false });
-        }, 12000);
-      }, i * GRID_STAGGER_MS);
-    });
-    iframeLoadPromises.push(loadPromise);
-
-    cell.appendChild(header);
-    cell.appendChild(loading);
-    cell.appendChild(iframe);
-
-    const cellObj = { el: cell, row, col: colStart, colSpan, service, index: i };
+    const { cellObj, loadPromise } = createCell(service, { delay: i * GRID_STAGGER_MS, isDark });
     cellMap.push(cellObj);
-
-    // Resize handles
-    addResizeHandles(cell, cellObj);
-    placeCellInGrid(cellObj);
-    gridContainer.appendChild(cell);
-
-    // ── Resize binding ──
-    cell.addEventListener("mousedown", (e) => {
-      const handle = e.target.closest(".resize-handle");
-      if (!handle || handle.classList.contains("rh-disabled")) return;
-      e.preventDefault();
-      initResize(cellObj, handle.dataset.dir, e.clientX, e.clientY);
-    });
-
-    // ── Drag binding (header only, excluding buttons) ──
-    header.addEventListener("mousedown", (e) => {
-      if (e.target.closest("button")) return;
-      e.preventDefault();
-      initDrag(cellObj, e.clientX, e.clientY);
-    });
-
-    // ── Hover-to-expand ──
-    if (targets.length >= 2) {
-      let hoverTimer = null;
-
-      cell.addEventListener("mouseenter", () => {
-        if (isClosing) return;
-        if (!hoverExpand || cellMap.length < hoverExpandMin) return;
-        if (expandState) return;
-        hoverTimer = setTimeout(() => {
-          hoverTimer = null;
-          expandCell(cellObj);
-        }, hoverExpandDelay);
-      });
-
-      cell.addEventListener("mouseleave", () => {
-        if (hoverTimer) {
-          clearTimeout(hoverTimer);
-          hoverTimer = null;
-        }
-        if (expandState && expandState.cellObj === cellObj) {
-          collapseCell();
-        }
-      });
-    }
+    gridContainer.appendChild(cellObj.el);
+    iframeLoadPromises.push(loadPromise);
   });
 
+  applyLayout({ resetFracs: !keepFracs });
+
   // Wait for all iframes
-  const loadResults  = await Promise.all(iframeLoadPromises);
-  const loadedTargets = loadResults.filter(r => r.ok).map(r => r.service);
+  const loadResults = await Promise.all(iframeLoadPromises);
+  loadedTargets = loadResults.filter(r => r.ok).map(r => r.service);
+  const failedIds = loadResults.filter(r => !r.ok).map(r => r.service.id);
 
   if (loadedTargets.length === 0) {
     console.warn("[Puchne Grid] No iframes loaded successfully.");
+    // Still report the failures so the delivery status isn't stuck on pending.
+    chrome.runtime.sendMessage(
+      { action: "injectGridQueries", tabId: selfTabId, targets: [], query: lastQuery, failedIds },
+      () => void chrome.runtime.lastError
+    );
     return;
   }
 
   console.log(`[Puchne Grid] Requesting injection for ${loadedTargets.length} frames...`);
   chrome.runtime.sendMessage(
-    { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query, autoSubmit, cookieConsent, delayMs },
+    {
+      action: "injectGridQueries",
+      tabId: selfTabId,
+      targets: loadedTargets,
+      query: lastQuery,
+      autoSubmit: sendConfig.autoSubmit,
+      cookieConsent: sendConfig.cookieConsent,
+      delayMs: sendConfig.delayMs,
+      failedIds,
+    },
     (response) => {
       if (chrome.runtime.lastError) {
         console.error("[Puchne Grid] Injection request failed:", chrome.runtime.lastError.message);
@@ -979,15 +1144,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
   if (gridQueryForm) {
-    function submitFollowUp() {
+    const submitFollowUp = () => {
       const newQuery = gridQueryInput.value.trim();
       if (!newQuery) return;
 
       gridQueryInput.value = "";
+      lastQuery = newQuery;
 
       console.log(`[Puchne Grid] Requesting follow-up injection for ${loadedTargets.length} frames...`);
       chrome.runtime.sendMessage(
-        { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query: newQuery, autoSubmit, cookieConsent: "off", delayMs: 0 },
+        {
+          action: "injectGridQueries",
+          tabId: selfTabId,
+          targets: loadedTargets,
+          query: newQuery,
+          autoSubmit: sendConfig.autoSubmit,
+          cookieConsent: "off",
+          delayMs: 0,
+          followUp: true,
+        },
         (response) => {
           if (chrome.runtime.lastError) {
             console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
@@ -996,7 +1171,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         }
       );
-    }
+    };
 
     // Enter submits; Shift+Enter inserts a newline
     gridQueryInput.addEventListener("keydown", (e) => {
@@ -1013,6 +1188,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 });
+
+/* ── Header Controls ───────────────────────────────────────── */
+
+function initHeaderControls() {
+  const toggleEl = document.getElementById("hoverExpandToggle");
+  if (toggleEl) {
+    toggleEl.checked = hoverExpand;
+    toggleEl.addEventListener("change", async () => {
+      const isEnabled = toggleEl.checked;
+      hoverExpand = isEnabled;
+      if (!isEnabled) collapseCell();
+
+      const stored = await chrome.storage.sync.get("settings");
+      const settings = stored.settings || {};
+      settings.hoverExpand = isEnabled;
+      await chrome.storage.sync.set({ settings });
+    });
+  }
+
+  document.getElementById("resetLayoutBtn")?.addEventListener("click", resetLayout);
+
+  const closedMenu = document.getElementById("closedMenu");
+  document.getElementById("closedTrigger")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closedMenu.classList.toggle("open");
+  });
+  window.addEventListener("click", () => closedMenu?.classList.remove("open"));
+
+  updateClosedMenu();
+}
 
 /* ── Follow-up Input Focus Guard ───────────────────────────── */
 /*
@@ -1069,7 +1274,7 @@ function showCellError(cell, service) {
       <line x1="9" y1="9" x2="15" y2="15"/>
     </svg>
     <p>${service.name} could not be embedded.<br>Try opening it in a separate tab.</p>
-    <a class="open-link" href="${service.url}" target="_blank">Open ${service.name} \u2197</a>
+    <a class="open-link" href="${service.url}" target="_blank">Open ${service.name} ↗</a>
   `;
   cell.appendChild(error);
 }

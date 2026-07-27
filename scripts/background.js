@@ -139,6 +139,10 @@ const AI_SERVICES = [
  * Returns the user's settings merged with sane defaults.
  * Defaults: all original 5 services enabled, auto-submit ON,
  * group tabs ON, delay = 2000ms.
+ *
+ * Prompt history defaults ON: it is stored only in this profile's local
+ * storage and never leaves the device, and off-by-default meant most people
+ * never found out recents existed.
  */
 async function getSettings() {
   const defaults = {
@@ -151,14 +155,119 @@ async function getSettings() {
     hoverExpandDelay: 200,
     groupTabs: false,
     delayMs: 2000,
-    enableHistory: false,
-    showRecents: false,
+    enableHistory: true,
+    showRecents: true,
     showFollowUpInput: true,
     customSelectors: {},
   };
 
   const stored = await chrome.storage.sync.get("settings");
   return { ...defaults, ...(stored.settings || {}) };
+}
+
+
+/**
+ * Resolves service definitions by id, merging in the user's custom selectors.
+ * @param {Object} settings
+ * @param {string[]} [ids] — defaults to the enabled set
+ * @returns {Array} service definitions ready to inject with
+ */
+function resolveTargets(settings, ids) {
+  const wanted = new Set(ids || settings.enabledServices);
+  return AI_SERVICES
+    .filter((s) => wanted.has(s.id))
+    .map((s) => {
+      const custom = settings.customSelectors?.[s.id];
+      if (!custom) return s;
+      return {
+        ...s,
+        ...(custom.selector  ? { selector:  custom.selector  } : {}),
+        ...(custom.buttonSel ? { buttonSel: custom.buttonSel } : {}),
+      };
+    });
+}
+
+
+// ── Delivery Status ──────────────────────────────────────────
+// The popup, side panel and overlay all render the same per-service
+// delivery list. It lives in storage.session (it is meaningless after a
+// browser restart) and is published here as each service progresses, so
+// the surfaces just subscribe rather than each tracking their own copy.
+
+// Injections finish concurrently, so every read-modify-write of the status
+// record is serialized through one queue to stop them clobbering each other.
+let sendStatusQueue = Promise.resolve();
+
+/**
+ * Runs `fn` against the stored status and writes back whatever it returns.
+ * Returning undefined leaves the record untouched.
+ * @param {(status: object|null) => object|null|undefined} fn
+ */
+function withSendStatus(fn) {
+  sendStatusQueue = sendStatusQueue
+    .then(async () => {
+      const stored = await chrome.storage.session.get(SEND_STATUS_KEY);
+      const next = await fn(stored[SEND_STATUS_KEY] || null);
+      if (next === undefined) return;
+      await chrome.storage.session.set({ [SEND_STATUS_KEY]: next });
+    })
+    .catch((err) => console.warn("[Puchne] Send status update failed:", err));
+  return sendStatusQueue;
+}
+
+/** Publishes a fresh all-pending status record for a new send. */
+function startSendStatus(query, targets, mode, extra = {}) {
+  const status = {
+    id: Date.now(),
+    query,
+    mode,
+    startedAt: Date.now(),
+    ...extra,
+    services: targets.map((t) => ({
+      id: t.id,
+      name: t.name,
+      url: t.url,
+      iconPath: t.iconPath,
+      iconPathDark: t.iconPathDark,
+      status: "pending",
+    })),
+  };
+  return withSendStatus(() => status);
+}
+
+/** Patches one service's entry in the current status record. */
+function markService(serviceId, patch) {
+  return withSendStatus((status) => {
+    if (!status) return undefined;
+    const svc = status.services.find((s) => s.id === serviceId);
+    if (!svc) return undefined;
+    Object.assign(svc, patch);
+    return status;
+  });
+}
+
+/** Maps an injection result onto the state the user sees. */
+function stateFromResult(result) {
+  if (!result || !result.ok) {
+    return { status: "failed", error: describeError(result) };
+  }
+  // A content script that filled but was told not to submit stops at "filled".
+  return { status: result.submitted === false ? "filled" : "submitted", error: null };
+}
+
+/**
+ * Turns an internal error string into something worth showing a user —
+ * a bare "timeout" next to a red badge explains nothing.
+ */
+function describeError(result) {
+  const raw = result?.error || "Unknown error";
+  if (raw === "timeout") return "Timed out — the page never responded.";
+  if (raw === "frame not found") return "The embedded frame never loaded.";
+  if (raw === "iframe blocked") return "This site refused to load in the grid. Open it in a tab instead.";
+  if (raw.startsWith("Input not found")) return "Couldn't find the prompt box — the site's layout may have changed.";
+  if (raw.includes("Could not establish connection")) return "Puchne couldn't reach the page.";
+  if (raw.includes("Could not fill")) return "Found the prompt box but couldn't type into it.";
+  return raw;
 }
 
 
@@ -284,7 +393,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["scripts/constants.js", "scripts/content.js"]
+          files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"]
         });
         // Try again after injection
         await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" }, { frameId: 0 });
@@ -342,18 +451,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.action === "openOptions") {
-    (async () => {
-      // If there's already an options tab open, focus it instead of opening a new one
-      const optionsUrl = chrome.runtime.getURL("pages/options.html");
-      const existingTabs = await chrome.tabs.query({ url: optionsUrl });
-      if (existingTabs.length > 0) {
-        await chrome.tabs.update(existingTabs[0].id, { active: true });
-        await chrome.windows.update(existingTabs[0].windowId, { focused: true });
-      } else {
-        chrome.runtime.openOptionsPage();
-      }
-      sendResponse({ ok: true });
-    })();
+    openOptionsPage().then(() => sendResponse({ ok: true }));
     return true; // keep message channel open for async sendResponse
   }
 
@@ -400,80 +498,27 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "injectGridQueries") {
     (async () => {
       try {
-        const { tabId, targets, query, autoSubmit, cookieConsent, delayMs } = message;
-        const frames = await chrome.webNavigation.getAllFrames({ tabId });
+        const { tabId, targets, query, autoSubmit, cookieConsent, delayMs, failedIds, followUp } = message;
 
-        // Match each sub-frame URL to a target service
+        // A follow-up is a new send, so it gets its own status record; the
+        // initial send already has one from handleMulticast.
+        if (followUp) {
+          await startSendStatus(query, targets, "grid", { gridTabId: tabId });
+        }
+
+        // Cells whose iframe never loaded can't be injected into at all.
+        for (const id of failedIds || []) {
+          await markService(id, { status: "failed", error: describeError({ error: "iframe blocked" }) });
+        }
+
         const results = [];
         for (const target of targets) {
-          const frame = frames.find(
-            (f) => f.frameId !== 0 && f.url && f.url.startsWith(new URL(target.url).origin)
-          );
-          if (!frame) {
-            console.warn(`[Puchne Grid] No frame found for ${target.name}`);
-            results.push({ service: target.name, ok: false, error: "frame not found" });
-            continue;
-          }
-
-          if (cookieConsent !== "off") {
-            try {
-              // Set the mode before injecting the dismisser script
-              await chrome.scripting.executeScript({
-                target: { tabId, frameIds: [frame.frameId] },
-                func: (mode) => { window.__promptBlastCookieMode = mode; },
-                args: [cookieConsent],
-              });
-              await chrome.scripting.executeScript({
-                target: { tabId, frameIds: [frame.frameId] },
-                files: ["scripts/cookie-dismiss.js"],
-              });
-            } catch (err) {
-              console.log(`[Puchne Grid] Cookie dismiss inject for ${target.name}:`, err.message);
-            }
-          }
-
-          try {
-            // Inject content script into the sub-frame
-            await chrome.scripting.executeScript({
-              target: { tabId, frameIds: [frame.frameId] },
-              files: ["scripts/constants.js", "scripts/content.js"],
-            });
-          } catch (err) {
-            console.log(`[Puchne Grid] Script inject for ${target.name}:`, err.message);
-          }
-
-          // Send fillQuery to that specific frame
-          try {
-            const response = await new Promise((resolve) => {
-              const timer = setTimeout(() => resolve({ ok: false, error: "timeout" }), 15_000);
-              chrome.tabs.sendMessage(
-                tabId,
-                {
-                  action: "fillQuery",
-                  query,
-                  autoSubmit,
-                  waitMs: delayMs ?? target.waitMs,
-                  inputType: target.inputType,
-                  selector: target.selector,
-                  submitType: target.submitType,
-                  buttonSel: target.buttonSel,
-                },
-                { frameId: frame.frameId },
-                (res) => {
-                  clearTimeout(timer);
-                  if (chrome.runtime.lastError) {
-                    resolve({ ok: false, error: chrome.runtime.lastError.message });
-                  } else {
-                    resolve(res || { ok: false, error: "no response" });
-                  }
-                }
-              );
-            });
-            console.log(`[Puchne Grid] ${target.name}:`, response);
-            results.push({ service: target.name, ...response });
-          } catch (err) {
-            results.push({ service: target.name, ok: false, error: err.message });
-          }
+          const response = await injectIntoGridFrame(tabId, target, query, {
+            autoSubmit, cookieConsent, delayMs,
+          });
+          console.log(`[Puchne Grid] ${target.name}:`, response);
+          await markService(target.id, stateFromResult(response));
+          results.push({ service: target.name, ...response });
         }
 
         sendResponse({ ok: true, results });
@@ -481,6 +526,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         console.error("[Puchne Grid] injectGridQueries failed:", err);
         sendResponse({ ok: false, error: err.message });
       }
+    })();
+    return true;
+  }
+
+  if (message.action === "retryService") {
+    retryService(message.serviceId).then(
+      (res) => sendResponse(res),
+      (err) => sendResponse({ ok: false, error: err.message })
+    );
+    return true;
+  }
+
+  if (message.action === "openServiceTab") {
+    (async () => {
+      const service = AI_SERVICES.find((s) => s.id === message.serviceId);
+      if (!service) { sendResponse({ ok: false, error: "unknown service" }); return; }
+      await chrome.tabs.create({ url: service.url, active: true });
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
+  if (message.action === "editServiceSelector") {
+    (async () => {
+      // The options page picks this up on load and opens that service's editor.
+      await chrome.storage.local.set({ editSelectorFor: message.serviceId });
+      await openOptionsPage();
+      sendResponse({ ok: true });
     })();
     return true;
   }
@@ -501,25 +574,160 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 
 /**
+ * Focuses the existing options tab if there is one, otherwise opens it.
+ */
+async function openOptionsPage() {
+  const optionsUrl = chrome.runtime.getURL("pages/options.html");
+  const existingTabs = await chrome.tabs.query({ url: optionsUrl });
+  if (existingTabs.length > 0) {
+    await chrome.tabs.update(existingTabs[0].id, { active: true });
+    await chrome.windows.update(existingTabs[0].windowId, { focused: true });
+  } else {
+    chrome.runtime.openOptionsPage();
+  }
+}
+
+
+/**
+ * Finds the grid sub-frame hosting `target`, makes sure the content script
+ * (and optionally the cookie dismisser) is in it, and fills the query.
+ * Shared by the initial grid send, grid follow-ups, and retries.
+ *
+ * @param {number} tabId — the grid tab
+ * @param {Object} target — service definition
+ * @param {string} query
+ * @param {{autoSubmit: boolean, cookieConsent?: string, delayMs?: number}} opts
+ * @returns {Promise<{ok: boolean, filled?: boolean, submitted?: boolean, error?: string}>}
+ */
+async function injectIntoGridFrame(tabId, target, query, { autoSubmit, cookieConsent, delayMs }) {
+  const frames = await chrome.webNavigation.getAllFrames({ tabId });
+  const frame = frames.find(
+    (f) => f.frameId !== 0 && f.url && f.url.startsWith(new URL(target.url).origin)
+  );
+  if (!frame) {
+    console.warn(`[Puchne Grid] No frame found for ${target.name}`);
+    return { ok: false, error: "frame not found" };
+  }
+
+  if (cookieConsent && cookieConsent !== "off") {
+    try {
+      // Set the mode before injecting the dismisser script
+      await chrome.scripting.executeScript({
+        target: { tabId, frameIds: [frame.frameId] },
+        func: (mode) => { window.__promptBlastCookieMode = mode; },
+        args: [cookieConsent],
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId, frameIds: [frame.frameId] },
+        files: ["scripts/cookie-dismiss.js"],
+      });
+    } catch (err) {
+      console.log(`[Puchne Grid] Cookie dismiss inject for ${target.name}:`, err.message);
+    }
+  }
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [frame.frameId] },
+      files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
+    });
+  } catch (err) {
+    console.log(`[Puchne Grid] Script inject for ${target.name}:`, err.message);
+  }
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ ok: false, error: "timeout" }), INJECT_TIMEOUT_MS);
+    chrome.tabs.sendMessage(
+      tabId,
+      {
+        action: "fillQuery",
+        query,
+        autoSubmit,
+        waitMs: delayMs ?? target.waitMs,
+        inputType: target.inputType,
+        selector: target.selector,
+        submitType: target.submitType,
+        buttonSel: target.buttonSel,
+      },
+      { frameId: frame.frameId },
+      (res) => {
+        clearTimeout(timer);
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(res || { ok: false, error: "no response" });
+        }
+      }
+    );
+  });
+}
+
+
+/**
+ * Re-runs one service from the current delivery status — the "Retry" action
+ * on a failed row. Reuses the tab/frame the first attempt used when it is
+ * still around, so a retry doesn't pile up duplicate tabs.
+ *
+ * @param {string} serviceId
+ */
+async function retryService(serviceId) {
+  const stored = await chrome.storage.session.get(SEND_STATUS_KEY);
+  const status = stored[SEND_STATUS_KEY];
+  if (!status) return { ok: false, error: "Nothing to retry." };
+
+  const entry = status.services.find((s) => s.id === serviceId);
+  if (!entry) return { ok: false, error: "Unknown service." };
+
+  const settings = await getSettings();
+  const target = resolveTargets(settings, [serviceId])[0];
+  if (!target) return { ok: false, error: "Unknown service." };
+
+  await markService(serviceId, { status: "pending", error: null });
+
+  let result;
+  try {
+    if (status.mode === "grid" && status.gridTabId) {
+      result = await injectIntoGridFrame(status.gridTabId, target, status.query, {
+        autoSubmit: settings.autoSubmit,
+        cookieConsent: "off", // consent was handled on the first pass
+        delayMs: 0,
+      });
+    } else {
+      let tabId = entry.tabId;
+      if (tabId) {
+        try { await chrome.tabs.get(tabId); } catch { tabId = null; }
+      }
+      if (!tabId) {
+        const tab = await chrome.tabs.create({ url: target.url, active: false });
+        tabId = tab.id;
+        await markService(serviceId, { tabId });
+        await waitForTabLoad(tabId);
+      }
+      await ensureContentScript(tabId);
+      result = await injectQuery(
+        tabId, target, status.query, settings.autoSubmit, settings.delayMs ?? target.waitMs
+      );
+    }
+  } catch (err) {
+    // A closed grid tab, a revoked permission — anything here has to land the
+    // row back on "failed" rather than leaving it stuck showing "pending".
+    result = { ok: false, error: err.message };
+  }
+
+  await markService(serviceId, stateFromResult(result));
+  return result;
+}
+
+
+/**
  * Core function: opens tabs and dispatches the query to each
  * enabled AI service, respecting user settings.
  */
 async function handleMulticast(query) {
   const settings = await getSettings();
-  const enabledIds = new Set(settings.enabledServices);
 
-  // Filter to only the services the user has turned on, merging any custom selectors
-  const targets = AI_SERVICES
-    .filter((s) => enabledIds.has(s.id))
-    .map((s) => {
-      const custom = settings.customSelectors?.[s.id];
-      if (!custom) return s;
-      return {
-        ...s,
-        ...(custom.selector  ? { selector:   custom.selector  } : {}),
-        ...(custom.buttonSel ? { buttonSel: custom.buttonSel } : {}),
-      };
-    });
+  // Only the services the user has turned on, with custom selectors merged in
+  const targets = resolveTargets(settings);
 
   if (targets.length === 0) {
     console.warn("[Puchne] No services enabled — nothing to do.");
@@ -530,6 +738,7 @@ async function handleMulticast(query) {
   if (settings.gridView) {
     const gridUrl = chrome.runtime.getURL("pages/grid.html");
     const gridTab = await chrome.tabs.create({ url: gridUrl, active: true });
+    await startSendStatus(query, targets, "grid", { gridTabId: gridTab.id });
 
     // Keyed by tab id so the payload survives a reload of the grid page;
     // it is dropped again in chrome.tabs.onRemoved.
@@ -557,11 +766,16 @@ async function handleMulticast(query) {
     return;
   }
 
+  await startSendStatus(query, targets, "tabs");
+
   // Open all tabs in parallel for speed
   const tabPromises = targets.map((service) =>
     chrome.tabs.create({ url: service.url, active: false })
   );
   const tabs = await Promise.all(tabPromises);
+
+  // Record which tab each service landed in, so a retry can reuse it.
+  await Promise.all(tabs.map((t, i) => markService(targets[i].id, { tabId: t.id })));
 
   // Save active session tabs for follow-up queries. storage.session is the
   // right lifetime here: tab ids are recycled after a browser restart, so a
@@ -600,9 +814,12 @@ async function handleMulticast(query) {
         // Trigger login check only for puchne-opened tabs, after page fully loads
         chrome.tabs.sendMessage(tab.id, { action: "checkLogin" }, () => void chrome.runtime.lastError);
         console.log(`[Puchne] Injecting into ${service.name}...`);
-        return await injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
+        const result = await injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
+        await markService(service.id, stateFromResult(result));
+        return result;
       } catch (err) {
         console.warn(`[Puchne] Pipeline failed for ${service.name}:`, err);
+        await markService(service.id, { status: "failed", error: describeError({ error: err.message }) });
       }
     });
 
@@ -677,7 +894,7 @@ async function ensureContentScript(tabId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["scripts/constants.js", "scripts/content.js"],
+      files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
     });
   } catch (err) {
     // Script already injected or tab is restricted — both are fine
@@ -748,6 +965,10 @@ async function handleFollowUpMulticast(query, tabsFromSender) {
 
   console.log(`[Puchne] Follow-up Target services: ${activeTabs.map(t => t.target.name).join(", ")}`);
 
+  // A follow-up is its own send, so it gets its own status record.
+  await startSendStatus(query, activeTabs.map((t) => t.target), "tabs");
+  await Promise.all(activeTabs.map((t) => markService(t.target.id, { tabId: t.tabId })));
+
   // Activate the first tab immediately
   chrome.tabs.update(activeTabs[0].tabId, { active: true });
 
@@ -756,9 +977,12 @@ async function handleFollowUpMulticast(query, tabsFromSender) {
       await ensureContentScript(t.tabId);
       console.log(`[Puchne] Injecting follow-up into ${t.target.name}...`);
       // Use waitMs = 0 because the tabs are already loaded
-      return await injectQuery(t.tabId, t.target, query, settings.autoSubmit, 0);
+      const result = await injectQuery(t.tabId, t.target, query, settings.autoSubmit, 0);
+      await markService(t.target.id, stateFromResult(result));
+      return result;
     } catch (err) {
       console.warn(`[Puchne] Follow-up pipeline failed for ${t.target.name}:`, err);
+      await markService(t.target.id, { status: "failed", error: describeError({ error: err.message }) });
     }
   });
 

@@ -81,14 +81,14 @@
         "https://www.perplexity.ai/*",
         "https://grok.com/*"
       ],
-      "js": ["scripts/constants.js", "scripts/content.js"],
+      "js": ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
       "run_at": "document_idle"
     }
   ],
 
   "web_accessible_resources": [
     {
-      "resources": ["icons/app/*.png", "icons/services/*.png", "icons/services/*.svg", "pages/grid.html", "scripts/cookie-dismiss.js", "styles/overlay.css"],
+      "resources": ["icons/app/*.png", "icons/services/*.png", "icons/services/*.svg", "pages/grid.html", "scripts/cookie-dismiss.js", "styles/panel.css", "styles/overlay.css"],
       "matches": ["<all_urls>"]
     }
   ]

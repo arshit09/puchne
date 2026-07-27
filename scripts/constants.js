@@ -13,6 +13,14 @@ var TAB_LOAD_TIMEOUT   = 10_000;  // Max wait for a tab to reach "complete" stat
 var INJECT_TIMEOUT_MS  = 15_000;  // Per-tab safety timeout for query injection
 var GRID_DATA_PREFIX   = "gridData_";  // local storage key prefix, suffixed with the grid tab id
 var GRID_DATA_WAIT_MS  = 5_000;   // Max wait for the background to write a grid tab's payload
+// Per-service delivery status: "pending" is set the moment a service is
+// queued, the content script's fill result promotes it to "filled" or
+// "submitted", and anything else lands on "failed".
+var SEND_STATUS_KEY     = "sendStatus"; // storage.session key holding the live status
+var SEND_STATUS_POLL_MS = 1_200;   // Fallback poll interval while a send is in flight
+var SEND_STATUS_POLLS   = 50;      // Give up polling after this many ticks (~60s)
+var SEND_STATUS_STALE_MS = 5 * 60_000; // Don't surface a status record older than this
+var FOLLOWUP_POS_KEY    = "followUpBar"; // storage.local: { [origin]: { left, top, collapsed } }
 
 /**
  * Applies a theme to an element by setting data-theme="dark"|"light".

@@ -1212,6 +1212,14 @@ body {
   border-color: var(--accent);
 }
 
+/* Same attention flash for a single service, used when a failed delivery
+   sends the user here via "Edit selector". */
+.service-item.highlight-blink {
+  animation: section-blink 750ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  border-radius: var(--radius-sm);
+  z-index: 10;
+}
+
 /* ── Footer ────────────────────────────────────────────────── */
 .footer {
   margin-top: auto;

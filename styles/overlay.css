@@ -1,6 +1,12 @@
-/* Puchne command overlay (shadow DOM).
- * Loaded once per page as a constructable stylesheet and shared by every
- * overlay instance — see getOverlaySheet() in scripts/content.js.
+/* Puchne command overlay — surface chrome only.
+ *
+ * The compose UI itself (chips, prompt box, status, history, footer) is
+ * shared with the popup and lives in styles/panel.css. This file supplies
+ * the palette the panel reads and styles the parts that only the in-page
+ * overlay has: the modal card and its drag handle.
+ *
+ * Both sheets are fetched once per page and adopted by every shadow root —
+ * see getPanelSheets() in scripts/content.js.
  */
 
 :host {
@@ -23,10 +29,12 @@
   --text-muted:     #80868b;
   --accent:       #fb923c;
   --accent-hover: #f97316;
-  --accent-glow:  rgba(251, 146, 60, 0.15);
+  --accent-light: rgba(251, 146, 60, 0.15);
+  --accent-text:  #c2410c;
   --border:       #dadce0;
   --radius:       14px;
   --radius-sm:    8px;
+  --radius-xs:    6px;
   --transition:   200ms ease;
   --font: system-ui, -apple-system, sans-serif;
 }
@@ -40,17 +48,12 @@
   --text-primary:   #e8eaed;
   --text-secondary: #bdc1c6;
   --text-muted:     #9aa0a6;
-  --accent-glow:  rgba(249, 115, 22, 0.20);
+  --accent-light: rgba(249, 115, 22, 0.20);
+  --accent-text:  #fb923c;
   --border:       #3c4043;
 }
 
-* { 
-  box-sizing: border-box; 
-  margin: 0; 
-  padding: 0; 
-  font-family: var(--font);
-}
-
+/* ── Modal card ─────────────────────────────────────────────── */
 .modal-container {
   width: max-content;
   max-width: 95vw;
@@ -59,157 +62,97 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   line-height: 1.5;
 }
 
-/* slideUp removed */
-
-.header { display: flex; align-items: center; justify-content: space-between; cursor: grab; }
-.header:active { cursor: grabbing; }
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo h1 { font-size: 22px; font-weight: 700; }
-
-.icon-btn {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text-secondary); cursor: pointer; padding: 10px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all var(--transition);
-}
-.icon-btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-secondary); }
-
-.service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.chip {
-  display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px;
-  min-width: 44px; border-radius: 999px; border: 2px solid var(--border);
-  background: var(--bg-secondary); color: var(--text-secondary);
-  font-size: 15px; font-weight: 400; cursor: pointer;
-  transition: all var(--transition); user-select: none;
-}
-.chip:hover { border-color: var(--border); background: var(--bg-hover); }
-.chip.active { border-color: var(--accent); }
-.chip.active:hover { border-color: var(--accent-hover); background: var(--accent-glow); }
-.service-icon { width: 18px; height: 18px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
-.chip.active .service-icon { filter: none; }
-
-textarea {
-  flex: 1; min-width: 200px; padding: 10px 0; background: transparent; border: none; outline: none;
-  color: var(--text-primary); font-family: var(--font); font-size: 18px;
-  line-height: 1.6; resize: none; min-height: 30px;
-}
-textarea::placeholder { color: var(--text-muted); font-size: 16px; }
-
-.input-footer {
-  display: flex; align-items: center; justify-content: flex-end;
-  padding-bottom: 5px; background: transparent;
+/* The header doubles as the drag handle (see PuchneOverlay.setupDrag). */
+.modal-container .header {
+  cursor: grab;
+  touch-action: none; /* let the pointer-drag own vertical gestures */
 }
 
-.input-area {
-  display: flex; flex-direction: row; align-items: flex-end; background: var(--bg-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 10px 10px 10px 20px; transition: border-color var(--transition);
-  gap: 12px; flex-wrap: wrap;
-}
+.modal-container .header.dragging { cursor: grabbing; }
 
-.toggles { display: flex; align-items: center; gap: 20px; }
-
-.toggle-control { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-secondary); cursor: pointer; }
-.toggle-control input { appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-muted); border-radius: 4px; position: relative; cursor: pointer; transition: all var(--transition); }
-.toggle-control input:checked { background: var(--accent); border-color: var(--accent); }
-.toggle-control input:checked::after {
-  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
-  border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
-}
-.toggle-control:hover span { color: var(--text-primary); }
-
-.has-tooltip { position: relative; }
-.tooltip {
-  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-  width: 200px; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;
-  line-height: 1.4; pointer-events: none; opacity: 0; visibility: hidden;
-  transition: all var(--transition); z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-.tooltip::after {
-  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  border-width: 6px; border-style: solid; border-color: var(--border) transparent transparent transparent;
-}
-.has-tooltip:hover .tooltip { opacity: 1; visibility: visible; bottom: calc(100% + 6px); }
-
-.send-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 48px; height: 48px;
-  border: none; border-radius: 50%;
-  background: var(--accent); color: #fff; transition: all var(--transition);
-  flex-shrink: 0;
-}
-.send-btn:hover:not(:disabled) { background: var(--accent-hover); }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.history-section { display: flex; flex-direction: column; gap: 8px; }
-.hidden { display: none; }
-.history-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
-.history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; }
-.history-list::-webkit-scrollbar { width: 4px; }
-.history-list::-webkit-scrollbar-track { background: transparent; }
-.history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-.history-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-.history-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px 8px 16px; border-radius: var(--radius-sm);
-  transition: background var(--transition);
-}
-.history-item:hover { background: var(--bg-hover); }
-.history-item:hover .history-delete-btn { opacity: 1; pointer-events: auto; }
-.history-item-content {
-  flex: 1; display: flex; flex-direction: column; gap: 1px;
-  cursor: pointer; overflow: hidden;
-}
-.history-item-text {
-  font-size: 15px; color: var(--text-secondary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  transition: color var(--transition);
-}
-.history-item:hover .history-item-text { color: var(--text-primary); }
-.history-item-time {
-  font-size: 11px; color: var(--text-muted);
-}
-.history-delete-btn {
-  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-  width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px;
-  background: none; color: var(--text-muted); cursor: pointer;
-  opacity: 0; pointer-events: none;
-  transition: all var(--transition);
-}
-.history-delete-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-
-.footer { display: flex; align-items: center; justify-content: center; padding-top: 8px; }
-.shortcut-hint { 
-  display: flex; 
-  align-items: center; 
-  gap: 6px; 
-  font-size: 12px; 
-  color: var(--text-muted); 
-  background: transparent; 
-  padding: 5px 12px; 
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent; 
-  transition: all var(--transition);
-}
-.shortcut-hint:hover {
-  background: var(--bg-tertiary);
+/* ── Login notice toast ─────────────────────────────────────── */
+/* An inline card in the corner: it never covers the page, never touches
+   the host's scroll position, and goes away on its own. */
+.login-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-primary);
   color: var(--text-primary);
-  border-color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  font-family: var(--font);
+  animation: pb-toast-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.shortcut-icon { 
-  stroke: var(--text-muted); 
-  transition: stroke var(--transition);
+
+.login-toast.leaving {
+  animation: pb-toast-out 200ms ease forwards;
 }
-.shortcut-hint:hover .shortcut-icon {
-  stroke: var(--text-primary);
+
+@keyframes pb-toast-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
-.shortcut-label { font-weight: 500; margin-right: -2px; }
+
+@keyframes pb-toast-out {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(16px); opacity: 0; }
+}
+
+.login-toast .toast-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  object-fit: contain;
+  margin-top: 1px;
+}
+
+.login-toast .toast-body { flex: 1; min-width: 0; }
+
+.login-toast .toast-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 3px;
+}
+
+.login-toast .toast-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.login-toast .toast-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.login-toast .toast-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}

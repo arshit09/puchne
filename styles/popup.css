@@ -1,6 +1,12 @@
 /**
  * ============================================================
- *  Puchne — Popup Styles
+ *  Puchne — Popup / Side Panel Styles
+ * ============================================================
+ *
+ *  Surface chrome only. The compose UI itself is shared with the
+ *  in-page overlay and lives in styles/panel.css, which this page
+ *  loads first; everything here either supplies the palette that
+ *  sheet reads or adjusts the page-level frame around it.
  * ============================================================
  */
 
@@ -37,6 +43,7 @@
   --bg-hover: #5f6368;
   --text-primary: #e8eaed;
   --text-secondary: #bdc1c6;
+  --text-muted: #9aa0a6;
   --accent: #fb923c;
   --accent-light: rgba(251, 146, 60, 0.1);
   --accent-text: #fb923c;
@@ -86,419 +93,28 @@ html[data-mode="sidebar"] .container {
   height: 100vh; /* Fill the whole sidebar height */
 }
 
-html[data-mode="sidebar"] .history-list {
-  max-height: none; /* Let history expand in tall side panels */
-  flex-grow: 1;    /* But don't let it push the footer off-screen? No, it's fine. */
-}
-
-html[data-mode="sidebar"] .container {
-  display: flex;
-  flex-direction: column;
-}
-
 html[data-mode="sidebar"] .history-section {
   flex-grow: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 0; /* Important for flex-grow to work with overflow */
 }
 
 html[data-mode="sidebar"] .history-list {
+  max-height: none; /* Let history expand in tall side panels */
   flex-grow: 1;
 }
 
 /* ── Container ─────────────────────────────────────────────── */
 .container {
-  display: flex;
-  flex-direction: column;
   padding: 20px 22px;
-  gap: 0;
 }
 
-/* ── Section Divider ───────────────────────────────────────── */
-.section-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 16px 0;
-}
-
-/* ── Header ────────────────────────────────────────────────── */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── Panel overrides ───────────────────────────────────────── */
+/* The popup separates the header from the body with a rule; the
+   overlay's floating card doesn't need one. */
+.pb-panel .header {
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 16px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo h1 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.icon-btn {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition);
-}
-
-.icon-btn:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-light);
-}
-
-/* ── Section Label ─────────────────────────────────────────── */
-.section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-/* ── Service Chips ─────────────────────────────────────────── */
-.service-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  min-height: 44px; /* Space for at least one row of chips */
-}
-
-.chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 8px 14px;
-  min-width: 44px;
-  border-radius: 999px;
-  border: 2px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: 0.88rem;
-  font-weight: 400;
-  cursor: pointer;
-  transition: none;
-  user-select: none;
-}
-
-.chip:hover {
-  border-color: var(--border);
-  background: var(--bg-hover);
-}
-
-.chip.active {
-  border-color: var(--accent);
-}
-
-.chip.active:hover {
-  border-color: var(--accent-hover);
-  background: var(--accent-light);
-}
-
-.service-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  object-fit: contain;
-  filter: grayscale(1) opacity(0.55);
-  transition: all var(--transition);
-  aspect-ratio: 1 / 1; /* Stabilize layout if image loads late */
-}
-
-.chip.active .service-icon {
-  filter: none;
-}
-
-/* ── Input Area ────────────────────────────────────────────── */
-.input-area {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  background: var(--bg-secondary);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 8px 8px 16px;
-  gap: 8px;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
-  margin-bottom: 16px;
-  flex-wrap: wrap; /* Allows button to wrap if input is very wide or multi-line */
-}
-
-.input-area:focus-within {
-  border-color: var(--accent);
-}
-
-textarea {
-  flex: 1;
-  min-width: 200px;
-  padding: 8px 0;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-family: var(--font);
-  font-size: 1.05rem;
-  line-height: 1.5;
-  resize: none;
-  min-height: 24px;
-}
-
-textarea::placeholder {
-  color: var(--text-muted);
-  font-size: 16px;
-}
-
-/* ── Input Footer (toggles + send) ─────────────────────────── */
-.input-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end; /* Always pull to end */
-  padding: 0;
-  background: transparent;
-  gap: 10px;
-}
-
-/* ── Checkbox Toggle ───────────────────────────────────────── */
-.auto-submit-toggle {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.auto-submit-toggle input[type="checkbox"] {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--text-muted);
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  transition: all var(--transition);
-  flex-shrink: 0;
-}
-
-.auto-submit-toggle input[type="checkbox"]:checked {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.auto-submit-toggle input[type="checkbox"]:checked::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-/* ── Send Button ───────────────────────────────────────────── */
-.send-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  transition: all var(--transition);
-  flex-shrink: 0;
-  margin-bottom: 4px;
-}
-
-.send-btn:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.send-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* ── History ───────────────────────────────────────────────── */
-.history-section {
-  display: block;
-  margin-bottom: 16px;
-}
-
-.history-section.hidden {
-  display: none;
-}
-
-.history-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.history-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px;
-  /* Three rows of a two-line history item (text + timestamp) */
-  max-height: calc(3 * 46px + 2 * 2px + 8px);
-  overflow-y: auto;
-}
-
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px 7px 12px;
-  border-radius: var(--radius-xs);
-  transition: background var(--transition);
-}
-
-.history-item:hover {
-  background: var(--accent-light);
-}
-
-.history-item:hover .history-delete-btn {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.history-item-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.history-item-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color var(--transition);
-}
-
-.history-item:hover .history-item-text {
-  color: var(--accent-text);
-}
-
-.history-item-time {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.history-delete-btn {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: none;
-  transition: all var(--transition);
-}
-
-.history-delete-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-/* ── Footer ────────────────────────────────────────────────── */
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 8px;
-  margin-top: auto;
-}
-
-.shortcut-hint {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  background: transparent;
-  padding: 5px 12px;
-  border-radius: var(--radius-xs);
-  border: 1px solid transparent;
-  font-family: inherit;
-  letter-spacing: 0.02em;
-  transition: all var(--transition);
-  cursor: pointer;
-}
-
-.shortcut-hint:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border);
-  color: var(--text-primary);
-}
-
-.gh-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: all var(--transition);
-}
-
-.gh-link:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-  background: var(--bg-secondary);
 }
 
 /* ── Animations ────────────────────────────────────────────── */
@@ -516,7 +132,7 @@ body.ready .container {
   transform: translateY(0);
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
+/* ── Scrollbar (page level) ────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 4px;
 }
