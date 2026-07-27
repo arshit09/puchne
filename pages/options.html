@@ -59,6 +59,81 @@
           <div id="serviceList" class="service-list">
             <!-- Dynamically populated -->
           </div>
+
+          <div class="service-list" style="margin-top: 10px;">
+            <div class="service-item custom-add-item" id="customAddCard">
+              <div class="service-row" id="customAddRow">
+                <div class="service-info">
+                  <img src="../icons/services/custom.svg" class="service-icon" alt="Custom Tool" />
+                  <div>
+                    <p class="name">Add Custom AI Tool</p>
+                    <p class="url">Add Mistral, Qwen, Kimi, Meta AI, or a self-hosted UI</p>
+                  </div>
+                </div>
+                <div class="service-controls">
+                  <button class="access-btn" id="customAddToggleBtn" type="button">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>Add New</span>
+                  </button>
+                  <button class="expand-btn" id="customAddExpandBtn" title="Expand add form" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="selector-editor" id="customAddEditor">
+                <div class="selector-editor-inner">
+                  <div class="custom-form-row">
+                    <div class="selector-field">
+                      <label for="customAddName">Name</label>
+                      <input type="text" id="customAddName" class="selector-input text-input" placeholder="e.g. Mistral" />
+                    </div>
+                    <div class="selector-field">
+                      <label for="customAddUrl">URL</label>
+                      <input type="url" id="customAddUrl" class="selector-input text-input" placeholder="e.g. https://chat.mistral.ai/chat" />
+                    </div>
+                  </div>
+                  <div class="custom-form-row">
+                    <div class="selector-field">
+                      <label for="customAddSelector">Input selector</label>
+                      <input type="text" id="customAddSelector" class="selector-input" placeholder="e.g. textarea, [contenteditable='true']" />
+                    </div>
+                    <div class="selector-field">
+                      <label for="customAddButtonSel">Submit button selector <span class="optional-tag">(optional)</span></label>
+                      <input type="text" id="customAddButtonSel" class="selector-input" placeholder="e.g. button[type='submit']" />
+                    </div>
+                  </div>
+                  <div class="custom-form-row">
+                    <div class="selector-field">
+                      <label for="customAddInputType">Input type</label>
+                      <select id="customAddInputType" class="selector-input text-input">
+                        <option value="textarea">Textarea</option>
+                        <option value="contenteditable">Contenteditable</option>
+                        <option value="prosemirror">ProseMirror</option>
+                      </select>
+                    </div>
+                    <div class="selector-field">
+                      <label for="customAddSubmitType">Submit type</label>
+                      <select id="customAddSubmitType" class="selector-input text-input">
+                        <option value="auto">Auto</option>
+                        <option value="enter">Simulate Enter Key</option>
+                        <option value="button">Click Submit Button</option>
+                        <option value="both">Both (Button + Enter)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="selector-editor-footer" style="margin-top: 4px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <button type="button" class="selector-test-btn" id="customAddTestBtn">Test selectors</button>
+                      <span class="custom-form-status" id="customAddStatus"></span>
+                    </div>
+                    <button type="button" class="selector-test-btn" id="customAddSubmitBtn" style="background: #2e9e63; border-color: #2e9e63;">Add to AI Tools</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- ── Section: Appearance & Display ──────────────── -->

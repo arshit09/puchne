@@ -169,12 +169,27 @@ async function getSettings() {
     showRecents: true,
     showFollowUpInput: true,
     customSelectors: {},
+    customProviders: [],
   };
 
   const stored = await chrome.storage.sync.get("settings");
   return { ...defaults, ...(stored.settings || {}) };
 }
 
+/**
+ * Returns all service definitions: built-in AI_SERVICES plus user customProviders.
+ * @param {Object} [settings]
+ * @returns {Array}
+ */
+function getRegistry(settings) {
+  const custom = (settings?.customProviders || []).map((p) => ({
+    ...p,
+    iconPath: p.iconPath || "icons/services/custom.svg",
+    iconPathDark: p.iconPathDark || p.iconPath || "icons/services/custom.svg",
+    isCustom: true,
+  }));
+  return [...AI_SERVICES, ...custom];
+}
 
 /**
  * Resolves service definitions by id, merging in the user's custom selectors.
@@ -184,7 +199,7 @@ async function getSettings() {
  */
 function resolveTargets(settings, ids) {
   const wanted = new Set(ids || settings.enabledServices);
-  return AI_SERVICES
+  return getRegistry(settings)
     .filter((s) => wanted.has(s.id))
     .map((s) => {
       const custom = settings.customSelectors?.[s.id];
@@ -261,8 +276,10 @@ function syncHostAccess() {
  * @param {string[]} granted
  */
 async function registerServiceScripts(granted) {
+  const settings = await getSettings();
+  const registry = getRegistry(settings);
   const matches = [];
-  for (const service of AI_SERVICES) {
+  for (const service of registry) {
     if (isServiceGranted(service, granted)) matches.push(...servicePatterns(service));
   }
 
@@ -341,7 +358,9 @@ async function partitionTargets(targets) {
  * @param {{query: string}|null} [pendingSend] — a send to run once granted
  */
 async function openAccessWindow(serviceIds, pendingSend) {
-  const ids = (serviceIds || []).filter((id) => AI_SERVICES.some((s) => s.id === id));
+  const settings = await getSettings();
+  const registry = getRegistry(settings);
+  const ids = (serviceIds || []).filter((id) => registry.some((s) => s.id === id));
   if (ids.length === 0) return;
 
   if (pendingSend?.query) {
@@ -374,7 +393,10 @@ async function openAccessWindow(serviceIds, pendingSend) {
 async function handleAccessGranted(serviceIds) {
   await syncHostAccess();
 
-  const ids = (serviceIds || []).filter((id) => AI_SERVICES.some((s) => s.id === id));
+  const stored = await chrome.storage.sync.get("settings");
+  const settings = stored.settings || {};
+  const registry = getRegistry(settings);
+  const ids = (serviceIds || []).filter((id) => registry.some((s) => s.id === id));
   if (ids.length > 0) {
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
@@ -667,17 +689,21 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getServices") {
-    // Return the full service registry so popup/options can render it
-    sendResponse({ services: AI_SERVICES });
+    (async () => {
+      const settings = await getSettings();
+      sendResponse({ services: getRegistry(settings) });
+    })();
     return true;
   }
 
   if (message.action === "getPermissionState") {
     (async () => {
       const origins = await grantedOrigins();
+      const settings = await getSettings();
+      const registry = getRegistry(settings);
       sendResponse({
         grantedOrigins: origins,
-        grantedIds: AI_SERVICES.filter((s) => isServiceGranted(s, origins)).map((s) => s.id),
+        grantedIds: registry.filter((s) => isServiceGranted(s, origins)).map((s) => s.id),
       });
     })();
     return true;
@@ -755,8 +781,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         // Opening the tab would work without access; injecting the test into
         // it would not, so say why instead of reporting a mystery failure.
-        const service = AI_SERVICES.find((s) => s.url === url);
-        if (service && !isServiceGranted(service, await grantedOrigins())) {
+        const settings = await getSettings();
+        const registry = getRegistry(settings);
+        const service = registry.find((s) => s.url === url) || { name: "this custom site", url };
+        if (!isServiceGranted(service, await grantedOrigins())) {
           sendResponse({ ok: false, error: `Allow access to ${service.name} first.` });
           return;
         }

@@ -686,6 +686,78 @@ body {
   color: var(--danger);
 }
 
+/* ── Custom Provider Add Card & Badges ────────────────────── */
+/* ── Custom Provider UI Styles ────────────────────────────── */
+.custom-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.selector-input.text-input {
+  font-family: var(--font);
+  font-size: 0.85rem;
+}
+
+.custom-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .custom-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.optional-tag {
+  font-weight: 400;
+  text-transform: none;
+  opacity: 0.7;
+}
+
+.custom-form-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.custom-form-status.error {
+  color: var(--danger);
+}
+
+.custom-form-status.success {
+  color: var(--green);
+}
+
+.selector-delete-btn {
+  font-size: 0.8rem;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-family: var(--font);
+  transition: opacity var(--transition);
+}
+
+.selector-delete-btn:hover {
+  opacity: 0.8;
+}
+
 .service-info {
   display: flex;
   align-items: center;

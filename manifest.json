@@ -8,6 +8,8 @@
   "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequestWithHostAccess", "webNavigation", "sidePanel"],
 
   "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",

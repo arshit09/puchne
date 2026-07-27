@@ -74,6 +74,17 @@ const mockOverlay = document.getElementById("mockOverlay");
 const mockHistory = document.getElementById("mockHistory");
 const mockShortcut = document.getElementById("mockShortcut");
 
+// Custom Provider Add Form References
+const customAddNameEl = document.getElementById("customAddName");
+const customAddUrlEl = document.getElementById("customAddUrl");
+const customAddSelectorEl = document.getElementById("customAddSelector");
+const customAddButtonSelEl = document.getElementById("customAddButtonSel");
+const customAddInputTypeEl = document.getElementById("customAddInputType");
+const customAddSubmitTypeEl = document.getElementById("customAddSubmitType");
+const customAddTestBtn = document.getElementById("customAddTestBtn");
+const customAddSubmitBtn = document.getElementById("customAddSubmitBtn");
+const customAddStatusEl = document.getElementById("customAddStatus");
+
 // ── Animated row wrappers (set up in DOMContentLoaded) ───────
 let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
     cookieConsentWrap, groupTabsWrap;
@@ -82,6 +93,7 @@ let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
 let allServices = [];
 let enabledServiceIds = [];
 let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
+let customProviders = []; // [{ id, name, url, selector, buttonSel, inputType, submitType, isCustom: true }]
 // Services whose host permission has been granted. Puchne ships with none:
 // each site is asked for the first time it is switched on. This page is a
 // full tab, so it can call chrome.permissions itself rather than going
@@ -111,6 +123,7 @@ const DEFAULTS = {
   theme: "dark",
   cookieConsent: "accept",
   customSelectors: {},
+  customProviders: [],
 };
 
 /**
@@ -154,6 +167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   enabledServiceIds = settings.enabledServices;
   customSelectors = settings.customSelectors || {};
+  customProviders = settings.customProviders || [];
   autoSubmitEl.checked = settings.autoSubmit;
   useSidebarEl.checked = settings.useSidebar || false;
   updateOverlayPositionState();
@@ -280,6 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCookieConsentSelect();
   initHoverExpandMinSelect();
   initHoverExpandDelaySelect();
+  initAddCustomProvider();
 
   // Init custom number spinners
   initNumSpinners();
@@ -725,10 +740,11 @@ function renderServices() {
     info.className = "service-info";
     const isDark = document.documentElement.dataset.theme === "dark";
     const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+    const customBadgeHtml = service.isCustom ? `<span class="custom-badge">CUSTOM</span>` : "";
     info.innerHTML = `
       <img src="../${icon}" class="service-icon" />
       <div>
-        <p class="name">${service.name}</p>
+        <p class="name">${service.name} ${customBadgeHtml}</p>
         <p class="url">${service.url}</p>
       </div>
     `;
@@ -743,7 +759,7 @@ function renderServices() {
     expandBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
     const hasCustom = customSelectors[service.id] &&
       (customSelectors[service.id].selector || customSelectors[service.id].buttonSel);
-    if (hasCustom) expandBtn.classList.add("has-custom");
+    if (hasCustom || service.isCustom) expandBtn.classList.add("has-custom");
 
     // Site access, granted per service the first time it is used.
     const accessBtn = document.createElement("button");
@@ -797,26 +813,6 @@ function renderServices() {
     const editor = document.createElement("div");
     editor.className = "selector-editor";
 
-    const custom = customSelectors[service.id] || {};
-
-    const inputField = document.createElement("div");
-    inputField.className = "selector-field";
-    inputField.innerHTML = `
-      <label for="sel-input-${service.id}">Input selector</label>
-      <input class="selector-input" id="sel-input-${service.id}" type="text"
-        placeholder="${escapeAttr(service.selector)}"
-        value="${escapeAttr(custom.selector || '')}" />
-    `;
-
-    const btnField = document.createElement("div");
-    btnField.className = "selector-field";
-    btnField.innerHTML = `
-      <label for="sel-btn-${service.id}">Submit button selector</label>
-      <input class="selector-input" id="sel-btn-${service.id}" type="text"
-        placeholder="${escapeAttr(service.buttonSel || 'Not applicable')}"
-        value="${escapeAttr(custom.buttonSel || '')}" />
-    `;
-
     const editorFooter = document.createElement("div");
     editorFooter.className = "selector-editor-footer";
 
@@ -826,33 +822,136 @@ function renderServices() {
     testBtn.title = "Open the service in a background tab and check if selectors resolve";
     testBtn.addEventListener("click", () => runServiceTest(service, editor, testBtn));
 
-    const resetLink = document.createElement("button");
-    resetLink.className = "selector-reset";
-    resetLink.textContent = "Reset to defaults";
-    resetLink.addEventListener("click", () => {
-      delete customSelectors[service.id];
-      editor.querySelector(`#sel-input-${service.id}`).value = "";
-      editor.querySelector(`#sel-btn-${service.id}`).value = "";
-      expandBtn.classList.remove("has-custom");
-      save();
-    });
-    editorFooter.appendChild(testBtn);
-    editorFooter.appendChild(resetLink);
-
     const editorInner = document.createElement("div");
     editorInner.className = "selector-editor-inner";
-    editorInner.appendChild(inputField);
-    editorInner.appendChild(btnField);
-    editorInner.appendChild(editorFooter);
-    editor.appendChild(editorInner);
 
-    // Save on blur (matches existing num-input / change pattern)
-    editor.querySelector(`#sel-input-${service.id}`).addEventListener("change", () => {
-      updateCustomSelector(service.id, editor, expandBtn);
-    });
-    editor.querySelector(`#sel-btn-${service.id}`).addEventListener("change", () => {
-      updateCustomSelector(service.id, editor, expandBtn);
-    });
+    if (service.isCustom) {
+      const nameField = document.createElement("div");
+      nameField.className = "selector-field";
+      nameField.innerHTML = `
+        <label for="sel-name-${service.id}">Name</label>
+        <input class="selector-input" id="sel-name-${service.id}" type="text" value="${escapeAttr(service.name)}" />
+      `;
+      const urlField = document.createElement("div");
+      urlField.className = "selector-field";
+      urlField.innerHTML = `
+        <label for="sel-url-${service.id}">URL</label>
+        <input class="selector-input" id="sel-url-${service.id}" type="url" value="${escapeAttr(service.url)}" />
+      `;
+      const rowTop = document.createElement("div");
+      rowTop.className = "custom-form-row";
+      rowTop.appendChild(nameField);
+      rowTop.appendChild(urlField);
+
+      const inputField = document.createElement("div");
+      inputField.className = "selector-field";
+      inputField.innerHTML = `
+        <label for="sel-input-${service.id}">Input selector</label>
+        <input class="selector-input" id="sel-input-${service.id}" type="text" value="${escapeAttr(service.selector || '')}" />
+      `;
+      const btnField = document.createElement("div");
+      btnField.className = "selector-field";
+      btnField.innerHTML = `
+        <label for="sel-btn-${service.id}">Submit button selector <span class="optional-tag">(optional)</span></label>
+        <input class="selector-input" id="sel-btn-${service.id}" type="text" value="${escapeAttr(service.buttonSel || '')}" />
+      `;
+      const rowMiddle = document.createElement("div");
+      rowMiddle.className = "custom-form-row";
+      rowMiddle.appendChild(inputField);
+      rowMiddle.appendChild(btnField);
+
+      const typeField = document.createElement("div");
+      typeField.className = "selector-field";
+      typeField.innerHTML = `
+        <label for="sel-type-${service.id}">Input Type</label>
+        <select class="selector-input" id="sel-type-${service.id}">
+          <option value="textarea" ${service.inputType === 'textarea' ? 'selected' : ''}>Textarea</option>
+          <option value="contenteditable" ${service.inputType === 'contenteditable' ? 'selected' : ''}>Contenteditable</option>
+          <option value="prosemirror" ${service.inputType === 'prosemirror' ? 'selected' : ''}>ProseMirror</option>
+        </select>
+      `;
+      const submitField = document.createElement("div");
+      submitField.className = "selector-field";
+      submitField.innerHTML = `
+        <label for="sel-submit-${service.id}">Submit Type</label>
+        <select class="selector-input" id="sel-submit-${service.id}">
+          <option value="auto">Auto</option>
+          <option value="enter" ${service.submitType === 'enter' ? 'selected' : ''}>Simulate Enter Key</option>
+          <option value="button" ${service.submitType === 'button' ? 'selected' : ''}>Click Submit Button</option>
+          <option value="both" ${service.submitType === 'both' ? 'selected' : ''}>Both (Button + Enter)</option>
+        </select>
+      `;
+      const rowBottom = document.createElement("div");
+      rowBottom.className = "custom-form-row";
+      rowBottom.appendChild(typeField);
+      rowBottom.appendChild(submitField);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "selector-delete-btn";
+      deleteBtn.textContent = "Delete provider";
+      deleteBtn.addEventListener("click", () => deleteCustomProvider(service.id));
+
+      editorFooter.appendChild(testBtn);
+      editorFooter.appendChild(deleteBtn);
+
+      editorInner.appendChild(rowTop);
+      editorInner.appendChild(rowMiddle);
+      editorInner.appendChild(rowBottom);
+      editorInner.appendChild(editorFooter);
+      editor.appendChild(editorInner);
+
+      editor.querySelectorAll(".selector-input").forEach((inp) => {
+        inp.addEventListener("change", () => {
+          updateCustomProvider(service.id, editor);
+        });
+      });
+    } else {
+      const custom = customSelectors[service.id] || {};
+
+      const inputField = document.createElement("div");
+      inputField.className = "selector-field";
+      inputField.innerHTML = `
+        <label for="sel-input-${service.id}">Input selector</label>
+        <input class="selector-input" id="sel-input-${service.id}" type="text"
+          placeholder="${escapeAttr(service.selector)}"
+          value="${escapeAttr(custom.selector || '')}" />
+      `;
+
+      const btnField = document.createElement("div");
+      btnField.className = "selector-field";
+      btnField.innerHTML = `
+        <label for="sel-btn-${service.id}">Submit button selector</label>
+        <input class="selector-input" id="sel-btn-${service.id}" type="text"
+          placeholder="${escapeAttr(service.buttonSel || 'Not applicable')}"
+          value="${escapeAttr(custom.buttonSel || '')}" />
+      `;
+
+      const resetLink = document.createElement("button");
+      resetLink.className = "selector-reset";
+      resetLink.textContent = "Reset to defaults";
+      resetLink.addEventListener("click", () => {
+        delete customSelectors[service.id];
+        editor.querySelector(`#sel-input-${service.id}`).value = "";
+        editor.querySelector(`#sel-btn-${service.id}`).value = "";
+        expandBtn.classList.remove("has-custom");
+        save();
+      });
+
+      editorFooter.appendChild(testBtn);
+      editorFooter.appendChild(resetLink);
+
+      editorInner.appendChild(inputField);
+      editorInner.appendChild(btnField);
+      editorInner.appendChild(editorFooter);
+      editor.appendChild(editorInner);
+
+      editor.querySelector(`#sel-input-${service.id}`).addEventListener("change", () => {
+        updateCustomSelector(service.id, editor, expandBtn);
+      });
+      editor.querySelector(`#sel-btn-${service.id}`).addEventListener("change", () => {
+        updateCustomSelector(service.id, editor, expandBtn);
+      });
+    }
 
     // Expand button toggles the editor panel
     expandBtn.addEventListener("click", (e) => {
@@ -898,6 +997,9 @@ async function runServiceTest(service, editor, btn) {
     editor.querySelector(`#sel-btn-${service.id}`).value.trim() ||
     service.buttonSel || "";
 
+  const urlVal = editor.querySelector(`#sel-url-${service.id}`)?.value?.trim() || service.url;
+  const inputTypeVal = editor.querySelector(`#sel-type-${service.id}`)?.value || service.inputType;
+
   btn.disabled = true;
   btn.className = "selector-test-btn loading";
   btn.textContent = "Testing…";
@@ -908,10 +1010,10 @@ async function runServiceTest(service, editor, btn) {
       chrome.runtime.sendMessage(
         {
           action: "testService",
-          url: service.url,
+          url: urlVal,
           selector: selectorVal,
           buttonSel: buttonSelVal,
-          inputType: service.inputType,
+          inputType: inputTypeVal,
           waitMs: service.waitMs,
         },
         (res) => {
@@ -946,6 +1048,219 @@ async function runServiceTest(service, editor, btn) {
     btn.className = "selector-test-btn";
     btn.textContent = "Test service";
   }, 4000);
+}
+
+function updateCustomProvider(serviceId, editor) {
+  const provider = customProviders.find((p) => p.id === serviceId);
+  if (!provider) return;
+  const nameVal = editor.querySelector(`#sel-name-${serviceId}`)?.value?.trim();
+  const urlVal = editor.querySelector(`#sel-url-${serviceId}`)?.value?.trim();
+  const inputSelVal = editor.querySelector(`#sel-input-${serviceId}`)?.value?.trim();
+  const btnSelVal = editor.querySelector(`#sel-btn-${serviceId}`)?.value?.trim();
+  const inputTypeVal = editor.querySelector(`#sel-type-${serviceId}`)?.value;
+  const submitTypeVal = editor.querySelector(`#sel-submit-${serviceId}`)?.value;
+
+  if (nameVal) provider.name = nameVal;
+  if (urlVal) provider.url = urlVal;
+  if (inputSelVal !== undefined) provider.selector = inputSelVal;
+  if (btnSelVal !== undefined) provider.buttonSel = btnSelVal;
+  if (inputTypeVal) provider.inputType = inputTypeVal;
+  if (submitTypeVal) {
+    provider.submitType = submitTypeVal === "auto" ? (btnSelVal ? "button" : "enter") : submitTypeVal;
+  }
+  save();
+}
+
+async function deleteCustomProvider(serviceId) {
+  customProviders = customProviders.filter((p) => p.id !== serviceId);
+  enabledServiceIds = enabledServiceIds.filter((id) => id !== serviceId);
+  delete customSelectors[serviceId];
+  await _doSave();
+  allServices = await new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
+      resolve(res?.services || []);
+    });
+  });
+  renderServices();
+  showToast("Custom provider deleted");
+}
+
+function initAddCustomProvider() {
+  if (!customAddSubmitBtn) return;
+
+  const addRowEl = document.getElementById("customAddRow");
+  const addToggleBtn = document.getElementById("customAddToggleBtn");
+  const addExpandBtn = document.getElementById("customAddExpandBtn");
+  const addEditorEl = document.getElementById("customAddEditor");
+
+  const toggleOpen = () => {
+    if (!addEditorEl) return;
+    const isOpen = addEditorEl.classList.toggle("open");
+    if (addExpandBtn) addExpandBtn.classList.toggle("open", isOpen);
+  };
+
+  if (addRowEl) {
+    addRowEl.addEventListener("click", (e) => {
+      if (e.target.closest("#customAddEditor")) return;
+      toggleOpen();
+    });
+  }
+  if (addToggleBtn) {
+    addToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleOpen();
+    });
+  }
+  if (addExpandBtn) {
+    addExpandBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleOpen();
+    });
+  }
+
+  customAddTestBtn.addEventListener("click", async () => {
+    const urlVal = customAddUrlEl.value.trim();
+    const selectorVal = customAddSelectorEl.value.trim();
+    const buttonSelVal = customAddButtonSelEl.value.trim();
+    const inputTypeVal = customAddInputTypeEl.value || "textarea";
+
+    if (!urlVal || !selectorVal) {
+      setAddStatus("Please enter URL and Input CSS Selector first.", "error");
+      return;
+    }
+
+    customAddTestBtn.disabled = true;
+    customAddTestBtn.className = "selector-test-btn loading";
+    customAddTestBtn.textContent = "Testing…";
+    setAddStatus("Opening page in background tab to test selectors...", "");
+
+    let result;
+    try {
+      result = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          {
+            action: "testService",
+            url: urlVal,
+            selector: selectorVal,
+            buttonSel: buttonSelVal,
+            inputType: inputTypeVal,
+            waitMs: 2500,
+          },
+          (res) => {
+            if (chrome.runtime.lastError) { resolve({ ok: false, error: chrome.runtime.lastError.message }); return; }
+            resolve(res);
+          }
+        );
+      });
+    } catch (err) {
+      result = { ok: false, error: err.message };
+    }
+
+    customAddTestBtn.disabled = false;
+    if (result?.inputFound) {
+      customAddTestBtn.className = "selector-test-btn success";
+      if (buttonSelVal && result.buttonFound === false) {
+        customAddTestBtn.textContent = "Input ✓ Button ✗";
+        setAddStatus("Input selector found, but submit button selector was not found on page.", "error");
+      } else if (buttonSelVal && result.buttonFound) {
+        customAddTestBtn.textContent = "Input ✓ Button ✓";
+        setAddStatus("Success: both input and submit button found on page!", "success");
+      } else {
+        customAddTestBtn.textContent = "Input found ✓";
+        setAddStatus("Success: input selector found on page!", "success");
+      }
+    } else {
+      customAddTestBtn.className = "selector-test-btn failure";
+      customAddTestBtn.textContent = "Test failed";
+      setAddStatus(result?.error ? `Test failed: ${result.error}` : "Input selector not found on page.", "error");
+    }
+  });
+
+  customAddSubmitBtn.addEventListener("click", async () => {
+    const nameVal = customAddNameEl.value.trim();
+    const urlVal = customAddUrlEl.value.trim();
+    const selectorVal = customAddSelectorEl.value.trim();
+    const buttonSelVal = customAddButtonSelEl.value.trim();
+    const inputTypeVal = customAddInputTypeEl.value || "textarea";
+    const submitTypeChoice = customAddSubmitTypeEl.value || "auto";
+
+    if (!nameVal) {
+      setAddStatus("Please provide a name for the provider.", "error");
+      customAddNameEl.focus();
+      return;
+    }
+    if (!urlVal) {
+      setAddStatus("Please provide a URL for the chat interface.", "error");
+      customAddUrlEl.focus();
+      return;
+    }
+    if (!selectorVal) {
+      setAddStatus("Please provide a CSS selector for the input element.", "error");
+      customAddSelectorEl.focus();
+      return;
+    }
+
+    try {
+      new URL(urlVal);
+    } catch {
+      setAddStatus("Please enter a valid URL (e.g. https://chat.mistral.ai/chat).", "error");
+      customAddUrlEl.focus();
+      return;
+    }
+
+    const submitTypeVal = submitTypeChoice === "auto" ? (buttonSelVal ? "button" : "enter") : submitTypeChoice;
+    const newId = "custom_" + Date.now().toString(36);
+    const newProvider = {
+      id: newId,
+      name: nameVal,
+      url: urlVal,
+      selector: selectorVal,
+      buttonSel: buttonSelVal,
+      inputType: inputTypeVal,
+      submitType: submitTypeVal,
+      waitMs: 2500,
+      iconPath: "icons/services/custom.svg",
+      iconPathDark: "icons/services/custom.svg",
+      isCustom: true,
+    };
+
+    customProviders.push(newProvider);
+    await _doSave();
+
+    // Reload allServices registry from background
+    allServices = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
+        resolve(res?.services || []);
+      });
+    });
+
+    // Clear form fields and close editor
+    customAddNameEl.value = "";
+    customAddUrlEl.value = "";
+    customAddSelectorEl.value = "";
+    customAddButtonSelEl.value = "";
+    customAddInputTypeEl.value = "textarea";
+    customAddSubmitTypeEl.value = "auto";
+    setAddStatus("", "");
+    addEditorEl?.classList.remove("open");
+    addExpandBtn?.classList.remove("open");
+
+    // Ask for host access immediately for a seamless UX
+    requestServiceAccess(newProvider, (granted) => {
+      if (granted && !enabledServiceIds.includes(newId)) {
+        enabledServiceIds.push(newId);
+        save();
+      }
+      renderServices();
+      showToast(`Added ${nameVal}`);
+    });
+  });
+}
+
+function setAddStatus(msg, type) {
+  if (!customAddStatusEl) return;
+  customAddStatusEl.textContent = msg;
+  customAddStatusEl.className = "custom-form-status" + (type ? " " + type : "");
 }
 
 
@@ -1012,6 +1327,7 @@ async function _doSave() {
     chipDisplay: showToolNamesEl.value,
     cookieConsent: cookieConsentEl.value || "accept",
     customSelectors,
+    customProviders,
   };
 
   await chrome.storage.sync.set({ settings });
