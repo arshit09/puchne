@@ -484,8 +484,8 @@ body {
 }
 
 /* ── Per-service site access ───────────────────────────────── */
-/* Puchne installs with no host permissions; this is where each site is
-   granted and withdrawn. Dashed until allowed, solid once it is. */
+/* Puchne installs with no host permissions; this button asks for site
+   access for services that don't have it yet, and hides once granted. */
 .access-btn {
   display: flex;
   align-items: center;
@@ -508,18 +508,8 @@ body {
   background: var(--accent-light);
 }
 
-/* Literal green rather than --green: that one is a fill colour behind white
-   text, while this is text, and it has to read on both palettes. */
 .access-btn.granted {
-  border-style: solid;
-  border-color: #2e9e63;
-  color: #2e9e63;
-}
-
-.access-btn.granted:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: transparent;
+  display: none;
 }
 
 .expand-btn {
