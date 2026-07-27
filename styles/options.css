@@ -483,6 +483,45 @@ body {
   flex-shrink: 0;
 }
 
+/* ── Per-service site access ───────────────────────────────── */
+/* Puchne installs with no host permissions; this is where each site is
+   granted and withdrawn. Dashed until allowed, solid once it is. */
+.access-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.access-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* Literal green rather than --green: that one is a fill colour behind white
+   text, while this is text, and it has to read on both palettes. */
+.access-btn.granted {
+  border-style: solid;
+  border-color: #2e9e63;
+  color: #2e9e63;
+}
+
+.access-btn.granted:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: transparent;
+}
+
 .expand-btn {
   width: 32px;
   height: 32px;

@@ -9,8 +9,12 @@ window.PuchneLoaded = true;
  *  Puchne — Content Script
  * ============================================================
  *
- *  Injected into each AI website. Listens for the "fillQuery"
- *  message from the background worker, then:
+ *  Runs on each AI website. There is no static "content_scripts"
+ *  block — hosts are optional permissions, so the worker
+ *  registers this script at runtime for the sites the user has
+ *  allowed (registerServiceScripts) and injects it on demand
+ *  everywhere else. Listens for the "fillQuery" message from
+ *  the background worker, then:
  *    1. Finds the input element using the provided CSS selector
  *    2. Fills it with the user's query (handling textarea,
  *       contenteditable, and ProseMirror editors)

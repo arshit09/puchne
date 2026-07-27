@@ -1,7 +1,7 @@
-// Import shared constants (must be first statement in MV3 service worker).
-// Use an extension-root-absolute path ("/scripts/...") so resolution does not
-// depend on the worker's subfolder location.
-importScripts("/scripts/constants.js");
+// Import shared modules (must be the first statement in an MV3 service
+// worker). Extension-root-absolute paths ("/scripts/...") so resolution does
+// not depend on the worker's subfolder location.
+importScripts("/scripts/constants.js", "/scripts/permissions.js");
 
 /**
  * ============================================================
@@ -25,6 +25,9 @@ importScripts("/scripts/constants.js");
 //   id          — Unique key (used in storage for enable/disable)
 //   name        — Human-readable label
 //   url         — The page to open
+//   origins     — Match patterns this service needs. They are all optional
+//                 permissions, requested the first time the service is used,
+//                 so adding a provider never widens the install prompt.
 //   inputType   — "textarea" | "contenteditable" | "prosemirror"
 //   selector    — CSS selector for the input element
 //   submitType  — How to submit: "enter" (simulate Enter key),
@@ -43,6 +46,7 @@ const AI_SERVICES = [
     id: "chatgpt",
     name: "ChatGPT",
     url: "https://chatgpt.com/",
+    origins: ["https://chatgpt.com/*", "https://chat.openai.com/*"],
     inputType: "prosemirror",
     // Primary ID first; fallback to data-testid, then any visible ProseMirror editor
     selector: '#prompt-textarea, [data-testid="prompt-textarea"], div.ProseMirror[contenteditable="true"]',
@@ -57,6 +61,7 @@ const AI_SERVICES = [
     id: "claude",
     name: "Claude",
     url: "https://claude.ai/new",
+    origins: ["https://claude.ai/*"],
     inputType: "prosemirror",
     // Class-based first (most specific), then generic contenteditable
     selector: 'div.ProseMirror[contenteditable="true"], [data-testid="chat-input"], [contenteditable="true"]',
@@ -70,6 +75,7 @@ const AI_SERVICES = [
     id: "gemini",
     name: "Gemini",
     url: "https://gemini.google.com/app",
+    origins: ["https://gemini.google.com/*"],
     inputType: "contenteditable",
     // Quill class first; fallback to rich-textarea role, then generic contenteditable
     selector: '.ql-editor[contenteditable="true"], [data-testid="user-prompt-text-area"], [contenteditable="true"][role="textbox"]',
@@ -83,6 +89,7 @@ const AI_SERVICES = [
     id: "copilot",
     name: "Copilot",
     url: "https://copilot.microsoft.com/",
+    origins: ["https://copilot.microsoft.com/*"],
     inputType: "textarea",
     // ID first; fallback to name attribute, aria role, then placeholder heuristic
     selector: '#userInput, textarea[name="userInput"], [data-testid="user-input"], textarea[placeholder*="message" i]',
@@ -95,6 +102,7 @@ const AI_SERVICES = [
     id: "deepseek",
     name: "DeepSeek",
     url: "https://chat.deepseek.com/",
+    origins: ["https://chat.deepseek.com/*"],
     inputType: "textarea",
     // Specific ID first; generic textarea as final fallback
     selector: 'textarea#chat-input, textarea[placeholder*="message" i], textarea',
@@ -107,6 +115,7 @@ const AI_SERVICES = [
     id: "perplexity",
     name: "Perplexity",
     url: "https://www.perplexity.ai/",
+    origins: ["https://www.perplexity.ai/*"],
     inputType: "contenteditable",
     // ID first; fallback to data-testid, then placeholder heuristic
     selector: '#ask-input, [data-testid="ask-input"], textarea[placeholder*="ask" i]',
@@ -120,6 +129,7 @@ const AI_SERVICES = [
     id: "grok",
     name: "Grok",
     url: "https://grok.com/",
+    origins: ["https://grok.com/*"],
     inputType: "prosemirror",
     selector: 'div.ProseMirror[aria-label="Ask Grok anything"], textarea[aria-label="Ask Grok anything"], [contenteditable="true"][aria-label="Ask Grok anything"]',
     submitType: "button",
@@ -188,6 +198,227 @@ function resolveTargets(settings, ids) {
 }
 
 
+// ── Host Access ──────────────────────────────────────────────
+// No site is granted at install time; each one is asked for the first time
+// its service is used. Three things have to follow the answer:
+//
+//   1. the storage.local mirror content scripts read (they have no
+//      chrome.permissions API of their own),
+//   2. the dynamically registered content scripts — with no static
+//      "content_scripts" block, this is what puts the follow-up bar on an
+//      allowed AI page,
+//   3. any send that was parked while Chrome asked the question.
+
+// The panel is part of this list because the overlay is built from it.
+const CONTENT_SCRIPT_FILES = [
+  "scripts/constants.js",
+  "scripts/permissions.js",
+  "scripts/prompt-panel.js",
+  "scripts/content.js",
+];
+
+// One registration covers every allowed host; its matches are rewritten
+// whenever the granted set changes.
+const SERVICE_SCRIPT_ID = "puchne-service-hosts";
+
+/** The host patterns the user has granted. */
+async function grantedOrigins() {
+  try {
+    const permissions = await chrome.permissions.getAll();
+    return permissions.origins || [];
+  } catch (err) {
+    console.warn("[Puchne] Could not read granted permissions:", err);
+    return [];
+  }
+}
+
+// A single grant fires both permissions.onAdded and the page's own
+// "accessGranted" message, so the sync below runs twice in quick succession.
+// Serializing it keeps two overlapping registrations from racing on the same
+// script id.
+let hostAccessQueue = Promise.resolve();
+
+/**
+ * Republishes everything derived from the granted host set. Safe to call
+ * repeatedly — both the mirror write and the script registration are
+ * idempotent.
+ */
+function syncHostAccess() {
+  hostAccessQueue = hostAccessQueue
+    .then(async () => {
+      const granted = await grantedOrigins();
+      await chrome.storage.local.set({ [GRANTED_ORIGINS_KEY]: granted });
+      await registerServiceScripts(granted);
+    })
+    .catch((err) => console.warn("[Puchne] Host access sync failed:", err));
+  return hostAccessQueue;
+}
+
+/**
+ * Registers (or narrows, or drops) the content script that runs on allowed
+ * AI hosts. Without it, a page load on an allowed service would never mount
+ * the follow-up bar — only tabs Puchne opens itself get injected.
+ * @param {string[]} granted
+ */
+async function registerServiceScripts(granted) {
+  const matches = [];
+  for (const service of AI_SERVICES) {
+    if (isServiceGranted(service, granted)) matches.push(...servicePatterns(service));
+  }
+
+  let existing = [];
+  try {
+    existing = await chrome.scripting.getRegisteredContentScripts({ ids: [SERVICE_SCRIPT_ID] });
+  } catch {
+    // Nothing registered yet (or the API refused the lookup) — treat as none.
+  }
+
+  try {
+    if (matches.length === 0) {
+      if (existing.length > 0) {
+        await chrome.scripting.unregisterContentScripts({ ids: [SERVICE_SCRIPT_ID] });
+      }
+      return;
+    }
+
+    const script = {
+      id: SERVICE_SCRIPT_ID,
+      matches,
+      js: CONTENT_SCRIPT_FILES,
+      runAt: "document_idle",
+      allFrames: false, // Grid sub-frames are injected on demand instead
+      persistAcrossSessions: true,
+    };
+
+    if (existing.length > 0) {
+      await chrome.scripting.updateContentScripts([script]);
+    } else {
+      await chrome.scripting.registerContentScripts([script]);
+    }
+  } catch (err) {
+    console.warn("[Puchne] Content script registration failed:", err);
+  }
+}
+
+/**
+ * Injects into pages that were already open when access was granted, so a
+ * fresh grant doesn't need a manual reload before the panel works there.
+ * @param {string[]} origins — the patterns that were just granted
+ */
+async function injectIntoOpenTabs(origins) {
+  for (const pattern of origins || []) {
+    let tabs = [];
+    try {
+      tabs = await chrome.tabs.query({ url: pattern });
+    } catch {
+      continue; // Not a queryable pattern — nothing to back-fill.
+    }
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: CONTENT_SCRIPT_FILES,
+        });
+      } catch (err) {
+        console.log(`[Puchne] Back-fill inject (tab ${tab.id}):`, err.message);
+      }
+    }
+  }
+}
+
+/** Splits targets into the ones Puchne may drive and the ones it may not. */
+async function partitionTargets(targets) {
+  return partitionByAccess(targets, await grantedOrigins());
+}
+
+/**
+ * Opens the access prompt for a set of services. chrome.permissions.request
+ * needs an extension page and a user gesture — neither exists in a worker or
+ * a content script — so the ask is handed to pages/permissions.html.
+ *
+ * @param {string[]} serviceIds
+ * @param {{query: string}|null} [pendingSend] — a send to run once granted
+ */
+async function openAccessWindow(serviceIds, pendingSend) {
+  const ids = (serviceIds || []).filter((id) => AI_SERVICES.some((s) => s.id === id));
+  if (ids.length === 0) return;
+
+  if (pendingSend?.query) {
+    await chrome.storage.session.set({
+      [PENDING_SEND_KEY]: { query: pendingSend.query, serviceIds: ids, at: Date.now() },
+    });
+  } else {
+    await chrome.storage.session.remove(PENDING_SEND_KEY);
+  }
+
+  const base = chrome.runtime.getURL("pages/permissions.html");
+  const url = `${base}?ids=${encodeURIComponent(ids.join(","))}`;
+
+  // Re-use an open prompt rather than stacking a second window on top of it.
+  const existing = await chrome.tabs.query({ url: `${base}*` });
+  if (existing.length > 0) {
+    await chrome.tabs.update(existing[0].id, { url, active: true });
+    await chrome.windows.update(existing[0].windowId, { focused: true });
+    return;
+  }
+
+  await chrome.windows.create({ url, type: "popup", width: 480, height: 620 });
+}
+
+/**
+ * Runs after Chrome confirms a grant: switches the services on (asking for a
+ * site is a statement of intent to use it) and releases any parked send.
+ * @param {string[]} serviceIds
+ */
+async function handleAccessGranted(serviceIds) {
+  await syncHostAccess();
+
+  const ids = (serviceIds || []).filter((id) => AI_SERVICES.some((s) => s.id === id));
+  if (ids.length > 0) {
+    const stored = await chrome.storage.sync.get("settings");
+    const settings = stored.settings || {};
+    const enabled = new Set(settings.enabledServices || ["chatgpt", "claude", "gemini"]);
+    const before = enabled.size;
+    ids.forEach((id) => enabled.add(id));
+    if (enabled.size !== before) {
+      await chrome.storage.sync.set({ settings: { ...settings, enabledServices: [...enabled] } });
+    }
+  }
+
+  await resumePendingSend();
+}
+
+/**
+ * Sends the prompt the user typed before the access prompt interrupted them.
+ * Anything older than PENDING_SEND_MAX_AGE_MS is dropped — by then they have
+ * moved on, and firing a forgotten prompt at six tabs is worse than losing it.
+ */
+async function resumePendingSend() {
+  const stored = await chrome.storage.session.get(PENDING_SEND_KEY);
+  const pending = stored[PENDING_SEND_KEY];
+  if (!pending?.query) return;
+
+  await chrome.storage.session.remove(PENDING_SEND_KEY);
+  if (Date.now() - (pending.at || 0) > PENDING_SEND_MAX_AGE_MS) return;
+
+  // Deliberately not awaited, for the same reason the "multicast" handler
+  // doesn't: in tab mode the send only settles once every tab has loaded and
+  // been injected, and the access window must close on the grant, not on that.
+  handleMulticast(pending.query).then(
+    () => console.log("[Puchne] Resumed the send that was waiting on access."),
+    (err) => console.warn("[Puchne] Resumed send failed:", err)
+  );
+}
+
+chrome.permissions.onAdded.addListener(async (permissions) => {
+  await syncHostAccess();
+  await injectIntoOpenTabs(permissions.origins || []);
+});
+
+chrome.permissions.onRemoved.addListener(() => syncHostAccess());
+
+
 // ── Delivery Status ──────────────────────────────────────────
 // The popup, side panel and overlay all render the same per-service
 // delivery list. It lives in storage.session (it is meaningless after a
@@ -248,11 +479,34 @@ function markService(serviceId, patch) {
 
 /** Maps an injection result onto the state the user sees. */
 function stateFromResult(result) {
+  // needsPermission is cleared on every write: a row that failed for want of
+  // access must stop offering "Grant access" once it has been granted.
   if (!result || !result.ok) {
-    return { status: "failed", error: describeError(result) };
+    return { status: "failed", error: describeError(result), needsPermission: false };
   }
   // A content script that filled but was told not to submit stops at "filled".
-  return { status: result.submitted === false ? "filled" : "submitted", error: null };
+  return {
+    status: result.submitted === false ? "filled" : "submitted",
+    error: null,
+    needsPermission: false,
+  };
+}
+
+/**
+ * Marks the services Puchne isn't allowed to open. They get their own state
+ * so the delivery list can offer "Grant access" instead of a pointless retry.
+ * @param {Array} blocked — service definitions
+ */
+function markBlocked(blocked) {
+  return Promise.all(
+    blocked.map((service) =>
+      markService(service.id, {
+        status: "failed",
+        needsPermission: true,
+        error: `Puchne doesn't have access to ${service.name} yet.`,
+      })
+    )
+  );
 }
 
 /**
@@ -292,6 +546,10 @@ async function applySidebarMode(useSidebar) {
 // Initialize on service-worker startup
 (async () => {
   await openSessionStorageToContentScripts();
+  // Permissions can be revoked from Chrome's own UI while the worker is
+  // asleep, so the mirror and the registered scripts are re-derived here
+  // rather than trusted from the last run.
+  await syncHostAccess();
   const settings = await getSettings();
   await applySidebarMode(settings.useSidebar);
 })();
@@ -393,7 +651,7 @@ chrome.action.onClicked.addListener(async (tab) => {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"]
+          files: CONTENT_SCRIPT_FILES
         });
         // Try again after injection
         await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" }, { frameId: 0 });
@@ -411,6 +669,41 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getServices") {
     // Return the full service registry so popup/options can render it
     sendResponse({ services: AI_SERVICES });
+    return true;
+  }
+
+  if (message.action === "getPermissionState") {
+    (async () => {
+      const origins = await grantedOrigins();
+      sendResponse({
+        grantedOrigins: origins,
+        grantedIds: AI_SERVICES.filter((s) => isServiceGranted(s, origins)).map((s) => s.id),
+      });
+    })();
+    return true;
+  }
+
+  // Sent by any surface that can't ask Chrome itself — the overlay, the
+  // popup, the delivery list's "Grant access" button.
+  if (message.action === "requestServiceAccess") {
+    openAccessWindow(message.serviceIds, message.pendingSend).then(
+      () => sendResponse({ ok: true }),
+      (err) => sendResponse({ ok: false, error: err.message })
+    );
+    return true;
+  }
+
+  // Sent by pages/permissions.html once Chrome has confirmed the grant.
+  if (message.action === "accessGranted") {
+    handleAccessGranted(message.serviceIds).then(
+      () => sendResponse({ ok: true }),
+      (err) => sendResponse({ ok: false, error: err.message })
+    );
+    return true;
+  }
+
+  if (message.action === "cancelPendingSend") {
+    chrome.storage.session.remove(PENDING_SEND_KEY).then(() => sendResponse({ ok: true }));
     return true;
   }
 
@@ -460,6 +753,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const { url, selector, buttonSel, waitMs } = message;
       let tab;
       try {
+        // Opening the tab would work without access; injecting the test into
+        // it would not, so say why instead of reporting a mystery failure.
+        const service = AI_SERVICES.find((s) => s.url === url);
+        if (service && !isServiceGranted(service, await grantedOrigins())) {
+          sendResponse({ ok: false, error: `Allow access to ${service.name} first.` });
+          return;
+        }
+
         tab = await chrome.tabs.create({ url, active: false });
         await waitForTabLoad(tab.id);
         await ensureContentScript(tab.id);
@@ -511,8 +812,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           await markService(id, { status: "failed", error: describeError({ error: "iframe blocked" }) });
         }
 
+        // Access can be revoked between opening the grid and a follow-up.
+        const { allowed, blocked } = await partitionTargets(targets);
+        await markBlocked(blocked);
+
         const results = [];
-        for (const target of targets) {
+        for (const target of allowed) {
           const response = await injectIntoGridFrame(tabId, target, query, {
             autoSubmit, cookieConsent, delayMs,
           });
@@ -629,7 +934,7 @@ async function injectIntoGridFrame(tabId, target, query, { autoSubmit, cookieCon
   try {
     await chrome.scripting.executeScript({
       target: { tabId, frameIds: [frame.frameId] },
-      files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
+      files: CONTENT_SCRIPT_FILES,
     });
   } catch (err) {
     console.log(`[Puchne Grid] Script inject for ${target.name}:`, err.message);
@@ -682,7 +987,13 @@ async function retryService(serviceId) {
   const target = resolveTargets(settings, [serviceId])[0];
   if (!target) return { ok: false, error: "Unknown service." };
 
-  await markService(serviceId, { status: "pending", error: null });
+  // Retrying without access would just reopen the tab and fail on injection.
+  if (!isServiceGranted(target, await grantedOrigins())) {
+    await markBlocked([target]);
+    return { ok: false, error: `No access to ${target.name}.` };
+  }
+
+  await markService(serviceId, { status: "pending", error: null, needsPermission: false });
 
   let result;
   try {
@@ -727,10 +1038,23 @@ async function handleMulticast(query) {
   const settings = await getSettings();
 
   // Only the services the user has turned on, with custom selectors merged in
-  const targets = resolveTargets(settings);
+  const allTargets = resolveTargets(settings);
+
+  if (allTargets.length === 0) {
+    console.warn("[Puchne] No services enabled — nothing to do.");
+    return;
+  }
+
+  // The surfaces ask for access before sending, so this normally passes
+  // everything through. It still matters when a permission was revoked
+  // between composing and sending: those services are reported rather than
+  // silently dropped, and the delivery row offers to ask for them again.
+  const { allowed: targets, blocked } = await partitionTargets(allTargets);
 
   if (targets.length === 0) {
-    console.warn("[Puchne] No services enabled — nothing to do.");
+    await startSendStatus(query, allTargets, settings.gridView ? "grid" : "tabs");
+    await markBlocked(blocked);
+    console.warn("[Puchne] No enabled service has host access — nothing sent.");
     return;
   }
 
@@ -738,7 +1062,8 @@ async function handleMulticast(query) {
   if (settings.gridView) {
     const gridUrl = chrome.runtime.getURL("pages/grid.html");
     const gridTab = await chrome.tabs.create({ url: gridUrl, active: true });
-    await startSendStatus(query, targets, "grid", { gridTabId: gridTab.id });
+    await startSendStatus(query, allTargets, "grid", { gridTabId: gridTab.id });
+    await markBlocked(blocked);
 
     // Keyed by tab id so the payload survives a reload of the grid page;
     // it is dropped again in chrome.tabs.onRemoved.
@@ -766,7 +1091,8 @@ async function handleMulticast(query) {
     return;
   }
 
-  await startSendStatus(query, targets, "tabs");
+  await startSendStatus(query, allTargets, "tabs");
+  await markBlocked(blocked);
 
   // Open all tabs in parallel for speed
   const tabPromises = targets.map((service) =>
@@ -894,7 +1220,7 @@ async function ensureContentScript(tabId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
+      files: CONTENT_SCRIPT_FILES,
     });
   } catch (err) {
     // Script already injected or tab is restricted — both are fine
@@ -956,17 +1282,29 @@ async function handleFollowUpMulticast(query, tabsFromSender) {
   // The sender's list is a snapshot taken when its page loaded; the stored
   // session list is pruned in chrome.tabs.onRemoved, so prefer it.
   const { activeSessionTabs } = await chrome.storage.session.get("activeSessionTabs");
-  const activeTabs = activeSessionTabs?.length ? activeSessionTabs : tabsFromSender;
+  const sessionTabs = activeSessionTabs?.length ? activeSessionTabs : tabsFromSender;
 
-  if (!activeTabs || activeTabs.length === 0) {
+  if (!sessionTabs || sessionTabs.length === 0) {
     console.warn("[Puchne] No active session tabs provided for follow-up.");
     return;
   }
 
-  console.log(`[Puchne] Follow-up Target services: ${activeTabs.map(t => t.target.name).join(", ")}`);
-
   // A follow-up is its own send, so it gets its own status record.
-  await startSendStatus(query, activeTabs.map((t) => t.target), "tabs");
+  await startSendStatus(query, sessionTabs.map((t) => t.target), "tabs");
+
+  // A session outlives the permission that created it — access revoked in
+  // between leaves the tab open but no longer injectable.
+  const granted = await grantedOrigins();
+  const activeTabs = sessionTabs.filter((t) => isServiceGranted(t.target, granted));
+  await markBlocked(
+    sessionTabs.filter((t) => !isServiceGranted(t.target, granted)).map((t) => t.target)
+  );
+  if (activeTabs.length === 0) {
+    console.warn("[Puchne] No session tab still has host access — follow-up not sent.");
+    return;
+  }
+
+  console.log(`[Puchne] Follow-up Target services: ${activeTabs.map(t => t.target.name).join(", ")}`);
   await Promise.all(activeTabs.map((t) => markService(t.target.id, { tabId: t.tabId })));
 
   // Activate the first tab immediately

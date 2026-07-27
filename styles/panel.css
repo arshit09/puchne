@@ -140,6 +140,18 @@
 
 .pb-panel .chip.active .service-icon { filter: none; }
 
+/* A service whose site access hasn't been granted yet. Dashed rather than
+   dimmed: the chip is still clickable — the click starts the access ask. */
+.pb-panel .chip.needs-access {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.pb-panel .chip-lock {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
 /* ── Prompt input ───────────────────────────────────────────── */
 .pb-panel .input-area {
   display: flex;

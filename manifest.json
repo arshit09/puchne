@@ -5,9 +5,9 @@
   "description": "Send one prompt to ChatGPT, Claude, Gemini, Copilot, DeepSeek & more — all at once. Open source.",
   "author": "Puchne Contributors",
 
-  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequest", "webNavigation", "sidePanel"],
+  "permissions": ["storage", "activeTab", "tabs", "scripting", "tabGroups", "declarativeNetRequestWithHostAccess", "webNavigation", "sidePanel"],
 
-  "host_permissions": [
+  "optional_host_permissions": [
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -68,23 +68,6 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-
-  "content_scripts": [
-    {
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*",
-        "https://copilot.microsoft.com/*",
-        "https://chat.deepseek.com/*",
-        "https://www.perplexity.ai/*",
-        "https://grok.com/*"
-      ],
-      "js": ["scripts/constants.js", "scripts/prompt-panel.js", "scripts/content.js"],
-      "run_at": "document_idle"
-    }
-  ],
 
   "web_accessible_resources": [
     {

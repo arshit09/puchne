@@ -1,0 +1,177 @@
+/**
+ * ============================================================
+ *  Puchne — Access Request Window Styles
+ * ============================================================
+ *
+ *  A single small card in a popup window. It borrows the same
+ *  palette as the options page so the ask doesn't look like it
+ *  came from somewhere else.
+ * ============================================================
+ */
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f1f3f4;
+  --bg-tertiary: #e8eaed;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #80868b;
+  --accent: #fb923c;
+  --accent-hover: #f97316;
+  --danger: #d93025;
+  --border: #dadce0;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --transition: 200ms ease;
+  --font: system-ui, -apple-system, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #202124;
+  --bg-secondary: #303134;
+  --bg-tertiary: #3c4043;
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-muted: #9aa0a6;
+  --danger: #f28b82;
+  --border: #3c4043;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  padding: 24px 22px;
+  /* The list is built after the services resolve; fading in avoids a flash
+     of an empty card in a window this small. */
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+body.ready { opacity: 1; }
+
+.access-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.access-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.access-header h1 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.access-header .subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.access-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.access-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.access-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.access-name {
+  font-size: 0.95rem;
+}
+
+.access-host {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.access-note {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.access-error {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.access-error.hidden { display: none; }
+
+.access-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 9px 18px;
+  font-family: var(--font);
+  font-size: 0.88rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #1f1300;
+  font-weight: 500;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}

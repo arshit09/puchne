@@ -82,6 +82,11 @@ let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
 let allServices = [];
 let enabledServiceIds = [];
 let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
+// Services whose host permission has been granted. Puchne ships with none:
+// each site is asked for the first time it is switched on. This page is a
+// full tab, so it can call chrome.permissions itself rather than going
+// through the access window the popup and overlay use.
+let grantedIds = [];
 
 // ── Default Settings ─────────────────────────────────────────
 const DEFAULTS = {
@@ -140,6 +145,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       resolve(res?.services || []);
     });
   });
+
+  grantedIds = await readGrantedServiceIds();
 
   // Load saved settings
   const stored = await chrome.storage.sync.get("settings");
@@ -316,9 +323,115 @@ document.addEventListener("DOMContentLoaded", async () => {
         hoverExpandEl.checked = isChecked;
         updateHoverExpandState();
       }
+
+      // Granting a site elsewhere switches that service on; keep the
+      // toggles here from drifting out of step with it.
+      if (Array.isArray(newSettings.enabledServices)) {
+        enabledServiceIds = newSettings.enabledServices;
+        syncServiceToggles();
+      }
     }
   });
+
+  // A grant or revoke can also come from the popup's access window or from
+  // Chrome's own extension menu.
+  chrome.permissions.onAdded.addListener(syncAccessState);
+  chrome.permissions.onRemoved.addListener(syncAccessState);
 });
+
+
+// ── Host Access ──────────────────────────────────────────────
+
+/** The services whose site access is currently granted. */
+async function readGrantedServiceIds() {
+  const granted = await readGrantedOrigins();
+  return allServices.filter((s) => isServiceGranted(s, granted)).map((s) => s.id);
+}
+
+/** Re-reads the granted set and repaints the access buttons in place. */
+async function syncAccessState() {
+  grantedIds = await readGrantedServiceIds();
+  allServices.forEach((service) => {
+    const btn = serviceListEl.querySelector(
+      `.service-item[data-service-id="${service.id}"] .access-btn`
+    );
+    if (btn) updateAccessBtn(btn, service);
+  });
+}
+
+/** Mirrors enabledServiceIds onto the rendered toggles. */
+function syncServiceToggles() {
+  allServices.forEach((service) => {
+    const checkbox = serviceListEl.querySelector(
+      `.service-item[data-service-id="${service.id}"] .toggle input`
+    );
+    if (checkbox) checkbox.checked = enabledServiceIds.includes(service.id);
+  });
+}
+
+const LOCK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+function updateAccessBtn(btn, service) {
+  const granted = grantedIds.includes(service.id);
+  btn.classList.toggle("granted", granted);
+  btn.innerHTML = granted
+    ? `${CHECK_ICON}<span>Allowed</span>`
+    : `${LOCK_ICON}<span>Allow access</span>`;
+  btn.title = granted
+    ? `Puchne can use ${service.name} — click to withdraw access`
+    : `Let Puchne open ${service.name} and type your prompt into it`;
+}
+
+/**
+ * Asks Chrome for a service's sites. Must be called straight out of a click:
+ * anything awaited first spends the user gesture and the request is refused.
+ *
+ * @param {Object} service
+ * @param {(granted: boolean) => void} done
+ */
+function requestServiceAccess(service, done) {
+  chrome.permissions.request({ origins: servicePatterns(service) }, (granted) => {
+    if (chrome.runtime.lastError || !granted) {
+      showToast(`${service.name} needs site access to be used`);
+      done(false);
+      return;
+    }
+    if (!grantedIds.includes(service.id)) grantedIds.push(service.id);
+    done(true);
+  });
+}
+
+/**
+ * The access button: grants, or withdraws. Withdrawing also switches the
+ * service off — leaving it on would only queue up failed deliveries.
+ */
+function toggleServiceAccess(service, checkbox, btn) {
+  if (!grantedIds.includes(service.id)) {
+    requestServiceAccess(service, (granted) => {
+      if (!granted) return;
+      updateAccessBtn(btn, service);
+      checkbox.checked = true;
+      toggleService(service.id, true);
+      showToast(`${service.name} allowed`);
+    });
+    return;
+  }
+
+  chrome.permissions.remove({ origins: servicePatterns(service) }, (removed) => {
+    if (chrome.runtime.lastError || !removed) {
+      showToast("Chrome wouldn't withdraw that access");
+      return;
+    }
+    grantedIds = grantedIds.filter((id) => id !== service.id);
+    updateAccessBtn(btn, service);
+    if (checkbox.checked) {
+      checkbox.checked = false;
+      toggleService(service.id, false);
+    }
+    showToast(`${service.name} access withdrawn`);
+  });
+}
 
 function initCustomSelect() {
   overlayPositionTrigger.addEventListener("click", (e) => {
@@ -632,12 +745,29 @@ function renderServices() {
       (customSelectors[service.id].selector || customSelectors[service.id].buttonSel);
     if (hasCustom) expandBtn.classList.add("has-custom");
 
+    // Site access, granted per service the first time it is used.
+    const accessBtn = document.createElement("button");
+    accessBtn.className = "access-btn";
+    updateAccessBtn(accessBtn, service);
+
     const toggle = document.createElement("label");
     toggle.className = "toggle";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = enabledServiceIds.includes(service.id);
     checkbox.addEventListener("change", () => {
+      // Switching a service on is the moment its site access is worth
+      // asking for. It stays off until Chrome says yes.
+      if (checkbox.checked && !grantedIds.includes(service.id)) {
+        checkbox.checked = false;
+        requestServiceAccess(service, (granted) => {
+          if (!granted) return;
+          checkbox.checked = true;
+          updateAccessBtn(accessBtn, service);
+          toggleService(service.id, true);
+        });
+        return;
+      }
       toggleService(service.id, checkbox.checked);
     });
     const slider = document.createElement("span");
@@ -645,6 +775,12 @@ function renderServices() {
     toggle.appendChild(checkbox);
     toggle.appendChild(slider);
 
+    accessBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleServiceAccess(service, checkbox, accessBtn);
+    });
+
+    controls.appendChild(accessBtn);
     controls.appendChild(expandBtn);
     controls.appendChild(toggle);
     row.appendChild(info);

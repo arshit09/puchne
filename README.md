@@ -20,6 +20,7 @@
     *   **Grid View:** Compare all AI responses side-by-side in real-time within a single tab.
     *   **Tab Grouping:** Auto-organize independent service tabs into a neat Chrome Tab Group.
 *   **Unified Controls:** Easily customize which AI models are active, access recent prompts, or clear history.
+*   **No Up-Front Site Access:** Puchne installs without permission to any website. Each AI site is requested the first time you switch that tool on, and can be withdrawn again from Settings.
 *   **Global Shortcut:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`.
 *   **Intelligent Injector:** Seamlessly handles iframe cookie consent popups and manages site authentication automatically.
 
@@ -30,7 +31,8 @@
 Puchne features a highly customizable settings panel grouped into intuitive sections:
 
 ### 1. AI Tools
-*   **Select Providers:** Toggle which models (ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity) are active.
+*   **Select Providers:** Toggle which models (ChatGPT, Claude, Gemini, Copilot, DeepSeek, Perplexity, Grok) are active.
+*   **Per-Site Access:** Every provider's site sits in `optional_host_permissions`, so installing Puchne warns you about nothing. Turning a tool on — from the popup, the overlay or Settings — asks Chrome for that one site, and the row's access button withdraws it again whenever you like.
 
 ### 2. Appearance
 *   **Theme:** Switch between Light Mode and Dark Mode.

@@ -21,6 +21,11 @@
  *  script on AI hosts and a <script> tag in popup.html, so the
  *  class is exposed on the global object.
  *
+ *  Site access is optional and per service, so the chips also
+ *  carry that state: a service that hasn't been allowed yet
+ *  renders locked and its click asks for the site instead of
+ *  switching it on. See scripts/permissions.js.
+ *
  *  Styling lives in styles/panel.css, which both surfaces load.
  * ============================================================
  */
@@ -46,6 +51,9 @@ class PuchnePromptPanel {
 
     this.allServices = [];
     this.enabledServiceIds = [];
+    // Services whose site access the user has actually granted. Everything
+    // else renders as a locked chip that asks before it can be turned on.
+    this.grantedIds = [];
     this.promptHistory = [];
     this.historyLimit = MAX_HISTORY;
     this.enableHistory = true;
@@ -73,10 +81,12 @@ class PuchnePromptPanel {
 
     this.renderHeaderActions();
     this.allServices = await this.fetchServices();
+    await this.loadPermissionState();
     await this.loadSettings();
     await this.loadHistory();
 
     this.setupListeners();
+    this.watchPermissions();
     this.renderServiceChips(true);
     this.renderHistory();
     this.updateShortcutHint();
@@ -93,6 +103,72 @@ class PuchnePromptPanel {
         resolve(res?.services || []);
       });
     });
+  }
+
+  // ── Host access ────────────────────────────────────────────
+  // Site access is optional and per service: the worker owns the answer,
+  // because chrome.permissions is unreachable from the overlay's content
+  // script.
+
+  /** Asks the worker which services Puchne is currently allowed to drive. */
+  loadPermissionState() {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: "getPermissionState" }, (res) => {
+        if (chrome.runtime.lastError) { resolve(); return; }
+        this.grantedIds = res?.grantedIds || [];
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Repaints when access changes. The grant happens in a separate window, so
+   * the panel that asked for it only finds out through the worker's
+   * storage.local mirror — which is also readable from a content script,
+   * unlike chrome.permissions.onAdded.
+   */
+  watchPermissions() {
+    if (this._permissionListener) return;
+
+    this._permissionListener = (changes, area) => {
+      if (area !== "local" || !changes[GRANTED_ORIGINS_KEY]) return;
+      const granted = changes[GRANTED_ORIGINS_KEY].newValue || [];
+      this.grantedIds = this.allServices
+        .filter((s) => isServiceGranted(s, granted))
+        .map((s) => s.id);
+      // The worker switches a service on as it grants it, so re-read
+      // settings before repainting or the chip would stay inactive.
+      this.loadSettings().then(() => this.renderServiceChips(true));
+    };
+
+    try {
+      chrome.storage.onChanged.addListener(this._permissionListener);
+    } catch {
+      this._permissionListener = null;
+    }
+  }
+
+  /**
+   * Hands the ask to pages/permissions.html — Chrome only accepts
+   * permissions.request() from an extension page with a user gesture.
+   * @param {string[]} serviceIds
+   * @param {{query: string}} [pendingSend] — resumed by the worker once granted
+   */
+  requestAccess(serviceIds, pendingSend) {
+    if (!serviceIds || serviceIds.length === 0) return;
+    chrome.runtime.sendMessage(
+      { action: "requestServiceAccess", serviceIds, pendingSend: pendingSend || null },
+      () => void chrome.runtime.lastError
+    );
+  }
+
+  /** Enabled services that still need a grant before they can be sent to. */
+  missingAccessIds() {
+    return this.enabledServiceIds.filter((id) => !this.grantedIds.includes(id));
+  }
+
+  serviceName(id) {
+    return this.allServices.find((s) => s.id === id)?.name || id;
   }
 
   /**
@@ -150,6 +226,7 @@ class PuchnePromptPanel {
 
   /** Re-reads everything from storage and repaints. Used when re-opening. */
   async refresh() {
+    await this.loadPermissionState();
     await this.loadSettings();
     await this.loadHistory();
     this.renderServiceChips();
@@ -283,6 +360,7 @@ class PuchnePromptPanel {
       mode,
       theme,
       this.enabledServiceIds.slice().sort().join(","),
+      this.grantedIds.slice().sort().join(","),
       this.allServices.map((s) => s.id).join(","),
     ].join("|");
     if (!force && fp === this._chipFingerprint) {
@@ -310,16 +388,21 @@ class PuchnePromptPanel {
     let draggedChip = null;
 
     this.allServices.forEach((service) => {
+      const granted = this.grantedIds.includes(service.id);
       const chip = document.createElement("button");
       chip.className = "chip";
       chip.dataset.id = service.id;
-      chip.title = service.name;
+      // A locked chip says so on hover: the click opens an access prompt
+      // rather than simply switching the service on.
+      chip.title = granted ? service.name : `${service.name} — click to allow site access`;
       if (this.enabledServiceIds.includes(service.id)) chip.classList.add("active");
+      if (!granted) chip.classList.add("needs-access");
 
       const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
       chip.innerHTML = [
         showLogo ? `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" alt="" />` : "",
         showName ? service.name : "",
+        granted ? "" : PuchnePromptPanel.LOCK_ICON,
       ].join("");
 
       chip.addEventListener("click", () => this.toggleService(service.id));
@@ -403,6 +486,15 @@ class PuchnePromptPanel {
 
   toggleService(id) {
     const index = this.enabledServiceIds.indexOf(id);
+
+    // Turning on a service Puchne has no access to would only queue up a
+    // failed delivery, so ask Chrome first. The worker switches the chip on
+    // itself once the grant lands.
+    if (index < 0 && !this.grantedIds.includes(id)) {
+      this.requestAccess([id]);
+      return;
+    }
+
     if (index >= 0) {
       this.enabledServiceIds.splice(index, 1);
     } else {
@@ -438,10 +530,24 @@ class PuchnePromptPanel {
         chrome.runtime.sendMessage({ action: "openOptions" });
         this.onOpenSettings?.();
       });
-    } else {
-      hint.classList.add("hidden");
-      hint.textContent = "";
+      return;
     }
+
+    // Sending is still allowed here — it just asks for the missing sites
+    // first and goes out on its own once they're allowed.
+    const missing = this.missingAccessIds();
+    if (missing.length > 0) {
+      const names = missing.map((id) => this.serviceName(id)).join(", ");
+      hint.classList.remove("hidden");
+      hint.innerHTML =
+        `Puchne needs your permission to open ${names}. ` +
+        `<button class="link-btn" id="hintGrantBtn">Allow access</button>`;
+      this.$("hintGrantBtn")?.addEventListener("click", () => this.requestAccess(missing));
+      return;
+    }
+
+    hint.classList.add("hidden");
+    hint.textContent = "";
   }
 
   // ── Sending ────────────────────────────────────────────────
@@ -451,6 +557,27 @@ class PuchnePromptPanel {
     const sendBtn = this.$("sendBtn");
     const query = promptInput.value.trim();
     if (!query || this.enabledServiceIds.length === 0) return;
+
+    // First use of a service: hand the prompt to the worker to hold, ask for
+    // the sites, and let the send go out by itself once Chrome says yes. The
+    // prompt stays in the box in case the user declines — and because this
+    // surface may well be gone by the time the answer arrives.
+    const missing = this.missingAccessIds();
+    if (missing.length > 0) {
+      await this.saveSettings();
+      this.addToHistory(query);
+      this.renderHistory();
+      this.requestAccess(missing, { query });
+
+      // On the surfaces that survive the access window (overlay, side panel)
+      // this is the only sign the send is parked rather than lost. The next
+      // repaint after the answer replaces it.
+      const hint = this.$("panelHint");
+      hint.classList.remove("hidden");
+      hint.textContent =
+        `Waiting for permission to use ${missing.map((id) => this.serviceName(id)).join(", ")}…`;
+      return;
+    }
 
     sendBtn.disabled = true;
     sendBtn.classList.add("sending");
@@ -609,18 +736,32 @@ class PuchnePromptPanel {
 
         const actions = document.createElement("div");
         actions.className = "status-actions";
-        actions.append(
-          this.actionButton("Retry", () =>
-            chrome.runtime.sendMessage({ action: "retryService", serviceId: svc.id })
-          ),
-          this.actionButton("Open in tab", () =>
-            chrome.runtime.sendMessage({ action: "openServiceTab", serviceId: svc.id })
-          ),
-          this.actionButton("Edit selector", () => {
-            chrome.runtime.sendMessage({ action: "editServiceSelector", serviceId: svc.id });
-            this.onOpenSettings?.();
-          })
-        );
+
+        if (svc.needsPermission) {
+          // Retrying or editing a selector fixes nothing here — the only way
+          // forward is granting the site.
+          actions.append(
+            // No pending send is attached: the other services in this record
+            // already got the prompt, and resuming it would send it twice.
+            this.actionButton("Grant access", () => this.requestAccess([svc.id])),
+            this.actionButton("Open in tab", () =>
+              chrome.runtime.sendMessage({ action: "openServiceTab", serviceId: svc.id })
+            )
+          );
+        } else {
+          actions.append(
+            this.actionButton("Retry", () =>
+              chrome.runtime.sendMessage({ action: "retryService", serviceId: svc.id })
+            ),
+            this.actionButton("Open in tab", () =>
+              chrome.runtime.sendMessage({ action: "openServiceTab", serviceId: svc.id })
+            ),
+            this.actionButton("Edit selector", () => {
+              chrome.runtime.sendMessage({ action: "editServiceSelector", serviceId: svc.id });
+              this.onOpenSettings?.();
+            })
+          );
+        }
         li.appendChild(actions);
       }
 
@@ -779,8 +920,18 @@ class PuchnePromptPanel {
       try { chrome.storage.onChanged.removeListener(this._statusListener); } catch {}
       this._statusListener = null;
     }
+    if (this._permissionListener) {
+      try { chrome.storage.onChanged.removeListener(this._permissionListener); } catch {}
+      this._permissionListener = null;
+    }
   }
 }
+
+// The padlock on a chip for a service that hasn't been allowed yet.
+PuchnePromptPanel.LOCK_ICON = `<svg class="chip-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <rect x="4" y="11" width="16" height="10" rx="2"/>
+  <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+</svg>`;
 
 /**
  * Returns a human-readable relative time string (e.g. "2h ago").

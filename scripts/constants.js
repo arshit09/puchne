@@ -21,6 +21,13 @@ var SEND_STATUS_POLL_MS = 1_200;   // Fallback poll interval while a send is in 
 var SEND_STATUS_POLLS   = 50;      // Give up polling after this many ticks (~60s)
 var SEND_STATUS_STALE_MS = 5 * 60_000; // Don't surface a status record older than this
 var FOLLOWUP_POS_KEY    = "followUpBar"; // storage.local: { [origin]: { left, top, collapsed } }
+// Host access is optional and asked for per service. The worker mirrors the
+// granted match patterns into storage.local because content scripts cannot
+// read chrome.permissions themselves. See scripts/permissions.js.
+var GRANTED_ORIGINS_KEY = "grantedOrigins";
+// storage.session: a send parked while Chrome asks the user for site access.
+var PENDING_SEND_KEY      = "pendingSend";
+var PENDING_SEND_MAX_AGE_MS = 5 * 60_000; // Don't resume a send the user walked away from
 
 /**
  * Applies a theme to an element by setting data-theme="dark"|"light".

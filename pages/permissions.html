@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puchne — Allow site access</title>
+  <link rel="stylesheet" href="../styles/permissions.css">
+</head>
+<body>
+  <!-- Chrome only accepts permissions.request() from an extension page with
+       a live user gesture, which rules out the worker, the overlay's content
+       script, and anything that has to await first. Every surface that needs
+       an AI host therefore routes the ask through this small window. -->
+  <main class="access-card">
+    <header class="access-header">
+      <img src="../icons/app/icon-48.png" width="40" height="40" alt="" />
+      <div>
+        <h1 id="title">Allow access</h1>
+        <p class="subtitle">Puchne asks for one site at a time, only when you use it.</p>
+      </div>
+    </header>
+
+    <ul id="serviceList" class="access-list"></ul>
+
+    <p class="access-note">
+      Access lets Puchne open these sites and type your prompt into them.
+      Nothing is read or sent anywhere else, and you can withdraw it any time
+      from Puchne's settings.
+    </p>
+
+    <p id="accessError" class="access-error hidden"></p>
+
+    <div class="access-actions">
+      <button type="button" id="cancelBtn" class="btn-secondary">Not now</button>
+      <button type="button" id="allowBtn" class="btn-primary">Continue</button>
+    </div>
+  </main>
+
+  <script src="../scripts/constants.js"></script>
+  <script src="../scripts/permissions.js"></script>
+  <script src="permissions-page.js"></script>
+</body>
+</html>
