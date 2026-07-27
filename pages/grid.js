@@ -968,7 +968,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       console.log(`[Puchne Grid] Requesting follow-up injection for ${loadedTargets.length} frames...`);
       chrome.runtime.sendMessage(
-        { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query: newQuery, autoSubmit: true, cookieConsent: "off", delayMs: 0 },
+        { action: "injectGridQueries", tabId: selfTab.id, targets: loadedTargets, query: newQuery, autoSubmit, cookieConsent: "off", delayMs: 0 },
         (response) => {
           if (chrome.runtime.lastError) {
             console.error("[Puchne Grid] Follow-up injection request failed:", chrome.runtime.lastError.message);
