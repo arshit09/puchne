@@ -44,8 +44,56 @@ const GENERIC_INPUT_FALLBACKS = {
 const GENERIC_BUTTON_FALLBACKS =
   'button[aria-label*="send" i], button[aria-label*="submit" i], [data-testid*="send"], [data-testid*="submit"]';
 
+// ── Selection Extraction ─────────────────────────────────────
+function getActiveSelectionText() {
+  const activeEl = document.activeElement;
+  if (
+    activeEl &&
+    (activeEl.tagName === "TEXTAREA" ||
+      (activeEl.tagName === "INPUT" && /^(text|search|url|tel|password)$/i.test(activeEl.type))) &&
+    typeof activeEl.selectionStart === "number" &&
+    activeEl.selectionStart !== activeEl.selectionEnd
+  ) {
+    return activeEl.value.substring(activeEl.selectionStart, activeEl.selectionEnd).trim();
+  }
+  return (window.getSelection()?.toString() || "").trim();
+}
+
 // ── Message Listener ─────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.action === "getPageContext") {
+      const title = document.title || "";
+      const url = window.location.href || "";
+      const text = (document.body?.innerText || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 2500);
+      sendResponse({ title, url, text });
+      return true;
+    }
+
+    if (message.action === "getSelectionOrPage") {
+      const selectionText = getActiveSelectionText();
+      const title = document.title || "";
+      const url = window.location.href || "";
+      const text = (document.body?.innerText || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 2500);
+      sendResponse({ selectionText, title, url, text });
+      return true;
+    }
+
+    if (message.action === "openOverlayWithPrompt") {
+      if (window !== window.top) {
+        sendResponse({ ok: false, error: "Not top frame" });
+        return true;
+      }
+      openOverlayWithPrompt(message.promptText);
+      sendResponse({ ok: true });
+      return true;
+    }
+
     if (message.action === "fillQuery") {
       fillAndSubmit(message)
         .then((result) => sendResponse(result))
@@ -151,6 +199,15 @@ async function toggleOverlay() {
     await overlayInstance.initPromise;
   }
   overlayInstance.toggle();
+}
+
+async function openOverlayWithPrompt(promptText) {
+  if (!overlayInstance) {
+    overlayInstance = new PuchneOverlay();
+    await overlayInstance.initPromise;
+  }
+  await overlayInstance.show();
+  overlayInstance.setPrompt(promptText);
 }
 
 class PuchneOverlay {
@@ -336,6 +393,12 @@ class PuchneOverlay {
   hide() {
     this.visible = false;
     this.container.style.display = "none";
+  }
+
+  setPrompt(text) {
+    if (this.panel) {
+      this.panel.setPrompt(text);
+    }
   }
 }
 

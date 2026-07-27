@@ -21,7 +21,7 @@
     *   **Tab Grouping:** Auto-organize independent service tabs into a neat Chrome Tab Group.
 *   **Unified Controls:** Easily customize which AI models are active, access recent prompts, or clear history.
 *   **No Up-Front Site Access:** Puchne installs without permission to any website. Each AI site is requested the first time you switch that tool on, and can be withdrawn again from Settings.
-*   **Global Shortcut:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`.
+*   **Global Shortcuts & Context Menus:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`, or right-click any selection or page (or press `Ctrl+Shift+S`) to ask Puchne about it with the prompt pre-filled for review.
 *   **Intelligent Injector:** Seamlessly handles iframe cookie consent popups and manages site authentication automatically.
 
 ---

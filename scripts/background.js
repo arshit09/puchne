@@ -687,6 +687,134 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 
+// ── Context Menus & Selection Shortcut ───────────────────────
+function setupContextMenus() {
+  if (!chrome.contextMenus) return;
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "puchne-ask-selection",
+      title: "Ask Puchne",
+      contexts: ["selection"],
+    });
+    chrome.contextMenus.create({
+      id: "puchne-ask-page",
+      title: "Ask Puchne",
+      contexts: ["page", "frame"],
+    });
+  });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  setupContextMenus();
+});
+setupContextMenus();
+
+function formatPagePrompt(title, url, text) {
+  const t = title || "this page";
+  const u = url || "";
+  return text
+    ? `About this page (${t} - ${u}):\n\n${text}\n\nCan you summarize and explain key points from this page?`
+    : `Explain this page: ${t} (${u})`;
+}
+
+async function getPagePromptText(tabId, frameId, tab) {
+  try {
+    const res = await chrome.tabs.sendMessage(tabId, { action: "getPageContext" }, { frameId });
+    if (res) {
+      return formatPagePrompt(res.title || tab.title, res.url || tab.url, res.text || "");
+    }
+  } catch {
+    // ignore
+  }
+  return formatPagePrompt(tab?.title || "this page", tab?.url || "", "");
+}
+
+async function openPromptInOptionsOrWindow(promptText) {
+  await chrome.storage.session.set({ pendingPrompt: promptText });
+  await openOptionsPage();
+}
+
+async function triggerPromptOnTab(tab, promptText) {
+  if (!tab || !tab.id) return;
+
+  const settings = await getSettings();
+  if (settings.useSidebar && chrome.sidePanel?.open) {
+    await chrome.storage.session.set({ pendingPrompt: promptText });
+    try {
+      await chrome.sidePanel.open({ tabId: tab.id });
+      return;
+    } catch (err) {
+      try {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+        return;
+      } catch (e) {
+        // Fall back to overlay
+      }
+    }
+  }
+
+  if (tab.url?.startsWith("chrome://") || tab.url?.startsWith("edge://") || tab.url?.startsWith("about:")) {
+    await openPromptInOptionsOrWindow(promptText);
+    return;
+  }
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { action: "openOverlayWithPrompt", promptText }, { frameId: 0 });
+  } catch (err) {
+    if (err.message?.includes("Could not establish connection")) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: CONTENT_SCRIPT_FILES,
+        });
+        await chrome.tabs.sendMessage(tab.id, { action: "openOverlayWithPrompt", promptText }, { frameId: 0 });
+      } catch (injectErr) {
+        console.warn("[Puchne] Manual injection for openOverlayWithPrompt failed:", injectErr);
+        await openPromptInOptionsOrWindow(promptText);
+      }
+    } else {
+      console.error("[Puchne] openOverlayWithPrompt failed:", err);
+      await openPromptInOptionsOrWindow(promptText);
+    }
+  }
+}
+
+if (chrome.contextMenus?.onClicked) {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (!tab || !tab.id) return;
+    let promptText = "";
+    if (info.menuItemId === "puchne-ask-selection" && info.selectionText) {
+      promptText = info.selectionText.trim();
+    } else if (info.menuItemId === "puchne-ask-page") {
+      promptText = await getPagePromptText(tab.id, info.frameId || 0, tab);
+    }
+    if (!promptText) return;
+    await triggerPromptOnTab(tab, promptText);
+  });
+}
+
+if (chrome.commands?.onCommand) {
+  chrome.commands.onCommand.addListener(async (command, tab) => {
+    if (command === "ask-selection" && tab && tab.id) {
+      let promptText = "";
+      try {
+        const res = await chrome.tabs.sendMessage(tab.id, { action: "getSelectionOrPage" }, { frameId: 0 });
+        if (res && res.selectionText) {
+          promptText = res.selectionText;
+        } else if (res) {
+          promptText = formatPagePrompt(res.title || tab.title, res.url || tab.url, res.text || "");
+        }
+      } catch (err) {
+        promptText = formatPagePrompt(tab.title || "this page", tab.url || "", "");
+      }
+      if (promptText) {
+        await triggerPromptOnTab(tab, promptText);
+      }
+    }
+  });
+}
+
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getServices") {
     (async () => {

@@ -34,6 +34,7 @@ const showRecentsEl = document.getElementById("showRecents");
 const showShortcutHintEl = document.getElementById("showShortcutHint");
 const showFollowUpInputEl = document.getElementById("showFollowUpInput");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
+const selectionShortcutBadge = document.getElementById("selectionShortcutBadge");
 const overlayPositionEl = document.getElementById("overlayPosition");
 const overlayPositionContainer = document.getElementById("overlayPositionContainer");
 const overlayPositionTrigger = document.getElementById("overlayPositionTrigger");
@@ -1400,14 +1401,19 @@ function showToast(message) {
  * the badge in the Keyboard Shortcut section.
  */
 async function loadCurrentShortcut() {
-  if (!currentShortcutBadge) return;
   try {
     const commands = await chrome.commands.getAll();
     const cmd = commands.find((c) => c.name === "_execute_action");
-    const shortcut = cmd?.shortcut;
-    currentShortcutBadge.textContent = shortcut ? shortcut.replace(/\+/g, " + ") : "Not set";
+    const selCmd = commands.find((c) => c.name === "ask-selection");
+    if (currentShortcutBadge) {
+      currentShortcutBadge.textContent = cmd?.shortcut ? cmd.shortcut.replace(/\+/g, " + ") : "Not set";
+    }
+    if (selectionShortcutBadge) {
+      selectionShortcutBadge.textContent = selCmd?.shortcut ? selCmd.shortcut.replace(/\+/g, " + ") : "Not set";
+    }
   } catch {
-    currentShortcutBadge.textContent = "Unavailable";
+    if (currentShortcutBadge) currentShortcutBadge.textContent = "Unavailable";
+    if (selectionShortcutBadge) selectionShortcutBadge.textContent = "Unavailable";
   }
 }
 

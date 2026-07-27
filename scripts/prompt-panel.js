@@ -92,6 +92,7 @@ class PuchnePromptPanel {
     this.updateShortcutHint();
     await this.loadStatus();
     this.watchStatus();
+    await this.checkPendingPrompt();
   }
 
   // ── Data loading ───────────────────────────────────────────
@@ -233,6 +234,7 @@ class PuchnePromptPanel {
     this.renderHistory();
     this.updateShortcutHint();
     await this.loadStatus();
+    await this.checkPendingPrompt();
   }
 
   // ── Markup ─────────────────────────────────────────────────
@@ -548,6 +550,28 @@ class PuchnePromptPanel {
 
     hint.classList.add("hidden");
     hint.textContent = "";
+  }
+
+  setPrompt(text) {
+    const promptInput = this.$("promptInput");
+    if (promptInput && typeof text === "string") {
+      promptInput.value = text;
+      this.updateSendButton();
+      promptInput.focus();
+      promptInput.selectionStart = promptInput.selectionEnd = promptInput.value.length;
+    }
+  }
+
+  async checkPendingPrompt() {
+    try {
+      const data = await chrome.storage.session.get("pendingPrompt");
+      if (data && data.pendingPrompt) {
+        await chrome.storage.session.remove("pendingPrompt");
+        this.setPrompt(data.pendingPrompt);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   // ── Sending ────────────────────────────────────────────────

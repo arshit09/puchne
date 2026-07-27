@@ -443,14 +443,27 @@
         <section class="section" id="section-shortcut">
           <div class="section-header">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
-            <h2>Global Shortcut</h2>
+            <h2>Global Shortcuts</h2>
           </div>
 
-          <p class="section-desc">Press this key combination to open the Puchne overlay on any website.</p>
+          <p class="section-desc">Press these key combinations on any webpage to open Puchne or ask about selected text and pages.</p>
           <div class="shortcut-container">
-            <div class="shortcut-action">
+            <div class="shortcut-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+              <div>
+                <p class="setting-label" style="margin: 0; font-weight: 600;">Open Puchne Overlay</p>
+                <p class="setting-desc" style="margin: 2px 0 0; font-size: 13px;">Open the query overlay on any webpage</p>
+              </div>
               <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
-              <button id="openShortcuts" class="btn-action">Change Shortcut ↗</button>
+            </div>
+            <div class="shortcut-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <p class="setting-label" style="margin: 0; font-weight: 600;">Ask Puchne about Selection / Page</p>
+                <p class="setting-desc" style="margin: 2px 0 0; font-size: 13px;">Send selected text or page summary to every AI</p>
+              </div>
+              <span id="selectionShortcutBadge" class="shortcut-badge">Loading…</span>
+            </div>
+            <div class="shortcut-action" style="justify-content: flex-end;">
+              <button id="openShortcuts" class="btn-action">Change Shortcuts ↗</button>
             </div>
           </div>
         </section>
