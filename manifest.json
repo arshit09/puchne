@@ -88,7 +88,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["icons/app/*.png", "icons/services/*.png", "icons/services/*.svg", "pages/grid.html", "scripts/cookie-dismiss.js"],
+      "resources": ["icons/app/*.png", "icons/services/*.png", "icons/services/*.svg", "pages/grid.html", "scripts/cookie-dismiss.js", "styles/overlay.css"],
       "matches": ["<all_urls>"]
     }
   ]

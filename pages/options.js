@@ -91,7 +91,7 @@ const DEFAULTS = {
   gridView: true,
   hoverExpand: true,
   hoverExpandMin: 2,
-  hoverExpandDelay: 0,
+  hoverExpandDelay: 200,
   groupTabs: false,
   delayMs: 2000,
   historyLimit: 20,
@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandMinEl.value = savedHoverExpandMin;
   updateHoverExpandMinLabel(savedHoverExpandMin);
   updateHoverExpandMinSelected(savedHoverExpandMin);
-  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? 0);
+  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? DEFAULTS.hoverExpandDelay);
   hoverExpandDelayEl.value = savedHoverExpandDelay;
   updateHoverExpandDelayLabel(savedHoverExpandDelay);
   updateHoverExpandDelaySelected(savedHoverExpandDelay);

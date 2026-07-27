@@ -31,7 +31,10 @@ let cellMap   = [];   // [{ el, row, col, colSpan, service, index }]
 const MIN_FRAC = 0.10; // minimum fraction for any track (10%)
 
 /* ── Hover-to-Expand State ─────────────────────────────────── */
-let hoverExpandDelay = 0;  // ms of dwell before expanding
+// Expanding relayouts every iframe, so a dwell is required by default:
+// a cursor crossing the grid must not trigger a cascade of reflows.
+const HOVER_EXPAND_DELAY_DEFAULT = 200;
+let hoverExpandDelay = HOVER_EXPAND_DELAY_DEFAULT;  // ms of dwell before expanding
 const HOVER_EXPAND_FRAC  = 0.60;  // target fraction the hovered cell's span will occupy
 
 let expandState = null; // { savedColFracs, savedRowFracs, cellObj } when a cell is expanded
@@ -685,7 +688,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   hoverExpand    = settings.hoverExpand !== false;
   hoverExpandMin = settings.hoverExpandMin ?? 2;
-  hoverExpandDelay = settings.hoverExpandDelay ?? 0;
+  hoverExpandDelay = settings.hoverExpandDelay ?? HOVER_EXPAND_DELAY_DEFAULT;
 
   if (settings.showFollowUpInput === false && gridQueryForm) {
     gridQueryForm.style.display = "none";
@@ -730,7 +733,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const isEnabled = newSettings.hoverExpand !== false;
       hoverExpand = isEnabled;
       hoverExpandMin = newSettings.hoverExpandMin ?? 2;
-      hoverExpandDelay = newSettings.hoverExpandDelay ?? 0;
+      hoverExpandDelay = newSettings.hoverExpandDelay ?? HOVER_EXPAND_DELAY_DEFAULT;
 
       const toggleEl = document.getElementById("hoverExpandToggle");
       if (toggleEl && toggleEl.checked !== isEnabled) {
@@ -862,26 +865,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Iframe
     const iframe = document.createElement("iframe");
     iframe.className = "cell-iframe";
-    iframe.src = service.url;
     iframe.style.display = "none";
 
+    // Booting every SPA in the same instant is the jankiest moment in the
+    // grid, so navigations are staggered. The load timeout starts when the
+    // navigation does, not when the cell is built.
     const loadPromise = new Promise((resolve) => {
       let settled = false;
+      let timeoutId = null;
+
       iframe.addEventListener("load", () => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeoutId);
         loading.remove();
         iframe.style.display = "block";
         resolve({ service, ok: true });
       });
+
       setTimeout(() => {
         if (settled) return;
-        settled = true;
-        loading.remove();
-        iframe.remove();
-        showCellError(cell, service);
-        resolve({ service, ok: false });
-      }, 12000);
+        // Cell was closed before its turn to load — nothing to navigate.
+        if (!cell.isConnected) {
+          settled = true;
+          resolve({ service, ok: false });
+          return;
+        }
+        iframe.src = service.url;
+        timeoutId = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          loading.remove();
+          iframe.remove();
+          showCellError(cell, service);
+          resolve({ service, ok: false });
+        }, 12000);
+      }, i * GRID_STAGGER_MS);
     });
     iframeLoadPromises.push(loadPromise);
 

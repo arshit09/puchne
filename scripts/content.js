@@ -99,6 +99,43 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 // ── Overlay Implementation ───────────────────────────────────
 let overlayInstance = null;
 
+// The overlay's CSS lives in styles/overlay.css, not in a JS template. It is
+// fetched and parsed once per page and shared by every shadow root that adopts
+// it, instead of re-parsing ~200 lines of CSS on each construction.
+const OVERLAY_CSS_PATH = "styles/overlay.css";
+let _overlaySheetPromise = null;
+
+function getOverlaySheet() {
+  if (!_overlaySheetPromise) {
+    _overlaySheetPromise = (async () => {
+      const res = await fetch(chrome.runtime.getURL(OVERLAY_CSS_PATH));
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(await res.text());
+      return sheet;
+    })();
+  }
+  return _overlaySheetPromise;
+}
+
+/**
+ * Styles a shadow root with the overlay stylesheet. Falls back to a <link>
+ * if the sheet can't be fetched (e.g. a host that blocks the request), so the
+ * overlay is never rendered unstyled.
+ * @param {ShadowRoot} shadow
+ */
+async function adoptOverlayStyles(shadow) {
+  try {
+    shadow.adoptedStyleSheets = [await getOverlaySheet()];
+  } catch (err) {
+    console.warn("[Puchne] Overlay stylesheet fetch failed, linking instead:", err);
+    _overlaySheetPromise = null;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = chrome.runtime.getURL(OVERLAY_CSS_PATH);
+    shadow.prepend(link);
+  }
+}
+
 async function toggleOverlay() {
   if (!overlayInstance) {
     overlayInstance = new PuchneOverlay();
@@ -146,13 +183,13 @@ class PuchneOverlay {
     // 2. Attach Shadow DOM
     this.shadow = this.container.attachShadow({ mode: "closed" });
 
-    // 3. Inject CSS
-    const style = document.createElement("style");
-    style.textContent = this.getStyles();
-    this.shadow.appendChild(style);
+    // 3. Adopt the shared stylesheet (parsed once per page)
+    await adoptOverlayStyles(this.shadow);
 
-    // 4. Inject HTML
-    this.shadow.innerHTML += this.getHTML();
+    // 4. Inject HTML (appended, so the <link> fallback above survives)
+    this.shadow.appendChild(
+      document.createRange().createContextualFragment(this.getHTML())
+    );
 
     // 5. Setup Local State & Listeners
     await this.loadData();
@@ -740,221 +777,6 @@ class PuchneOverlay {
       </div>
     `;
   }
-
-  getStyles() {
-    return `
-      :host {
-        /* Ensure text-related properties don't inherit from the host site */
-        all: initial;
-        font-family: var(--font);
-
-        /* Ensure smoothing and other text rendering basics */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-
-        /* Google light-mode palette */
-        --bg-primary:   #ffffff;
-        --bg-secondary: #f1f3f4;
-        --bg-tertiary:  #e8eaed;
-        --bg-hover:     #dadce0;
-        --text-primary:   #202124;
-        --text-secondary: #5f6368;
-        --text-muted:     #80868b;
-        --accent:       #fb923c;
-        --accent-hover: #f97316;
-        --accent-glow:  rgba(251, 146, 60, 0.15);
-        --border:       #dadce0;
-        --radius:       14px;
-        --radius-sm:    8px;
-        --transition:   200ms ease;
-        --font: system-ui, -apple-system, sans-serif;
-      }
-
-      :host([data-theme="dark"]) {
-        /* Google dark-mode palette */
-        --bg-primary:   #202124;
-        --bg-secondary: #303134;
-        --bg-tertiary:  #3c4043;
-        --bg-hover:     #5f6368;
-        --text-primary:   #e8eaed;
-        --text-secondary: #bdc1c6;
-        --text-muted:     #9aa0a6;
-        --accent-glow:  rgba(249, 115, 22, 0.20);
-        --border:       #3c4043;
-      }
-
-      * { 
-        box-sizing: border-box; 
-        margin: 0; 
-        padding: 0; 
-        font-family: var(--font);
-      }
-
-      .modal-container {
-        width: max-content;
-        max-width: 95vw;
-        background: var(--bg-primary);
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-        line-height: 1.5;
-      }
-
-      /* slideUp removed */
-
-      .header { display: flex; align-items: center; justify-content: space-between; cursor: grab; }
-      .header:active { cursor: grabbing; }
-      .logo { display: flex; align-items: center; gap: 10px; }
-      .logo h1 { font-size: 22px; font-weight: 700; }
-
-      .icon-btn {
-        background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
-        color: var(--text-secondary); cursor: pointer; padding: 10px;
-        display: flex; align-items: center; justify-content: center;
-        transition: all var(--transition);
-      }
-      .icon-btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-secondary); }
-
-      .service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-      .chip {
-        display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px;
-        min-width: 44px; border-radius: 999px; border: 2px solid var(--border);
-        background: var(--bg-secondary); color: var(--text-secondary);
-        font-size: 15px; font-weight: 400; cursor: pointer;
-        transition: all var(--transition); user-select: none;
-      }
-      .chip:hover { border-color: var(--border); background: var(--bg-hover); }
-      .chip.active { border-color: var(--accent); }
-      .chip.active:hover { border-color: var(--accent-hover); background: var(--accent-glow); }
-      .service-icon { width: 18px; height: 18px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
-      .chip.active .service-icon { filter: none; }
-
-      textarea {
-        flex: 1; min-width: 200px; padding: 10px 0; background: transparent; border: none; outline: none;
-        color: var(--text-primary); font-family: var(--font); font-size: 18px;
-        line-height: 1.6; resize: none; min-height: 30px;
-      }
-      textarea::placeholder { color: var(--text-muted); font-size: 16px; }
-
-      .input-footer {
-        display: flex; align-items: center; justify-content: flex-end;
-        padding-bottom: 5px; background: transparent;
-      }
-
-      .input-area {
-        display: flex; flex-direction: row; align-items: flex-end; background: var(--bg-secondary);
-        border: 1px solid var(--border); border-radius: var(--radius);
-        padding: 10px 10px 10px 20px; transition: border-color var(--transition);
-        gap: 12px; flex-wrap: wrap;
-      }
-
-      .toggles { display: flex; align-items: center; gap: 20px; }
-
-      .toggle-control { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-secondary); cursor: pointer; }
-      .toggle-control input { appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-muted); border-radius: 4px; position: relative; cursor: pointer; transition: all var(--transition); }
-      .toggle-control input:checked { background: var(--accent); border-color: var(--accent); }
-      .toggle-control input:checked::after {
-        content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
-        border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
-      }
-      .toggle-control:hover span { color: var(--text-primary); }
-
-      .has-tooltip { position: relative; }
-      .tooltip {
-        position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
-        width: 200px; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border);
-        border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;
-        line-height: 1.4; pointer-events: none; opacity: 0; visibility: hidden;
-        transition: all var(--transition); z-index: 10;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-      .tooltip::after {
-        content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-        border-width: 6px; border-style: solid; border-color: var(--border) transparent transparent transparent;
-      }
-      .has-tooltip:hover .tooltip { opacity: 1; visibility: visible; bottom: calc(100% + 6px); }
-
-      .send-btn {
-        display: flex; align-items: center; justify-content: center;
-        width: 48px; height: 48px;
-        border: none; border-radius: 50%;
-        background: var(--accent); color: #fff; transition: all var(--transition);
-        flex-shrink: 0;
-      }
-      .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
-      .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-      .history-section { display: flex; flex-direction: column; gap: 8px; }
-      .hidden { display: none; }
-      .history-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
-      .history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; }
-      .history-list::-webkit-scrollbar { width: 4px; }
-      .history-list::-webkit-scrollbar-track { background: transparent; }
-      .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-      .history-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-      .history-item {
-        display: flex; align-items: center; gap: 8px;
-        padding: 8px 12px 8px 16px; border-radius: var(--radius-sm);
-        transition: background var(--transition);
-      }
-      .history-item:hover { background: var(--bg-hover); }
-      .history-item:hover .history-delete-btn { opacity: 1; pointer-events: auto; }
-      .history-item-content {
-        flex: 1; display: flex; flex-direction: column; gap: 1px;
-        cursor: pointer; overflow: hidden;
-      }
-      .history-item-text {
-        font-size: 15px; color: var(--text-secondary);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        transition: color var(--transition);
-      }
-      .history-item:hover .history-item-text { color: var(--text-primary); }
-      .history-item-time {
-        font-size: 11px; color: var(--text-muted);
-      }
-      .history-delete-btn {
-        flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-        width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px;
-        background: none; color: var(--text-muted); cursor: pointer;
-        opacity: 0; pointer-events: none;
-        transition: all var(--transition);
-      }
-      .history-delete-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-
-      .footer { display: flex; align-items: center; justify-content: center; padding-top: 8px; }
-      .shortcut-hint { 
-        display: flex; 
-        align-items: center; 
-        gap: 6px; 
-        font-size: 12px; 
-        color: var(--text-muted); 
-        background: transparent; 
-        padding: 5px 12px; 
-        border-radius: var(--radius-sm);
-        border: 1px solid transparent; 
-        transition: all var(--transition);
-      }
-      .shortcut-hint:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-        border-color: var(--text-muted);
-      }
-      .shortcut-icon { 
-        stroke: var(--text-muted); 
-        transition: stroke var(--transition);
-      }
-      .shortcut-hint:hover .shortcut-icon {
-        stroke: var(--text-primary);
-      }
-      .shortcut-label { font-weight: 500; margin-right: -2px; }
-    `;
-  }
 }
 
 
@@ -969,6 +791,8 @@ class PuchneOverlay {
  * @param {boolean} params.autoSubmit — Whether to auto-press Enter / click Send
  * @param {string} params.submitType  — "enter" | "button" | "both"
  * @param {string} [params.buttonSel] — CSS selector for the send button
+ * @param {number} [params.waitMs]    — Settle window after the input is found,
+ *                                      capped at SETTLE_CAP_MS
  */
 async function fillAndSubmit({
   query,
@@ -979,19 +803,32 @@ async function fillAndSubmit({
   buttonSel,
   waitMs = 0,
 }) {
-  // Step 1: Wait for the page to settle before interacting
-  if (waitMs > 0) await sleep(waitMs);
-
-  // Step 2: Wait for the input element to appear in the DOM.
+  // Step 1: Start looking for the input immediately. waitForElement is
+  // MutationObserver-driven, so it resolves the moment the editor mounts —
+  // sleeping waitMs first would only be dead time on top of that.
   // If the primary selector misses (site redesign), fall back to generic patterns.
+  let matchedSel = selector;
   let element = await waitForElement(selector);
   if (!element) {
     const fallbackSel = GENERIC_INPUT_FALLBACKS[inputType] || GENERIC_INPUT_FALLBACKS.contenteditable;
     console.warn(`[Puchne] Primary selector failed ("${selector}"), trying generic fallback: ${fallbackSel}`);
+    matchedSel = fallbackSel;
     element = await waitForElement(fallbackSel);
   }
   if (!element) {
     return { ok: false, error: `Input not found: ${selector}` };
+  }
+
+  // Step 2: Let the editor finish hydrating now that it exists. waitMs is a
+  // post-detection settle capped at SETTLE_CAP_MS, not a floor before we look.
+  if (waitMs > 0) {
+    await sleep(Math.min(waitMs, SETTLE_CAP_MS));
+    // Because we grab the editor the instant it mounts, hydration may have
+    // replaced the node while we settled — re-resolve rather than fill a
+    // detached element.
+    if (!element.isConnected) {
+      element = (await waitForElement(matchedSel)) || element;
+    }
   }
 
   // Step 3: Focus the element (some sites need this to initialize)
@@ -1856,16 +1693,36 @@ class PuchneFollowUpBar {
 }
 
 // ── Initialization Check ──────────────────────────────────────
-chrome.runtime.sendMessage({ action: "amIInActiveSession" }, (response) => {
-  if (chrome.runtime.lastError) return;
-  if (response && response.isInSession) {
-    chrome.storage.sync.get("settings", (stored) => {
-      const showFollowUpInput = stored.settings?.showFollowUpInput !== false;
-      if (showFollowUpInput) {
-        new PuchneFollowUpBar(response.activeSessionTabs);
-      }
-    });
+/**
+ * Mounts the follow-up bar if this tab belongs to an active session.
+ *
+ * Reads storage.session directly first: that read is served by the browser
+ * process, so an ordinary page load outside a session costs nothing. Only a
+ * live session is worth waking the service worker for — the worker still has
+ * the final say, since it alone knows this tab's id.
+ */
+async function initFollowUpBar() {
+  try {
+    const { activeSessionTabs } = await chrome.storage.session.get("activeSessionTabs");
+    if (!activeSessionTabs?.length) return;
+  } catch {
+    // storage.session isn't readable here (older Chrome, or the worker hasn't
+    // opened it to content scripts yet) — fall through and ask the worker.
   }
-});
+
+  chrome.runtime.sendMessage({ action: "amIInActiveSession" }, (response) => {
+    if (chrome.runtime.lastError) return;
+    if (response && response.isInSession) {
+      chrome.storage.sync.get("settings", (stored) => {
+        const showFollowUpInput = stored.settings?.showFollowUpInput !== false;
+        if (showFollowUpInput) {
+          new PuchneFollowUpBar(response.activeSessionTabs);
+        }
+      });
+    }
+  });
+}
+
+initFollowUpBar();
 
 } // end of PuchneLoaded guard

@@ -30,7 +30,8 @@ importScripts("/scripts/constants.js");
 //   submitType  — How to submit: "enter" (simulate Enter key),
 //                 "button" (click a send button), or "both"
 //   buttonSel   — (optional) CSS selector for the send button
-//   waitMs      — Extra ms to wait after page load before typing
+//   waitMs      — Settle window after the input is found, before typing
+//                 (capped at SETTLE_CAP_MS by the content script)
 //
 // NOTE: AI sites update their DOM frequently. If a service stops
 // working, updating the `selector` / `buttonSel` here usually
@@ -147,7 +148,7 @@ async function getSettings() {
     gridView: true,
     hoverExpand: true,
     hoverExpandMin: 2,
-    hoverExpandDelay: 0,
+    hoverExpandDelay: 200,
     groupTabs: false,
     delayMs: 2000,
     enableHistory: false,
@@ -181,9 +182,27 @@ async function applySidebarMode(useSidebar) {
 
 // Initialize on service-worker startup
 (async () => {
+  await openSessionStorageToContentScripts();
   const settings = await getSettings();
   await applySidebarMode(settings.useSidebar);
 })();
+
+/**
+ * Lets content scripts read storage.session. They use it to check for an
+ * active session locally, so a page load on a service host doesn't have to
+ * wake this worker just to be told "no session". The access level resets on
+ * browser restart, hence the call on every worker startup.
+ */
+async function openSessionStorageToContentScripts() {
+  if (!chrome.storage.session?.setAccessLevel) return; // Chrome < 102
+  try {
+    await chrome.storage.session.setAccessLevel({
+      accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS",
+    });
+  } catch (err) {
+    console.warn("[Puchne] storage.session setAccessLevel failed:", err);
+  }
+}
 
 // Set default settings on first install
 chrome.runtime.onInstalled.addListener(async (details) => {
