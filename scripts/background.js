@@ -191,22 +191,59 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     const settings = await getSettings();
     await chrome.storage.sync.set({ settings });
   }
+  // activeSessionTabs used to be persisted in storage.local; drop the
+  // orphaned key left behind by pre-session-storage versions.
+  await chrome.storage.local.remove("activeSessionTabs");
 });
 
-// ── Grid Data Cleanup ────────────────────────────────────────
+// ── Tab-scoped Data Cleanup ──────────────────────────────────
 // A grid tab's payload lives for as long as the tab does, so a reload
-// re-renders the same layout. Drop it once the tab is gone.
+// re-renders the same layout. Drop it once the tab is gone, and drop the
+// closed tab from the follow-up session list at the same time.
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.storage.local.remove(`${GRID_DATA_PREFIX}${tabId}`);
+  pruneSessionTab(tabId);
 });
 
 // Tabs closed while the browser was shut down never fire onRemoved, so
 // sweep any payloads whose tab no longer exists on startup.
+// (activeSessionTabs needs no sweep — storage.session dies with the browser.)
 chrome.runtime.onStartup.addListener(async () => {
   const all = await chrome.storage.local.get(null);
   const stale = Object.keys(all).filter((k) => k.startsWith(GRID_DATA_PREFIX));
   if (stale.length > 0) await chrome.storage.local.remove(stale);
 });
+
+// Closing a tab group fires onRemoved once per tab in quick succession, so
+// serialize the read-modify-write to keep concurrent prunes from clobbering
+// each other.
+let sessionPruneQueue = Promise.resolve();
+
+/**
+ * Removes a closed tab from the follow-up session list so follow-ups are
+ * never sent to a dead tab id. Drops the key entirely once the last
+ * session tab is gone.
+ * @param {number} tabId
+ * @returns {Promise<void>}
+ */
+function pruneSessionTab(tabId) {
+  sessionPruneQueue = sessionPruneQueue
+    .then(async () => {
+      const { activeSessionTabs } = await chrome.storage.session.get("activeSessionTabs");
+      if (!activeSessionTabs) return;
+
+      const remaining = activeSessionTabs.filter((t) => t.tabId !== tabId);
+      if (remaining.length === activeSessionTabs.length) return;
+
+      if (remaining.length === 0) {
+        await chrome.storage.session.remove("activeSessionTabs");
+      } else {
+        await chrome.storage.session.set({ activeSessionTabs: remaining });
+      }
+    })
+    .catch((err) => console.warn("[Puchne] Session tab prune failed:", err));
+  return sessionPruneQueue;
+}
 
 // ── Action Click Listener ────────────────────────────────────
 // When the extension icon is clicked, tell the content script to
@@ -273,27 +310,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
-  if (message.action === "verifyActiveTabs") {
-    (async () => {
-      const validTabs = [];
-      if (message.tabs && Array.isArray(message.tabs)) {
-        for (const t of message.tabs) {
-          try {
-            const tab = await chrome.tabs.get(t.tabId);
-            if (tab) validTabs.push(t);
-          } catch {
-            // Tab closed
-          }
-        }
-      }
-      sendResponse({ validTabs });
-    })();
-    return true;
-  }
-
   if (message.action === "amIInActiveSession") {
     (async () => {
-      const sessionData = await chrome.storage.local.get("activeSessionTabs");
+      const sessionData = await chrome.storage.session.get("activeSessionTabs");
       const activeSessionTabs = sessionData.activeSessionTabs || [];
       const senderTabId = _sender.tab?.id;
       
@@ -525,9 +544,11 @@ async function handleMulticast(query) {
   );
   const tabs = await Promise.all(tabPromises);
 
-  // Save active session tabs for follow-up queries
+  // Save active session tabs for follow-up queries. storage.session is the
+  // right lifetime here: tab ids are recycled after a browser restart, so a
+  // persisted list would attach the follow-up bar to unrelated tabs.
   const activeSessionTabs = tabs.map((t, idx) => ({ tabId: t.id, target: targets[idx] }));
-  await chrome.storage.local.set({ activeSessionTabs });
+  await chrome.storage.session.set({ activeSessionTabs });
 
   // Group the tabs if the setting is enabled
   if (settings.groupTabs && chrome.tabs.group) {
@@ -693,14 +714,19 @@ function injectQuery(tabId, service, query, autoSubmit, waitMs) {
 /**
  * Sends a follow-up query to the currently active session tabs.
  */
-async function handleFollowUpMulticast(query, activeTabs) {
+async function handleFollowUpMulticast(query, tabsFromSender) {
   const settings = await getSettings();
-  
+
+  // The sender's list is a snapshot taken when its page loaded; the stored
+  // session list is pruned in chrome.tabs.onRemoved, so prefer it.
+  const { activeSessionTabs } = await chrome.storage.session.get("activeSessionTabs");
+  const activeTabs = activeSessionTabs?.length ? activeSessionTabs : tabsFromSender;
+
   if (!activeTabs || activeTabs.length === 0) {
     console.warn("[Puchne] No active session tabs provided for follow-up.");
     return;
   }
-  
+
   console.log(`[Puchne] Follow-up Target services: ${activeTabs.map(t => t.target.name).join(", ")}`);
 
   // Activate the first tab immediately
