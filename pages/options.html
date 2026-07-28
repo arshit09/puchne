@@ -36,6 +36,10 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
             <span>Behavior</span>
           </a>
+          <a href="#ask" class="nav-item" data-target="ask">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 7.9-2.9-.8"/><path d="M14 4.1 11.9 6.2"/><path d="m6.2 11.8-2.1 2.1"/></svg>
+            <span>Ask Puchne</span>
+          </a>
           <a href="#shortcut" class="nav-item" data-target="shortcut">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
             <span>Global Shortcut</span>
@@ -436,6 +440,62 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- ── Section: Ask Puchne ────────────────────────── -->
+        <section class="section" id="section-ask">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 7.9-2.9-.8"/><path d="M14 4.1 11.9 6.2"/><path d="m6.2 11.8-2.1 2.1"/></svg>
+            <h2>Ask Puchne</h2>
+          </div>
+          <p class="section-desc">Decide what happens when you pick <strong>Ask Puchne</strong> from the right-click menu, or press the selection shortcut on a page.</p>
+
+          <div class="setting-row mode-selector-row">
+            <div class="setting-info">
+              <p class="setting-label">Selected Text &amp; Pages</p>
+              <p class="setting-desc">Open the prompt panel with the text filled in, or send it straight away</p>
+            </div>
+            <div class="mode-option-group">
+              <button class="mode-option" id="askPanelBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Show Prompt</span>
+              </button>
+              <button class="mode-option" id="askDirectBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                <span>Send Directly</span>
+              </button>
+            </div>
+            <input type="checkbox" id="askDirect" style="display:none" aria-hidden="true">
+          </div>
+
+          <div class="setting-row" id="askTargetModeRow">
+            <div class="setting-info">
+              <p class="setting-label">Send To</p>
+              <p class="setting-desc">Which AI tools receive the text</p>
+            </div>
+            <div class="custom-select" id="askTargetModeContainer">
+              <div class="select-trigger" id="askTargetModeTrigger">
+                <span id="askTargetModeLabel">Enabled tools</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="select-options" id="askTargetModeOptions">
+                <div class="option" data-value="enabled">Enabled tools</div>
+                <div class="option" data-value="custom">Specific tools</div>
+              </div>
+              <input type="hidden" id="askTargetMode" value="enabled">
+            </div>
+          </div>
+
+          <div class="setting-row tool-picker-row" id="askTargetIdsRow">
+            <div class="setting-info">
+              <p class="setting-label">Specific Tools</p>
+              <p class="setting-desc">Pick the AI tools an “Ask Puchne” send goes to</p>
+            </div>
+            <div class="tool-picker" id="askToolPicker">
+              <!-- Dynamically populated -->
+            </div>
+            <p class="tool-picker-hint" id="askToolPickerHint"></p>
           </div>
         </section>
 

@@ -863,6 +863,13 @@ body {
   grid-template-rows: minmax(0, 0fr);
 }
 
+/* The clip that hides a collapsing row would also cut off a dropdown opened
+   inside it — the options list is taller than its row. A wrap holding an open
+   select is never mid-animation, so it can let the list through. */
+.row-collapse-wrap:has(.custom-select.open) {
+  overflow: visible;
+}
+
 .row-collapse-wrap > .setting-row {
   min-height: 0;
   margin-left: 0;
@@ -918,6 +925,94 @@ body {
 
 .mode-option svg {
   flex-shrink: 0;
+}
+
+/* ── Ask Puchne ────────────────────────────────────────────── */
+/* Every row below the first collapses away depending on the mode, so the
+   dividers sit on top of each row: a bottom one would be left hanging over
+   the card's edge whenever the rows under it are hidden. */
+#section-ask .setting-row {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+}
+
+/* ── Ask Puchne Tool Picker ────────────────────────────────── */
+/* The chips wrap to as many rows as they need, so this row stacks its
+   label above them instead of putting them in the right-hand column. */
+.tool-picker-row,
+.tool-picker-row:hover {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  cursor: default !important;
+  background: transparent !important;
+}
+
+.tool-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.tool-chip:hover {
+  border-color: var(--accent);
+}
+
+.tool-chip.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A tool whose site access hasn't been granted yet. Dashed rather than
+   dimmed: the chip is still clickable — the click starts the access ask. */
+.tool-chip.needs-access {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.tool-chip-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: grayscale(1) opacity(0.55);
+  transition: filter var(--transition);
+}
+
+.tool-chip.active .tool-chip-icon {
+  filter: none;
+}
+
+.tool-chip-lock {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.tool-picker-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.tool-picker-hint:empty {
+  display: none;
 }
 
 /* ── Toggle Switch ─────────────────────────────────────────── */

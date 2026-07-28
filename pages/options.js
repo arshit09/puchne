@@ -59,6 +59,18 @@ const hoverExpandDelayContainer = document.getElementById("hoverExpandDelayConta
 const hoverExpandDelayTrigger = document.getElementById("hoverExpandDelayTrigger");
 const hoverExpandDelayLabel   = document.getElementById("hoverExpandDelayLabel");
 const hoverExpandDelayOptions = document.getElementById("hoverExpandDelayOptions");
+const askDirectEl = document.getElementById("askDirect");
+const askPanelBtn = document.getElementById("askPanelBtn");
+const askDirectBtn = document.getElementById("askDirectBtn");
+const askTargetModeEl = document.getElementById("askTargetMode");
+const askTargetModeRow = document.getElementById("askTargetModeRow");
+const askTargetModeContainer = document.getElementById("askTargetModeContainer");
+const askTargetModeTrigger = document.getElementById("askTargetModeTrigger");
+const askTargetModeLabel = document.getElementById("askTargetModeLabel");
+const askTargetModeOptions = document.getElementById("askTargetModeOptions");
+const askTargetIdsRow = document.getElementById("askTargetIdsRow");
+const askToolPickerEl = document.getElementById("askToolPicker");
+const askToolPickerHintEl = document.getElementById("askToolPickerHint");
 const cookieConsentEl = document.getElementById("cookieConsent");
 const cookieConsentRow = document.getElementById("cookieConsentRow");
 const cookieConsentContainer = document.getElementById("cookieConsentContainer");
@@ -88,13 +100,16 @@ const customAddStatusEl = document.getElementById("customAddStatus");
 
 // ── Animated row wrappers (set up in DOMContentLoaded) ───────
 let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-    cookieConsentWrap, groupTabsWrap;
+    cookieConsentWrap, groupTabsWrap, askTargetModeWrap, askTargetIdsWrap;
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
 let enabledServiceIds = [];
 let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
 let customProviders = []; // [{ id, name, url, selector, buttonSel, inputType, submitType, isCustom: true }]
+// The tools a direct "Ask Puchne" send goes to, when it isn't just using
+// whatever is enabled.
+let askTargetIds = [];
 // Services whose host permission has been granted. Puchne ships with none:
 // each site is asked for the first time it is switched on. This page is a
 // full tab, so it can call chrome.permissions itself rather than going
@@ -120,6 +135,11 @@ const DEFAULTS = {
   showShortcutHint: true,
   showFollowUpInput: true,
   overlayPosition: "center",
+  // "Ask Puchne" from the right-click menu or the selection shortcut:
+  // "panel" fills the prompt box, "direct" skips it and sends.
+  askAction: "panel",
+  askTargetMode: "enabled",
+  askTargetIds: [],
   chipDisplay: "logo-name",
   theme: "dark",
   cookieConsent: "accept",
@@ -147,10 +167,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandDelayWrap = makeCollapsible(hoverExpandDelayRow);
   cookieConsentWrap    = makeCollapsible(cookieConsentRow);
   groupTabsWrap        = makeCollapsible(groupTabsRow);
+  askTargetModeWrap    = makeCollapsible(askTargetModeRow);
+  askTargetIdsWrap     = makeCollapsible(askTargetIdsRow);
 
   // Disable transitions for initial state so page load doesn't animate
   [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-   cookieConsentWrap, groupTabsWrap].forEach(w => w.style.transition = "none");
+   cookieConsentWrap, groupTabsWrap, askTargetModeWrap,
+   askTargetIdsWrap].forEach(w => w.style.transition = "none");
 
   // Fetch service registry from the background worker
   allServices = await new Promise((resolve) => {
@@ -193,10 +216,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCookieConsentSelected(savedCookieConsent);
   updateCookieConsentState();
 
+  // Ask Puchne (context menu / selection shortcut)
+  askDirectEl.checked = settings.askAction === "direct";
+  askTargetIds = Array.isArray(settings.askTargetIds) ? settings.askTargetIds : [];
+  const savedAskTargetMode = settings.askTargetMode || "enabled";
+  askTargetModeEl.value = savedAskTargetMode;
+  updateAskTargetModeLabel(savedAskTargetMode);
+  updateAskTargetModeSelected(savedAskTargetMode);
+  updateAskButtons();
+  updateAskState();
+
   // Re-enable transitions after initial state is painted
   requestAnimationFrame(() => requestAnimationFrame(() => {
     [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-     cookieConsentWrap, groupTabsWrap].forEach(w => w.style.transition = "");
+     cookieConsentWrap, groupTabsWrap, askTargetModeWrap,
+     askTargetIdsWrap].forEach(w => w.style.transition = "");
   }));
 
   delayMsEl.value = settings.delayMs;
@@ -222,6 +256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const theme = darkModeEl.checked ? "dark" : "light";
     applyTheme(document.documentElement, theme);
     renderServices();
+    renderAskToolPicker();
     save();
     updatePreview();
   });
@@ -273,6 +308,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateHoverExpandState();
     save();
   });
+  // The mode row itself is clickable (see initClickableRows), so the hidden
+  // checkbox is the single place the two buttons and the row agree on.
+  askDirectEl.addEventListener("change", () => {
+    updateAskButtons();
+    updateAskState();
+    save();
+  });
+  askPanelBtn.addEventListener("click", () => {
+    askDirectEl.checked = false;
+    askDirectEl.dispatchEvent(new Event("change"));
+  });
+  askDirectBtn.addEventListener("click", () => {
+    askDirectEl.checked = true;
+    askDirectEl.dispatchEvent(new Event("change"));
+  });
   hoverExpandEl.addEventListener("change", () => {
     updateHoverExpandState();
     save();
@@ -295,6 +345,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCookieConsentSelect();
   initHoverExpandMinSelect();
   initHoverExpandDelaySelect();
+  initAskTargetModeSelect();
   initAddCustomProvider();
 
   // Init custom number spinners
@@ -373,6 +424,8 @@ async function syncAccessState() {
     );
     if (btn) updateAccessBtn(btn, service);
   });
+  // The picker draws the same distinction, in chip form.
+  renderAskToolPicker();
 }
 
 /** Mirrors enabledServiceIds onto the rendered toggles. */
@@ -456,6 +509,7 @@ function initCustomSelect() {
     cookieConsentContainer.classList.remove("open");
     hoverExpandMinContainer.classList.remove("open");
     hoverExpandDelayContainer.classList.remove("open");
+    askTargetModeContainer.classList.remove("open");
     overlayPositionContainer.classList.toggle("open");
   });
 
@@ -493,6 +547,7 @@ function initChipDisplaySelect() {
     cookieConsentContainer.classList.remove("open");
     hoverExpandMinContainer.classList.remove("open");
     hoverExpandDelayContainer.classList.remove("open");
+    askTargetModeContainer.classList.remove("open");
     chipDisplayContainer.classList.toggle("open");
   });
 
@@ -606,6 +661,7 @@ function initHoverExpandMinSelect() {
     chipDisplayContainer.classList.remove("open");
     cookieConsentContainer.classList.remove("open");
     hoverExpandDelayContainer.classList.remove("open");
+    askTargetModeContainer.classList.remove("open");
     hoverExpandMinContainer.classList.toggle("open");
   });
 
@@ -645,6 +701,7 @@ function initHoverExpandDelaySelect() {
     chipDisplayContainer.classList.remove("open");
     cookieConsentContainer.classList.remove("open");
     hoverExpandMinContainer.classList.remove("open");
+    askTargetModeContainer.classList.remove("open");
     hoverExpandDelayContainer.classList.toggle("open");
   });
 
@@ -691,6 +748,7 @@ function initCookieConsentSelect() {
     chipDisplayContainer.classList.remove("open");
     hoverExpandMinContainer.classList.remove("open");
     hoverExpandDelayContainer.classList.remove("open");
+    askTargetModeContainer.classList.remove("open");
     cookieConsentContainer.classList.toggle("open");
   });
 
@@ -722,6 +780,152 @@ function updateCookieConsentSelected(val) {
     opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
   });
 }
+
+// ── Ask Puchne (context menu / selection shortcut) ───────────
+
+function updateAskButtons() {
+  const isDirect = askDirectEl.checked;
+  askDirectBtn.classList.toggle("active", isDirect);
+  askPanelBtn.classList.toggle("active", !isDirect);
+}
+
+/**
+ * "Send to" only means anything for a direct send, and the tool picker only
+ * for a direct send aimed at a specific set — so each row follows the one
+ * above it.
+ */
+function updateAskState() {
+  const isDirect = askDirectEl.checked;
+  askTargetModeWrap.classList.toggle("collapsed", !isDirect);
+
+  const showPicker = isDirect && askTargetModeEl.value === "custom";
+  askTargetIdsWrap.classList.toggle("collapsed", !showPicker);
+  if (showPicker) renderAskToolPicker();
+}
+
+function initAskTargetModeSelect() {
+  askTargetModeTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    overlayPositionContainer.classList.remove("open");
+    chipDisplayContainer.classList.remove("open");
+    cookieConsentContainer.classList.remove("open");
+    hoverExpandMinContainer.classList.remove("open");
+    hoverExpandDelayContainer.classList.remove("open");
+    askTargetModeContainer.classList.toggle("open");
+  });
+
+  askTargetModeOptions.querySelectorAll(".option").forEach(option => {
+    option.addEventListener("click", () => {
+      const val = option.getAttribute("data-value");
+      askTargetModeEl.value = val;
+      updateAskTargetModeLabel(val);
+      updateAskTargetModeSelected(val);
+      askTargetModeContainer.classList.remove("open");
+      updateAskState();
+      save();
+    });
+  });
+
+  window.addEventListener("click", () => {
+    askTargetModeContainer.classList.remove("open");
+  });
+
+  updateAskTargetModeSelected(askTargetModeEl.value || "enabled");
+}
+
+function updateAskTargetModeLabel(val) {
+  const labels = { "enabled": "Enabled tools", "custom": "Specific tools" };
+  askTargetModeLabel.textContent = labels[val] || "Enabled tools";
+}
+
+function updateAskTargetModeSelected(val) {
+  askTargetModeOptions.querySelectorAll(".option").forEach(opt => {
+    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
+}
+
+/**
+ * Renders one chip per AI tool. A tool Puchne has no site access to is drawn
+ * dashed and asks for that access when picked — sending to it would fail
+ * otherwise, and the right-click menu has no surface to explain why.
+ */
+function renderAskToolPicker() {
+  askToolPickerEl.innerHTML = "";
+
+  if (allServices.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "tool-picker-hint";
+    empty.textContent = "No AI tools available yet — add one under AI Tools.";
+    askToolPickerEl.appendChild(empty);
+    updateAskPickerHint();
+    return;
+  }
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+
+  allServices.forEach((service) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "tool-chip";
+    chip.dataset.serviceId = service.id;
+
+    const picked = askTargetIds.includes(service.id);
+    const granted = grantedIds.includes(service.id);
+    chip.classList.toggle("active", picked);
+    chip.classList.toggle("needs-access", !granted);
+    chip.title = granted
+      ? service.name
+      : `${service.name} — picking it asks for site access first`;
+
+    const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
+    chip.innerHTML = `
+      <img src="../${icon}" class="tool-chip-icon" alt="" />
+      <span>${service.name}</span>
+      ${granted ? "" : `<svg class="tool-chip-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`}
+    `;
+
+    chip.addEventListener("click", () => {
+      if (askTargetIds.includes(service.id)) {
+        askTargetIds = askTargetIds.filter((id) => id !== service.id);
+        renderAskToolPicker();
+        save();
+        return;
+      }
+
+      // Straight out of the click — anything awaited first spends the user
+      // gesture and Chrome refuses the request.
+      if (!grantedIds.includes(service.id)) {
+        requestServiceAccess(service, (granted) => {
+          if (!granted) return;
+          askTargetIds.push(service.id);
+          syncAccessState();
+          renderAskToolPicker();
+          save();
+        });
+        return;
+      }
+
+      askTargetIds.push(service.id);
+      renderAskToolPicker();
+      save();
+    });
+
+    askToolPickerEl.appendChild(chip);
+  });
+
+  updateAskPickerHint();
+}
+
+/** Says what a send will actually do when nothing has been picked. */
+function updateAskPickerHint() {
+  const nothingPicked = askTargetIds.filter((id) =>
+    allServices.some((s) => s.id === id)
+  ).length === 0;
+  askToolPickerHintEl.textContent = nothingPicked
+    ? "Nothing picked yet — sends go to your enabled AI tools until you choose."
+    : "";
+}
+
 
 // ── Service List Rendering ───────────────────────────────────
 
@@ -1075,6 +1279,7 @@ function updateCustomProvider(serviceId, editor) {
 async function deleteCustomProvider(serviceId) {
   customProviders = customProviders.filter((p) => p.id !== serviceId);
   enabledServiceIds = enabledServiceIds.filter((id) => id !== serviceId);
+  askTargetIds = askTargetIds.filter((id) => id !== serviceId);
   delete customSelectors[serviceId];
   await _doSave();
   allServices = await new Promise((resolve) => {
@@ -1083,6 +1288,7 @@ async function deleteCustomProvider(serviceId) {
     });
   });
   renderServices();
+  renderAskToolPicker();
   showToast("Custom provider deleted");
 }
 
@@ -1253,6 +1459,7 @@ function initAddCustomProvider() {
         save();
       }
       renderServices();
+      renderAskToolPicker();
       showToast(`Added ${nameVal}`);
     });
   });
@@ -1325,6 +1532,9 @@ async function _doSave() {
     showShortcutHint: showShortcutHintEl.checked,
     showFollowUpInput: showFollowUpInputEl.checked,
     overlayPosition: overlayPositionEl.value,
+    askAction: askDirectEl.checked ? "direct" : "panel",
+    askTargetMode: askTargetModeEl.value || "enabled",
+    askTargetIds,
     chipDisplay: showToolNamesEl.value,
     cookieConsent: cookieConsentEl.value || "accept",
     customSelectors,
@@ -1523,14 +1733,14 @@ function initTabs() {
   // Handle back/forward buttons or hash change
   window.addEventListener("hashchange", () => {
     const hash = window.location.hash.substring(1);
-    if (hash && ["tools", "appearance", "behavior", "shortcut", "maintenance"].includes(hash)) {
+    if (hash && ["tools", "appearance", "behavior", "ask", "shortcut", "maintenance"].includes(hash)) {
       switchTab(hash);
     }
   });
 
   // Check initial hash
   const initialHash = window.location.hash.substring(1);
-  if (initialHash && ["tools", "appearance", "behavior", "shortcut", "maintenance"].includes(initialHash)) {
+  if (initialHash && ["tools", "appearance", "behavior", "ask", "shortcut", "maintenance"].includes(initialHash)) {
     switchTab(initialHash);
   } else {
     switchTab("tools");

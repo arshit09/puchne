@@ -168,6 +168,11 @@ async function getSettings() {
     enableHistory: true,
     showRecents: true,
     showFollowUpInput: true,
+    // "Ask Puchne" (context menu / selection shortcut): open the panel with
+    // the text filled in, or skip the panel and send it straight away.
+    askAction: "panel",
+    askTargetMode: "enabled",
+    askTargetIds: [],
     customSelectors: {},
     customProviders: [],
   };
@@ -355,7 +360,9 @@ async function partitionTargets(targets) {
  * a content script — so the ask is handed to pages/permissions.html.
  *
  * @param {string[]} serviceIds
- * @param {{query: string}|null} [pendingSend] — a send to run once granted
+ * @param {{query: string, targetIds?: string[]}|null} [pendingSend] — a send to
+ *        run once granted. `targetIds` pins it to an explicit set of services;
+ *        without it the send goes to whatever is enabled at resume time.
  */
 async function openAccessWindow(serviceIds, pendingSend) {
   const settings = await getSettings();
@@ -365,7 +372,12 @@ async function openAccessWindow(serviceIds, pendingSend) {
 
   if (pendingSend?.query) {
     await chrome.storage.session.set({
-      [PENDING_SEND_KEY]: { query: pendingSend.query, serviceIds: ids, at: Date.now() },
+      [PENDING_SEND_KEY]: {
+        query: pendingSend.query,
+        serviceIds: ids,
+        targetIds: pendingSend.targetIds || null,
+        at: Date.now(),
+      },
     });
   } else {
     await chrome.storage.session.remove(PENDING_SEND_KEY);
@@ -427,7 +439,7 @@ async function resumePendingSend() {
   // Deliberately not awaited, for the same reason the "multicast" handler
   // doesn't: in tab mode the send only settles once every tab has loaded and
   // been injected, and the access window must close on the grant, not on that.
-  handleMulticast(pending.query).then(
+  handleMulticast(pending.query, pending.targetIds || undefined).then(
     () => console.log("[Puchne] Resumed the send that was waiting on access."),
     (err) => console.warn("[Puchne] Resumed send failed:", err)
   );
@@ -734,10 +746,97 @@ async function openPromptInOptionsOrWindow(promptText) {
   await openOptionsPage();
 }
 
-async function triggerPromptOnTab(tab, promptText) {
+/**
+ * Entry point for both "Ask Puchne" surfaces — the context menu and the
+ * selection shortcut. Settings › Ask Puchne decides which of the two shapes
+ * it takes: open the panel with the text already in the box, or skip the
+ * panel and deliver it straight to the chosen AI tools.
+ */
+async function handleAskPuchne(tab, promptText) {
+  const settings = await getSettings();
+  if (settings.askAction === "direct") {
+    await sendPromptDirect(tab, promptText, settings);
+    return;
+  }
+  await triggerPromptOnTab(tab, promptText, settings);
+}
+
+/**
+ * The services a direct "Ask Puchne" send goes to: either an explicit set
+ * picked in settings, or whatever is enabled. A custom set that has gone
+ * stale (every service in it deleted) falls back to the enabled ones rather
+ * than sending nowhere.
+ * @param {Object} settings
+ * @returns {string[]}
+ */
+function askTargetIds(settings) {
+  if (settings.askTargetMode === "custom") {
+    const registry = getRegistry(settings);
+    const chosen = (settings.askTargetIds || []).filter((id) =>
+      registry.some((s) => s.id === id)
+    );
+    if (chosen.length > 0) return chosen;
+  }
+  return settings.enabledServices;
+}
+
+/**
+ * Sends the prompt without showing the panel. Nothing to send to, or no site
+ * access at all, falls back to the panel — silently dropping the text after a
+ * right-click would look like the menu item did nothing.
+ */
+async function sendPromptDirect(tab, promptText, settings) {
+  const ids = askTargetIds(settings);
+  const targets = resolveTargets(settings, ids);
+  if (targets.length === 0) {
+    await triggerPromptOnTab(tab, promptText, settings);
+    return;
+  }
+
+  const { allowed } = await partitionTargets(targets);
+  if (allowed.length === 0) {
+    // Chrome only asks for sites from an extension page with a user gesture,
+    // so the ask is handed to the access window and the send waits behind it.
+    await openAccessWindow(ids, { query: promptText, targetIds: ids });
+    return;
+  }
+
+  // The panel records every prompt it sends; a direct send never opens one,
+  // so recents would quietly skip these.
+  await addToHistory(promptText, settings);
+
+  // Not awaited, for the same reason the "multicast" handler doesn't: in tab
+  // mode this only settles once every tab has loaded and been injected.
+  handleMulticast(promptText, ids).then(
+    () => console.log("[Puchne] Ask Puchne sent directly."),
+    (err) => console.warn("[Puchne] Direct Ask Puchne send failed:", err)
+  );
+}
+
+/**
+ * Prepends a prompt to the locally stored history, in the same shape and
+ * order the panel writes (newest first, no duplicates, trimmed to the limit).
+ */
+async function addToHistory(query, settings) {
+  if (settings.enableHistory === false) return;
+  try {
+    const { promptHistory } = await chrome.storage.local.get("promptHistory");
+    const entries = (promptHistory || [])
+      .map((h) => (typeof h === "string" ? { text: h, timestamp: Date.now() } : h))
+      .filter((h) => h.text !== query);
+    entries.unshift({ text: query, timestamp: Date.now() });
+    await chrome.storage.local.set({
+      promptHistory: entries.slice(0, settings.historyLimit || MAX_HISTORY),
+    });
+  } catch (err) {
+    console.warn("[Puchne] Could not record prompt history:", err);
+  }
+}
+
+async function triggerPromptOnTab(tab, promptText, preloadedSettings) {
   if (!tab || !tab.id) return;
 
-  const settings = await getSettings();
+  const settings = preloadedSettings || (await getSettings());
   if (settings.useSidebar && chrome.sidePanel?.open) {
     await chrome.storage.session.set({ pendingPrompt: promptText });
     try {
@@ -789,7 +888,7 @@ if (chrome.contextMenus?.onClicked) {
       promptText = await getPagePromptText(tab.id, info.frameId || 0, tab);
     }
     if (!promptText) return;
-    await triggerPromptOnTab(tab, promptText);
+    await handleAskPuchne(tab, promptText);
   });
 }
 
@@ -808,7 +907,7 @@ if (chrome.commands?.onCommand) {
         promptText = formatPagePrompt(tab.title || "this page", tab.url || "", "");
       }
       if (promptText) {
-        await triggerPromptOnTab(tab, promptText);
+        await handleAskPuchne(tab, promptText);
       }
     }
   });
@@ -1189,12 +1288,16 @@ async function retryService(serviceId) {
 /**
  * Core function: opens tabs and dispatches the query to each
  * enabled AI service, respecting user settings.
+ *
+ * @param {string} query
+ * @param {string[]} [ids] — an explicit service set (a direct "Ask Puchne"
+ *        send uses this); defaults to the enabled services.
  */
-async function handleMulticast(query) {
+async function handleMulticast(query, ids) {
   const settings = await getSettings();
 
   // Only the services the user has turned on, with custom selectors merged in
-  const allTargets = resolveTargets(settings);
+  const allTargets = resolveTargets(settings, ids);
 
   if (allTargets.length === 0) {
     console.warn("[Puchne] No services enabled — nothing to do.");

@@ -21,7 +21,7 @@
     *   **Tab Grouping:** Auto-organize independent service tabs into a neat Chrome Tab Group.
 *   **Unified Controls:** Easily customize which AI models are active, access recent prompts, or clear history.
 *   **No Up-Front Site Access:** Puchne installs without permission to any website. Each AI site is requested the first time you switch that tool on, and can be withdrawn again from Settings.
-*   **Global Shortcuts & Context Menus:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`, or right-click any selection or page (or press `Ctrl+Shift+S`) to ask Puchne about it with the prompt pre-filled for review.
+*   **Global Shortcuts & Context Menus:** Instantly summon the Puchne query overlay from any webpage using `Ctrl+Shift+X`, or right-click any selection or page (or press `Ctrl+Shift+S`) to ask Puchne about it — with the prompt pre-filled for review, or sent straight to the AI tools you choose (Settings › Ask Puchne).
 *   **Intelligent Injector:** Seamlessly handles iframe cookie consent popups and manages site authentication automatically.
 
 ---
@@ -45,6 +45,10 @@ Puchne features a highly customizable settings panel grouped into intuitive sect
 *   **Cookie Consent:** Set auto-handling behavior for iframe cookie banners (Accept All, Reject All, or Off).
 *   **Hover to Expand:** Customize hover enlargement behavior for Grid View cells (delay from instant to 2 seconds, activation count threshold).
 *   **Prompt History:** Toggle history saving and customize the limit (from 5 to 100 stored prompts).
+
+### 4. Ask Puchne
+*   **Action:** Choose what "Ask Puchne" (right-click menu or `Ctrl+Shift+S`) does with the selected text or page — **Show Prompt** opens the panel with it pre-filled for review, **Send Directly** skips the panel and fires it off.
+*   **Send To:** A direct send goes to your enabled AI tools, or to a specific set you pick from the tool chips — handy for routing right-click questions to one fast model while the popup still multicasts to all of them.
 
 ---
 
