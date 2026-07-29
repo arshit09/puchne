@@ -59,6 +59,26 @@ body {
 
 body.ready { opacity: 1; }
 
+/* ── Focus ─────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* The fade is what reveals the card, so it starts visible instead. */
+  body { opacity: 1; }
+}
+
 .access-card {
   display: flex;
   flex-direction: column;

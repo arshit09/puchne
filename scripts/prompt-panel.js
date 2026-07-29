@@ -84,6 +84,7 @@ class PuchnePromptPanel {
 
     this.setupListeners();
     this.watchPermissions();
+    this.watchSystemThemeChanges();
     this.renderServiceChips(true);
     this.renderHistory();
     this.updateShortcutHint();
@@ -145,6 +146,20 @@ class PuchnePromptPanel {
   }
 
   /**
+   * On the "system" preference the OS can change the theme out from under an
+   * already-open panel, and the chips have to repaint because they carry
+   * theme-specific service logos.
+   */
+  watchSystemThemeChanges() {
+    if (this._unwatchTheme) return;
+    this._unwatchTheme = watchSystemTheme(() => {
+      if (this.theme !== "system") return;
+      this.resolvedTheme = applyTheme(this.themeTarget, this.theme);
+      this.renderServiceChips(true);
+    });
+  }
+
+  /**
    * Hands the ask to pages/permissions.html — Chrome only accepts
    * permissions.request() from an extension page with a user gesture.
    * @param {string[]} serviceIds
@@ -189,8 +204,11 @@ class PuchnePromptPanel {
     this.showRecents = settings.showRecents !== false;
     this.chipDisplay = settings.chipDisplay || "logo-name";
     this.showShortcutHint = settings.showShortcutHint !== false;
-    this.theme = settings.theme || "dark";
-    applyTheme(this.themeTarget, this.theme);
+    // The preference, which may be "system"; applyTheme returns what that
+    // actually resolved to, and the chips need the resolved one to pick
+    // between light and dark service logos.
+    this.theme = settings.theme || THEME_DEFAULT;
+    this.resolvedTheme = applyTheme(this.themeTarget, this.theme);
 
     return settings;
   }
@@ -234,7 +252,7 @@ class PuchnePromptPanel {
   // ── Markup ─────────────────────────────────────────────────
 
   getHTML() {
-    const gear = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    const gear = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>`;
@@ -242,46 +260,47 @@ class PuchnePromptPanel {
     return `
       <header class="header" id="panelHeader">
         <div class="logo">
-          <img src="${chrome.runtime.getURL("icons/app/icon-48.png")}" width="22" height="22" alt="Puchne"/>
-          <h1>Puchne</h1>
+          <img src="${chrome.runtime.getURL("icons/app/icon-48.png")}" width="22" height="22" alt=""/>
+          <h1 id="panelTitle">Puchne</h1>
         </div>
         <div class="header-actions" id="headerActions">
-          <button id="settingsBtn" class="icon-btn" title="Settings">${gear}</button>
+          <button type="button" id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">${gear}</button>
         </div>
       </header>
 
       <p class="section-label" id="chipsLabel">Send to</p>
-      <div id="serviceChips" class="service-chips"></div>
+      <div id="serviceChips" class="service-chips" role="group" aria-labelledby="chipsLabel"></div>
 
-      <p class="section-label">Your prompt</p>
+      <p class="section-label" id="promptLabel">Your prompt</p>
       <div class="input-area">
-        <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus></textarea>
+        <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus
+                  aria-labelledby="promptLabel" aria-describedby="panelHint"></textarea>
         <div class="input-footer">
-          <button id="sendBtn" class="send-btn" disabled title="Send Multicast">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" id="sendBtn" class="send-btn" disabled title="Send Multicast" aria-label="Send Multicast">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
             </svg>
           </button>
         </div>
       </div>
-      <p class="panel-hint hidden" id="panelHint"></p>
+      <p class="panel-hint hidden" id="panelHint" role="status"></p>
 
       <div id="historySection" class="history-section hidden">
-        <p class="history-label">Recent prompts</p>
-        <ul id="historyList" class="history-list"></ul>
+        <p class="history-label" id="historyLabel">Recent prompts</p>
+        <ul id="historyList" class="history-list" aria-labelledby="historyLabel"></ul>
         <p class="history-note">Stored locally on this device only.</p>
       </div>
 
       <footer class="footer">
-        <div class="shortcut-hint" id="shortcutHint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shortcut-icon">
+        <button type="button" class="shortcut-hint" id="shortcutHint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shortcut-icon" aria-hidden="true">
             <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
             <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
           </svg>
           <span class="shortcut-label">Shortcut:</span>
           <span id="shortcutText"></span>
-        </div>
+        </button>
       </footer>
     `;
   }
@@ -291,9 +310,13 @@ class PuchnePromptPanel {
     const actions = this.$("headerActions");
     this.headerActions.forEach((action) => {
       const btn = document.createElement("button");
+      btn.type = "button";
       btn.id = action.id;
       btn.className = "icon-btn";
       btn.title = action.title || "";
+      // These are icon-only, so title alone would leave them unnamed on the
+      // screen readers that ignore it.
+      if (action.title) btn.setAttribute("aria-label", action.title);
       btn.innerHTML = action.html || "";
       if (action.onClick) btn.addEventListener("click", () => action.onClick(btn));
       actions.insertBefore(btn, actions.firstChild);
@@ -310,8 +333,14 @@ class PuchnePromptPanel {
 
     // Enter sends, Shift+Enter inserts a newline. The key events are stopped
     // so the host page (an AI site with its own Enter handler) never sees them.
+    //
+    // Escape and Tab are the exceptions: they belong to the surface hosting
+    // this panel, which closes the overlay on one and traps focus with the
+    // other. Stopping those too meant neither ever fired, because the overlay
+    // puts focus in this box the moment it opens. The overlay's own handler
+    // stops Escape from carrying on to the host page.
     promptInput.addEventListener("keydown", (e) => {
-      e.stopPropagation();
+      if (e.key !== "Escape" && e.key !== "Tab") e.stopPropagation();
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         this.handleSend();
@@ -375,13 +404,26 @@ class PuchnePromptPanel {
 
     this.allServices.forEach((service) => {
       const granted = this.grantedIds.includes(service.id);
+      const active = this.enabledServiceIds.includes(service.id);
       const chip = document.createElement("button");
+      chip.type = "button";
       chip.className = "chip";
       chip.dataset.id = service.id;
       // A locked chip says so on hover: the click opens an access prompt
       // rather than simply switching the service on.
       chip.title = granted ? service.name : `${service.name} — click to allow site access`;
-      if (this.enabledServiceIds.includes(service.id)) chip.classList.add("active");
+      // In "logo" mode the chip has no text at all, so the name has to be
+      // spelled out here. The locked state is part of it because the click
+      // does something different — it asks for access instead of toggling.
+      chip.setAttribute(
+        "aria-label",
+        granted ? service.name : `${service.name} — allow site access`
+      );
+      // On/off is a border colour on screen; this is the same fact for
+      // anyone who can't see the border. Locked chips aren't toggles yet,
+      // so they get no pressed state.
+      if (granted) chip.setAttribute("aria-pressed", String(active));
+      if (active) chip.classList.add("active");
       if (!granted) chip.classList.add("needs-access");
 
       const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
@@ -439,6 +481,10 @@ class PuchnePromptPanel {
         } else {
           chip.before(draggedChip);
         }
+
+        // The reorder above is the actual result; the FLIP below is only the
+        // travel between the two states, so reduced motion just skips it.
+        if (prefersReducedMotion()) return;
 
         // FLIP animation
         children.forEach((c) => {
@@ -647,8 +693,12 @@ class PuchnePromptPanel {
       li.className = "history-item";
       li.title = prompt;
 
-      const textWrapper = document.createElement("div");
+      // A button, not a div: recalling a prompt is an action, and this is the
+      // only way to reach it without a mouse.
+      const textWrapper = document.createElement("button");
+      textWrapper.type = "button";
       textWrapper.className = "history-item-content";
+      textWrapper.setAttribute("aria-label", `Use prompt: ${prompt}`);
       textWrapper.addEventListener("click", () => {
         const input = this.$("promptInput");
         input.value = prompt;
@@ -669,9 +719,13 @@ class PuchnePromptPanel {
       }
 
       const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
       deleteBtn.className = "history-delete-btn";
       deleteBtn.title = "Remove from recents";
-      deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      // Every row's button is the same icon, so the name has to carry which
+      // prompt it removes.
+      deleteBtn.setAttribute("aria-label", `Remove "${prompt}" from recents`);
+      deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
       deleteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.deleteFromHistory(prompt);
@@ -744,6 +798,10 @@ class PuchnePromptPanel {
     if (this._permissionListener) {
       try { chrome.storage.onChanged.removeListener(this._permissionListener); } catch {}
       this._permissionListener = null;
+    }
+    if (this._unwatchTheme) {
+      this._unwatchTheme();
+      this._unwatchTheme = null;
     }
   }
 }

@@ -189,26 +189,38 @@
             <div class="display-controls">
               <div class="setting-row">
                 <div class="setting-info">
-                  <p class="setting-label">Dark Mode</p>
-                  <p class="setting-desc">Switch between light and dark interface</p>
+                  <p class="setting-label" id="themeSettingLabel">Theme</p>
+                  <p class="setting-desc">Match your system, or pick light or dark</p>
                 </div>
-                <label class="toggle">
-                  <input type="checkbox" id="darkMode">
-                  <span class="slider"></span>
-                </label>
+                <div class="custom-select" id="themeContainer">
+                  <button type="button" class="select-trigger" id="themeTrigger"
+                          role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                          aria-controls="themeOptions" aria-labelledby="themeSettingLabel themeLabel">
+                    <span id="themeLabel">System</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <div class="select-options" id="themeOptions" role="listbox" aria-labelledby="themeSettingLabel">
+                    <div class="option" data-value="system">System</div>
+                    <div class="option" data-value="light">Light</div>
+                    <div class="option" data-value="dark">Dark</div>
+                  </div>
+                  <input type="hidden" id="theme" value="system">
+                </div>
               </div>
 
               <div class="setting-row">
                 <div class="setting-info">
-                  <p class="setting-label">Overlay Position</p>
+                  <p class="setting-label" id="overlayPositionSettingLabel">Overlay Position</p>
                   <p class="setting-desc">Where the modal appears on the page</p>
                 </div>
                 <div class="custom-select" id="overlayPositionContainer">
-                  <div class="select-trigger" id="overlayPositionTrigger">
+                  <button type="button" class="select-trigger" id="overlayPositionTrigger"
+                          role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                          aria-controls="overlayPositionOptions" aria-labelledby="overlayPositionSettingLabel overlayPositionLabel">
                     <span id="overlayPositionLabel">Top</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                  </div>
-                  <div class="select-options" id="overlayPositionOptions">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <div class="select-options" id="overlayPositionOptions" role="listbox" aria-labelledby="overlayPositionSettingLabel">
                     <div class="option" data-value="top">Top</div>
                     <div class="option" data-value="center">Center</div>
                     <div class="option" data-value="bottom">Bottom</div>
@@ -230,15 +242,17 @@
 
               <div class="setting-row">
                 <div class="setting-info">
-                  <p class="setting-label">AI Tools</p>
+                  <p class="setting-label" id="chipDisplaySettingLabel">AI Tools</p>
                   <p class="setting-desc">How AI options appear in the popup</p>
                 </div>
                 <div class="custom-select" id="chipDisplayContainer">
-                  <div class="select-trigger" id="chipDisplayTrigger">
+                  <button type="button" class="select-trigger" id="chipDisplayTrigger"
+                          role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                          aria-controls="chipDisplayOptions" aria-labelledby="chipDisplaySettingLabel chipDisplayLabel">
                     <span id="chipDisplayLabel">Name with Logo</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                  </div>
-                  <div class="select-options" id="chipDisplayOptions">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <div class="select-options" id="chipDisplayOptions" role="listbox" aria-labelledby="chipDisplaySettingLabel">
                     <div class="option" data-value="none">None</div>
                     <div class="option" data-value="logo">Logo only</div>
                     <div class="option" data-value="name">Name only</div>
@@ -333,15 +347,17 @@
 
           <div class="setting-row" id="hoverExpandMinRow">
             <div class="setting-info">
-              <p class="setting-label">Activate When</p>
+              <p class="setting-label" id="hoverExpandMinSettingLabel">Activate When</p>
               <p class="setting-desc">Minimum number of windows open in the grid</p>
             </div>
             <div class="custom-select" id="hoverExpandMinContainer">
-              <div class="select-trigger" id="hoverExpandMinTrigger">
+              <button type="button" class="select-trigger" id="hoverExpandMinTrigger"
+                      role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                      aria-controls="hoverExpandMinOptions" aria-labelledby="hoverExpandMinSettingLabel hoverExpandMinLabel">
                 <span id="hoverExpandMinLabel">2 or more</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-              <div class="select-options" id="hoverExpandMinOptions">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-options" id="hoverExpandMinOptions" role="listbox" aria-labelledby="hoverExpandMinSettingLabel">
                 <div class="option" data-value="2">2 or more</div>
                 <div class="option" data-value="3">3 or more</div>
                 <div class="option" data-value="4">4 or more</div>
@@ -352,15 +368,17 @@
 
           <div class="setting-row" id="hoverExpandDelayRow">
             <div class="setting-info">
-              <p class="setting-label">Hover Delay</p>
+              <p class="setting-label" id="hoverExpandDelaySettingLabel">Hover Delay</p>
               <p class="setting-desc">Delay before a window expands under the cursor</p>
             </div>
             <div class="custom-select" id="hoverExpandDelayContainer">
-              <div class="select-trigger" id="hoverExpandDelayTrigger">
+              <button type="button" class="select-trigger" id="hoverExpandDelayTrigger"
+                      role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                      aria-controls="hoverExpandDelayOptions" aria-labelledby="hoverExpandDelaySettingLabel hoverExpandDelayLabel">
                 <span id="hoverExpandDelayLabel">0.2 seconds</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-              <div class="select-options" id="hoverExpandDelayOptions">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-options" id="hoverExpandDelayOptions" role="listbox" aria-labelledby="hoverExpandDelaySettingLabel">
                 <div class="option" data-value="0">Instant (0s)</div>
                 <div class="option" data-value="200">0.2 seconds</div>
                 <div class="option" data-value="500">0.5 seconds</div>
@@ -374,15 +392,17 @@
 
           <div class="setting-row" id="cookieConsentRow">
             <div class="setting-info">
-              <p class="setting-label">Cookie Consent</p>
+              <p class="setting-label" id="cookieConsentSettingLabel">Cookie Consent</p>
               <p class="setting-desc">Auto-handle cookie popups in grid iframes</p>
             </div>
             <div class="custom-select" id="cookieConsentContainer">
-              <div class="select-trigger" id="cookieConsentTrigger">
+              <button type="button" class="select-trigger" id="cookieConsentTrigger"
+                      role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                      aria-controls="cookieConsentOptions" aria-labelledby="cookieConsentSettingLabel cookieConsentLabel">
                 <span id="cookieConsentLabel">Accept All</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-              <div class="select-options" id="cookieConsentOptions">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-options" id="cookieConsentOptions" role="listbox" aria-labelledby="cookieConsentSettingLabel">
                 <div class="option" data-value="accept">Accept All</div>
                 <div class="option" data-value="reject">Reject All</div>
                 <div class="option" data-value="off">Off (Manual)</div>
@@ -471,15 +491,17 @@
 
           <div class="setting-row" id="askTargetModeRow">
             <div class="setting-info">
-              <p class="setting-label">Send To</p>
+              <p class="setting-label" id="askTargetModeSettingLabel">Send To</p>
               <p class="setting-desc">Which AI tools receive the text</p>
             </div>
             <div class="custom-select" id="askTargetModeContainer">
-              <div class="select-trigger" id="askTargetModeTrigger">
+              <button type="button" class="select-trigger" id="askTargetModeTrigger"
+                      role="combobox" aria-haspopup="listbox" aria-expanded="false"
+                      aria-controls="askTargetModeOptions" aria-labelledby="askTargetModeSettingLabel askTargetModeLabel">
                 <span id="askTargetModeLabel">Enabled tools</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-              </div>
-              <div class="select-options" id="askTargetModeOptions">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="select-options" id="askTargetModeOptions" role="listbox" aria-labelledby="askTargetModeSettingLabel">
                 <div class="option" data-value="enabled">Enabled tools</div>
                 <div class="option" data-value="custom">Specific tools</div>
               </div>

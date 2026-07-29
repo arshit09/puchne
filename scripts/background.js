@@ -168,6 +168,9 @@ async function getSettings() {
     enableHistory: true,
     showRecents: true,
     showFollowUpInput: true,
+    // "system" follows the OS light/dark setting; see resolveTheme in
+    // scripts/constants.js.
+    theme: THEME_DEFAULT,
     // "Ask Puchne" (context menu / selection shortcut): open the panel with
     // the text filled in, or skip the panel and send it straight away.
     askAction: "panel",
@@ -613,10 +616,34 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     const settings = await getSettings();
     await chrome.storage.sync.set({ settings });
   }
+  if (details.reason === "update") {
+    await migrateThemeToSystem();
+  }
   // activeSessionTabs used to be persisted in storage.local; drop the
   // orphaned key left behind by pre-session-storage versions.
   await chrome.storage.local.remove("activeSessionTabs");
 });
+
+/**
+ * Moves existing installs onto the new "system" theme default.
+ *
+ * The old page wrote theme on every settings save, so nearly everyone has a
+ * literal "dark" stored whether they chose it or not — storage simply cannot
+ * tell a deliberate choice from a written-through default. This flips them
+ * once and records that it has, so anyone who then picks light or dark keeps
+ * it for good.
+ */
+async function migrateThemeToSystem() {
+  const { themeSystemMigrated } = await chrome.storage.local.get("themeSystemMigrated");
+  if (themeSystemMigrated) return;
+
+  const stored = await chrome.storage.sync.get("settings");
+  const settings = stored.settings;
+  if (settings) {
+    await chrome.storage.sync.set({ settings: { ...settings, theme: THEME_DEFAULT } });
+  }
+  await chrome.storage.local.set({ themeSystemMigrated: true });
+}
 
 // ── Tab-scoped Data Cleanup ──────────────────────────────────
 // A grid tab's payload lives for as long as the tab does, so a reload

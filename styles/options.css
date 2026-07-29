@@ -48,6 +48,42 @@
   box-sizing: border-box;
 }
 
+/* ── Focus ─────────────────────────────────────────────────── */
+/* :focus-visible rather than :focus, so the ring appears for keyboard and
+   assistive-tech users without following every mouse click. --accent is the
+   same orange used for the selected state, and the offset keeps it clear of
+   the element's own border. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* The toggle's real <input> is visually hidden, so the ring has to be drawn
+   on the slider standing in for it. */
+.toggle input:focus-visible + .slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Inputs draw the ring tight to their own rounded edge. */
+.selector-input:focus-visible,
+.num-input:focus-visible,
+.custom-input:focus-visible {
+  outline-offset: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 html {
   scrollbar-gutter: stable;
 }
@@ -606,7 +642,6 @@ body {
   color: var(--text-primary);
   font-family: "SF Mono", "Consolas", "Roboto Mono", monospace;
   font-size: 0.8rem;
-  outline: none;
   transition: border-color var(--transition);
 }
 
@@ -1105,7 +1140,6 @@ body {
   font-family: var(--font);
   font-size: 0.95rem;
   text-align: center;
-  outline: none;
   transition: border-color var(--transition);
   -moz-appearance: textfield;
 }
@@ -1167,17 +1201,22 @@ body {
   user-select: none;
 }
 
+/* A <button role="combobox">, so it needs the usual button resets on top of
+   the styling it had as a div. */
 .select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 8px 14px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 500;
+  text-align: left;
   cursor: pointer;
   transition: all var(--transition);
 }
@@ -1241,6 +1280,15 @@ body {
   background: var(--accent-light);
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Where the arrow keys are. Focus stays on the trigger the whole time, so
+   this is the only thing marking the keyboard's position — it needs to read
+   as stronger than .selected, which merely says what the value is now. */
+.option.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .input-suffix {

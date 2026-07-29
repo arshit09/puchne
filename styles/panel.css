@@ -34,6 +34,29 @@
 
 .pb-panel .hidden { display: none !important; }
 
+/* ── Focus ─────────────────────────────────────────────────── */
+/* The overlay renders inside a shadow root on arbitrary sites, so it can't
+   rely on the host page having any focus styling of its own — and the popup
+   had none either. :focus-visible keeps the ring off plain mouse clicks. */
+.pb-panel :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The textarea's frame is the .input-area around it, which already reacts to
+   :focus-within — a second ring inside it would just be noise. */
+.pb-panel textarea:focus-visible { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-panel *,
+  .pb-panel *::before,
+  .pb-panel *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ── Header ─────────────────────────────────────────────────── */
 .pb-panel .header {
   display: flex;
@@ -121,7 +144,14 @@
   background: var(--bg-hover);
 }
 
-.pb-panel .chip.active { border-color: var(--accent); }
+/* Filled, not just outlined. The border colour on its own was the only sign
+   a chip was on, which anyone who can't separate those two hues would miss;
+   the fill is a brightness change, and it costs no reflow the way a weight
+   or size change would. */
+.pb-panel .chip.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
 
 .pb-panel .chip.active:hover {
   border-color: var(--accent-hover);
@@ -294,11 +324,19 @@
   pointer-events: auto;
 }
 
+/* A <button>, so that recalling a prompt is reachable by keyboard; these are
+   the resets that buys. */
 .pb-panel .history-item-content {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 1px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  text-align: left;
   cursor: pointer;
   overflow: hidden;
 }
@@ -351,10 +389,13 @@
   margin-top: auto;
 }
 
+/* Also a <button> — it opens the shortcut settings, so it has to be
+   reachable without a mouse. */
 .pb-panel .shortcut-hint {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-family: inherit;
   font-size: 0.72rem;
   color: var(--text-muted);
   background: transparent;

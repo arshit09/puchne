@@ -156,3 +156,23 @@
   color: var(--text-primary);
   background: var(--bg-tertiary);
 }
+
+.login-toast .toast-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────── */
+/* The toast slides in and out, and the modal card is dragged around; none of
+   that carries meaning the user would lose by having it stop. */
+@media (prefers-reduced-motion: reduce) {
+  .login-toast,
+  .login-toast.leaving {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+
+  .modal-container {
+    transition: none;
+  }
+}

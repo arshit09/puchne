@@ -32,7 +32,7 @@ let origins = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const stored = await chrome.storage.sync.get("settings");
-  applyTheme(document.documentElement, stored.settings?.theme || "dark");
+  applyTheme(document.documentElement, stored.settings?.theme);
 
   const all = await fetchServices();
   services = requestedIds

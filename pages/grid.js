@@ -188,12 +188,130 @@ function addResizeHandles(cellEl, cellObj) {
     handle.className = `resize-handle rh-${dir}`;
     handle.dataset.dir = dir;
 
+    if (dir === "se") {
+      // The corner only exists to move both boundaries in one gesture. Each
+      // of them is separately reachable through the S and E handles, so it
+      // stays out of the tab order rather than posing as a separator that
+      // would have to claim a single orientation it doesn't have.
+      handle.setAttribute("aria-hidden", "true");
+    } else {
+      // A focusable separator — the window-splitter pattern. Without this the
+      // whole grid layout was mouse-only.
+      const vertical = dir === "e";
+      handle.setAttribute("role", "separator");
+      handle.tabIndex = 0;
+      handle.setAttribute("aria-orientation", vertical ? "vertical" : "horizontal");
+      handle.setAttribute(
+        "aria-label",
+        `Resize ${cellObj.service.name} ${vertical ? "width" : "height"}`
+      );
+      updateHandleValues(handle, cellObj, dir);
+      handle.addEventListener("keydown", (e) => onHandleKeydown(e, cellObj, dir, handle));
+      handle.addEventListener("focus", () => highlightBoundary(cellObj, dir, true));
+      handle.addEventListener("blur", () => highlightBoundary(cellObj, dir, false));
+    }
+
     // On hover, highlight all handles on the same full boundary line
     handle.addEventListener("mouseenter", () => highlightBoundary(cellObj, dir, true));
     handle.addEventListener("mouseleave", () => highlightBoundary(cellObj, dir, false));
 
     cellEl.appendChild(handle);
   });
+}
+
+/**
+ * The pair of tracks a handle sits between. The frac arrays are reassigned
+ * wholesale on every resize, so this returns which axis to read rather than
+ * a reference into one.
+ */
+function boundaryFor(cellObj, dir) {
+  return dir === "e"
+    ? { axis: "col", a: cellObj.col + cellObj.colSpan - 1, b: cellObj.col + cellObj.colSpan }
+    : { axis: "row", a: cellObj.row, b: cellObj.row + 1 };
+}
+
+/** Publishes the boundary's position as a percentage, for screen readers. */
+function updateHandleValues(handle, cellObj, dir) {
+  const { axis, a, b } = boundaryFor(cellObj, dir);
+  const fracs = axis === "col" ? colFracs : rowFracs;
+  if (fracs[a] === undefined || fracs[b] === undefined) return;
+
+  const span = fracs[a] + fracs[b];
+  handle.setAttribute("aria-valuenow", String(Math.round(fracs[a] * 100)));
+  handle.setAttribute("aria-valuemin", String(Math.round(MIN_FRAC * 100)));
+  handle.setAttribute("aria-valuemax", String(Math.round((span - MIN_FRAC) * 100)));
+}
+
+/** Re-reads every handle's value after a resize, from either input method. */
+function refreshHandleValues() {
+  for (const c of cellMap) {
+    c.el.querySelectorAll('.resize-handle[role="separator"]').forEach((h) => {
+      updateHandleValues(h, c, h.dataset.dir);
+    });
+  }
+}
+
+// How far one key press moves a boundary, as a fraction of the container.
+const KEY_STEP = 0.02;
+const KEY_STEP_LARGE = 0.10;
+
+/**
+ * Arrow keys move the boundary along its own axis, PageUp/PageDown in
+ * larger jumps, Home/End all the way to the minimum or maximum.
+ */
+function onHandleKeydown(e, cellObj, dir, handle) {
+  if (maximizedCell) return; // one cell owns the grid — nothing to divide
+
+  const { axis, a, b } = boundaryFor(cellObj, dir);
+  if (b >= (axis === "col" ? cols : rows)) return;
+
+  const vertical = dir === "e";
+  const fracs = axis === "col" ? colFracs : rowFracs;
+  let delta;
+
+  switch (e.key) {
+    case vertical ? "ArrowLeft" : "ArrowUp":   delta = -KEY_STEP; break;
+    case vertical ? "ArrowRight" : "ArrowDown": delta = KEY_STEP; break;
+    case "PageUp":   delta = -KEY_STEP_LARGE; break;
+    case "PageDown": delta = KEY_STEP_LARGE; break;
+    // adjustFracs clamps to MIN_FRAC, so overshooting is how you reach the end
+    case "Home": delta = -fracs[a]; break;
+    case "End":  delta = fracs[b]; break;
+    default: return;
+  }
+
+  e.preventDefault();
+
+  // A hover-expanded cell is a temporary layout; committing a resize on top
+  // of it would save the expansion, so drop back to the real one first —
+  // the same thing a mouse drag does.
+  if (expandState) {
+    colFracs = expandState.savedColFracs;
+    rowFracs = expandState.savedRowFracs;
+    expandState = null;
+  }
+
+  const next = [...(axis === "col" ? colFracs : rowFracs)];
+  adjustFracs(next, a, b, delta);
+  if (axis === "col") colFracs = next; else rowFracs = next;
+
+  // Key repeat outruns the 250ms grid transition, so suppress it while the
+  // key is held and restore it once the presses stop.
+  gridContainer.classList.add("no-transition");
+  clearTimeout(onHandleKeydown._settle);
+  onHandleKeydown._settle = setTimeout(
+    () => gridContainer.classList.remove("no-transition"),
+    200
+  );
+
+  updateGridTemplate();
+  refreshHandleValues();
+  saveLayout();
+
+  // The handle is invisible at rest, so show it moving.
+  handle.classList.add("rh-keyboard");
+  clearTimeout(handle._kbTimer);
+  handle._kbTimer = setTimeout(() => handle.classList.remove("rh-keyboard"), 500);
 }
 
 /**
@@ -311,6 +429,7 @@ function initResize(cellObj, dir, startX, startY) {
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
     gridContainer.classList.remove("no-transition");
+    refreshHandleValues(); // keep what screen readers report in step with the drag
     saveLayout();
   }
 
@@ -438,6 +557,11 @@ function initDrag(cellObj, startX, startY) {
     }
     const ghostLast = ghost.getBoundingClientRect();
 
+    // The swap itself has already happened above; steps 6 and 7 only animate
+    // the cells travelling to their new slots, so reduced motion skips
+    // straight to the result.
+    if (prefersReducedMotion()) return;
+
     // 6. Apply FLIP transition: set to original offsets instantly
     for (const c of cellMap) {
       if (c === cellObj) continue;
@@ -557,7 +681,9 @@ function initDrag(cellObj, startX, startY) {
     const dx = draggedFirst.left - draggedLast.left;
     const dy = draggedFirst.top - draggedLast.top;
 
-    if (dx !== 0 || dy !== 0) {
+    // The cell is already in its final slot; this only animates it snapping
+    // back from where the pointer left it.
+    if ((dx !== 0 || dy !== 0) && !prefersReducedMotion()) {
       cellObj.el.style.transition = 'none';
       cellObj.el.style.transform = `translate(${dx}px, ${dy}px)`;
 
@@ -719,6 +845,22 @@ document.addEventListener("keydown", (e) => {
 /* ── Cell Construction ─────────────────────────────────────── */
 
 /**
+ * Repoints every cell header at the logo for the theme now in effect.
+ * Only needed on the "system" preference, where the OS can flip it while
+ * the grid is already up.
+ */
+function refreshCellIcons() {
+  const isDark = document.documentElement.dataset.theme === "dark";
+  for (const c of cellMap) {
+    const img = c.el.querySelector(".cell-header-left img");
+    if (!img) continue;
+    const icon = (isDark && c.service.iconPathDark) ? c.service.iconPathDark : c.service.iconPath;
+    img.src = `../${icon}`;
+  }
+  updateClosedMenu(); // the re-open list draws the same logos
+}
+
+/**
  * Builds one grid cell (header, loading state, iframe) and wires its
  * interactions. Used by the first render and by re-opening a closed cell.
  *
@@ -738,18 +880,22 @@ function createCell(service, { delay = 0, isDark }) {
   header.title = "Drag to move · double-click to maximize";
   header.innerHTML = `
     <div class="cell-header-left">
-      <img src="../${iconSrc}" alt="${service.name}">
+      <img src="../${iconSrc}" alt="">
       <span>${service.name}</span>
     </div>
     <div class="cell-header-right">
-      <button class="cell-icon-btn cell-max-btn" title="Maximize / restore this cell">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button type="button" class="cell-icon-btn cell-max-btn"
+              title="Maximize / restore this cell"
+              aria-label="Maximize or restore ${service.name}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 3 21 3 21 9"></polyline>
           <polyline points="9 21 3 21 3 15"></polyline>
         </svg>
       </button>
-      <button class="cell-icon-btn cell-close-btn" title="Close window">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button type="button" class="cell-icon-btn cell-close-btn"
+              title="Close window"
+              aria-label="Close ${service.name}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
@@ -1009,8 +1155,14 @@ async function readGridData(tabId) {
 document.addEventListener("DOMContentLoaded", async () => {
   const stored   = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
-  const theme    = settings.theme || "dark";
-  applyTheme(document.documentElement, theme);
+  applyTheme(document.documentElement, settings.theme);
+  // Cell headers pick a light or dark service logo, so an OS theme change
+  // has to redraw them.
+  watchSystemTheme(() => {
+    if ((settings.theme || THEME_DEFAULT) !== "system") return;
+    applyTheme(document.documentElement, "system");
+    refreshCellIcons();
+  });
 
   hoverExpand    = settings.hoverExpand !== false;
   hoverExpandMin = settings.hoverExpandMin ?? 2;
@@ -1095,7 +1247,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  const isDark = theme === "dark";
+  const isDark = document.documentElement.dataset.theme === "dark";
   const iframeLoadPromises = [];
 
   targets.forEach((service, i) => {
@@ -1210,11 +1362,25 @@ function initHeaderControls() {
   document.getElementById("resetLayoutBtn")?.addEventListener("click", resetLayout);
 
   const closedMenu = document.getElementById("closedMenu");
-  document.getElementById("closedTrigger")?.addEventListener("click", (e) => {
+  const closedTrigger = document.getElementById("closedTrigger");
+  const syncClosedExpanded = () =>
+    closedTrigger?.setAttribute("aria-expanded", String(closedMenu?.classList.contains("open")));
+
+  closedTrigger?.addEventListener("click", (e) => {
     e.stopPropagation();
     closedMenu.classList.toggle("open");
+    syncClosedExpanded();
   });
-  window.addEventListener("click", () => closedMenu?.classList.remove("open"));
+  closedMenu?.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || !closedMenu.classList.contains("open")) return;
+    closedMenu.classList.remove("open");
+    syncClosedExpanded();
+    closedTrigger?.focus();
+  });
+  window.addEventListener("click", () => {
+    closedMenu?.classList.remove("open");
+    syncClosedExpanded();
+  });
 
   updateClosedMenu();
 }

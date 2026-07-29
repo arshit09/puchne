@@ -40,6 +40,27 @@
   box-sizing: border-box;
 }
 
+/* ── Focus ─────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.toggle input:focus-visible + .slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 html, body {
   height: 100%;
   font-family: var(--font);
@@ -103,6 +124,8 @@ html, body {
   background: transparent;
   color: var(--text-primary);
   font-size: 13px;
+  /* The .grid-query-form around it already reacts to :focus-within, so this
+     one keeps no ring of its own. */
   outline: none;
   resize: none;
   overflow: hidden;
@@ -191,6 +214,9 @@ html, body {
 .resize-handle {
   position: absolute;
   z-index: 10;
+  padding: 0;
+  border: none;
+  background: transparent;
   transition: background 150ms ease;
 }
 
@@ -208,6 +234,23 @@ html, body {
 .resize-handle.rh-e.rh-active  { width: 11px;  right: -6px;  background: var(--accent); }
 .resize-handle.rh-se:hover,
 .resize-handle.rh-se.rh-active { width: 18px; height: 18px; bottom: -9px; right: -9px; }
+
+/* Keyboard focus. A handle is invisible until hovered, so being focused has
+   to light it up the same way — otherwise tabbing onto one shows nothing at
+   all. .rh-keyboard is added while the arrow keys are actually resizing. */
+.resize-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.resize-handle.rh-s:focus-visible  { height: 11px; bottom: -6px; background: var(--accent); }
+.resize-handle.rh-e:focus-visible  { width: 11px;  right: -6px;  background: var(--accent); }
+.resize-handle.rh-se:focus-visible { width: 18px; height: 18px; bottom: -9px; right: -9px; }
+
+.resize-handle.rh-keyboard {
+  background: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 
 /* ── Iframe Pointer Overlay (blocks iframe stealing events) ── */
 .iframe-overlay {

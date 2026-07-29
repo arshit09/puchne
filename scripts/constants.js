@@ -27,13 +27,69 @@ var GRANTED_ORIGINS_KEY = "grantedOrigins";
 var PENDING_SEND_KEY      = "pendingSend";
 var PENDING_SEND_MAX_AGE_MS = 5 * 60_000; // Don't resume a send the user walked away from
 
+// ── Theme ────────────────────────────────────────────────────
+// The stored preference is one of "system" | "light" | "dark"; the
+// stylesheets only ever see a resolved "light" | "dark". Keeping the two
+// apart is what lets every surface go on reading data-theme without caring
+// that "system" exists.
+var THEME_DEFAULT = "system";
+
+/**
+ * Resolves a stored preference to the theme actually painted.
+ * "system" follows the OS; anything unrecognised falls back to it too.
+ * @param {string} [pref]
+ * @returns {"dark"|"light"}
+ */
+function resolveTheme(pref) {
+  if (pref === "dark" || pref === "light") return pref;
+  // matchMedia is missing in the service worker, which has nothing to paint.
+  if (typeof matchMedia !== "function") return "dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 /**
  * Applies a theme to an element by setting data-theme="dark"|"light".
  * Works for document.documentElement (popup/options pages) and
  * shadow-host container elements (content overlay).
+ *
+ * The raw preference is kept alongside it in data-theme-pref so a surface
+ * can tell "dark because the user asked" from "dark because the OS is".
+ *
  * @param {HTMLElement} element
- * @param {"dark"|"light"} theme
+ * @param {"system"|"dark"|"light"} [pref]
+ * @returns {"dark"|"light"} the resolved theme that was applied
  */
-function applyTheme(element, theme) {
-  element.dataset.theme = theme;
+function applyTheme(element, pref) {
+  const preference = pref || THEME_DEFAULT;
+  const resolved = resolveTheme(preference);
+  element.dataset.themePref = preference;
+  element.dataset.theme = resolved;
+  return resolved;
+}
+
+/**
+ * Calls back when the OS light/dark setting changes, so a surface sitting on
+ * "system" can repaint without being reopened.
+ * @param {(theme: "dark"|"light") => void} handler
+ * @returns {() => void} unsubscribe
+ */
+function watchSystemTheme(handler) {
+  if (typeof matchMedia !== "function") return () => {};
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const listener = (e) => handler(e.matches ? "dark" : "light");
+  mq.addEventListener("change", listener);
+  return () => mq.removeEventListener("change", listener);
+}
+
+// ── Motion ───────────────────────────────────────────────────
+
+/**
+ * Whether the user has asked for reduced motion. The stylesheets handle their
+ * own transitions with a media query; this is for the animations JS drives
+ * itself (FLIP reorders, grid swaps), which CSS can't reach.
+ * @returns {boolean}
+ */
+function prefersReducedMotion() {
+  if (typeof matchMedia !== "function") return false;
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }

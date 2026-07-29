@@ -245,9 +245,17 @@ class PuchneOverlay {
     this.shadow = this.container.attachShadow({ mode: "closed" });
     await adoptPanelStyles(this.shadow);
 
-    // 3. Mount the shared compose panel inside this surface's modal card
+    // 3. Mount the shared compose panel inside this surface's modal card.
+    //    It behaves like a modal (backdrop, Escape, focus trap), so it has to
+    //    say so — otherwise it reads as an anonymous group and a screen
+    //    reader never announces that the rest of the page is out of play.
+    //    panelTitle is the panel's own <h1>, a descendant of this element in
+    //    the same shadow root, so the IDREF resolves.
     const modal = document.createElement("div");
     modal.className = "modal-container";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "panelTitle");
     this.shadow.appendChild(modal);
 
     this.panel = new PuchnePromptPanel({
@@ -381,6 +389,10 @@ class PuchneOverlay {
 
   async show() {
     this.visible = true;
+    // Remember where focus came from so closing can hand it back, the way a
+    // dialog is expected to. Held on the instance because the overlay is
+    // built once and reopened many times.
+    this.lastFocused = document.activeElement;
     this.container.style.display = "flex";
 
     // Settings may have changed in the options page since the last open.
@@ -393,6 +405,14 @@ class PuchneOverlay {
   hide() {
     this.visible = false;
     this.container.style.display = "none";
+
+    // Without this, focus is left on a now-hidden element and the next Tab
+    // restarts from the top of the page.
+    const target = this.lastFocused;
+    this.lastFocused = null;
+    if (target && target.isConnected && typeof target.focus === "function") {
+      try { target.focus(); } catch {}
+    }
   }
 
   setPrompt(text) {
@@ -867,7 +887,7 @@ class PuchneLoginToast {
     await adoptPanelStyles(this.shadow);
 
     const stored = await chrome.storage.sync.get("settings");
-    this.container.dataset.theme = (stored.settings || {}).theme || "dark";
+    applyTheme(this.container, (stored.settings || {}).theme);
 
     this.shadow.appendChild(
       document.createRange().createContextualFragment(this.getHTML())
@@ -1026,7 +1046,9 @@ class PuchneFollowUpBar {
     this.shadow = this.container.attachShadow({ mode: "closed" });
 
     const stored = await chrome.storage.sync.get("settings");
-    const theme = stored.settings?.theme || "dark";
+    // This surface bakes its palette into a <style> string rather than
+    // reading data-theme, so it needs the resolved value, not the preference.
+    const theme = resolveTheme(stored.settings?.theme);
 
     const style = document.createElement("style");
     style.textContent = this.getStyles(theme);
@@ -1235,6 +1257,7 @@ class PuchneFollowUpBar {
         border-radius: 999px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         color: ${text};
+        font-family: inherit;
         font-size: 13px;
         cursor: pointer;
         pointer-events: auto;
@@ -1248,13 +1271,40 @@ class PuchneFollowUpBar {
         height: 18px;
         opacity: 0.9;
       }
+
+      /* ── Focus ──
+         This bar sits on top of arbitrary sites, so the ring is drawn with
+         box-shadow as well as outline: a host page's own outline rules can't
+         reach into the shadow root, but the doubled cue survives dark and
+         light backgrounds either way. */
+      .follow-up-bar :focus-visible,
+      .follow-up-pill:focus-visible {
+        outline: 2px solid ${accent};
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      .follow-up-pill:focus-visible {
+        border-radius: 999px;
+      }
+      .input-field:focus-visible {
+        outline-offset: -2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+        .send-btn:hover { transform: none; }
+      }
     `;
   }
 
   getHTML() {
     return `
-      <form id="followUpForm" class="follow-up-bar">
-        <div id="dragHandle" class="drag-handle" title="Drag to move">
+      <form id="followUpForm" class="follow-up-bar" aria-label="Puchne follow-up">
+        <div id="dragHandle" class="drag-handle" title="Drag to move" aria-hidden="true">
           <svg width="12" height="20" viewBox="0 0 12 20" fill="currentColor">
             <circle cx="4" cy="4" r="1.5"></circle>
             <circle cx="8" cy="4" r="1.5"></circle>
@@ -1264,26 +1314,26 @@ class PuchneFollowUpBar {
             <circle cx="8" cy="16" r="1.5"></circle>
           </svg>
         </div>
-        <img class="logo" src="${chrome.runtime.getURL('icons/app/icon-48.png')}" alt="Puchne" title="Puchne Active Session" />
-        <input type="text" id="followUpInput" class="input-field" placeholder="Ask a follow-up question to all Active AIs..." autocomplete="off">
-        <button type="submit" id="sendBtn" class="send-btn" title="Send to all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <img class="logo" src="${chrome.runtime.getURL('icons/app/icon-48.png')}" alt="" title="Puchne Active Session" />
+        <input type="text" id="followUpInput" class="input-field" placeholder="Ask a follow-up question to all Active AIs..." autocomplete="off" aria-label="Ask a follow-up question to all active AIs">
+        <button type="submit" id="sendBtn" class="send-btn" title="Send to all" aria-label="Send to all">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="22" y1="2" x2="11" y2="13"></line>
             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
-        <button type="button" id="collapseBtn" class="icon-btn" title="Collapse to a pill">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" id="collapseBtn" class="icon-btn" title="Collapse to a pill" aria-label="Collapse to a pill">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="4 14 10 14 10 20"></polyline>
             <polyline points="20 10 14 10 14 4"></polyline>
           </svg>
         </button>
       </form>
 
-      <div id="followUpPill" class="follow-up-pill hidden" title="Open the Puchne follow-up bar">
+      <button type="button" id="followUpPill" class="follow-up-pill hidden" title="Open the Puchne follow-up bar" aria-label="Open the Puchne follow-up bar">
         <img src="${chrome.runtime.getURL('icons/app/icon-48.png')}" alt="" />
         <span>Follow up</span>
-      </div>
+      </button>
     `;
   }
 

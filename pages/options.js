@@ -29,54 +29,32 @@ const modeTabsBtn = document.getElementById("modeTabsBtn");
 const groupTabsRow = document.getElementById("groupTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
-const darkModeEl = document.getElementById("darkMode");
 const showRecentsEl = document.getElementById("showRecents");
 const showShortcutHintEl = document.getElementById("showShortcutHint");
 const showFollowUpInputEl = document.getElementById("showFollowUpInput");
 const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 const selectionShortcutBadge = document.getElementById("selectionShortcutBadge");
+// Each .custom-select keeps its value in a hidden input; the visible trigger
+// and option list are driven by a Select controller (see initSelect).
+const themeEl = document.getElementById("theme");
 const overlayPositionEl = document.getElementById("overlayPosition");
-const overlayPositionContainer = document.getElementById("overlayPositionContainer");
-const overlayPositionTrigger = document.getElementById("overlayPositionTrigger");
-const overlayPositionLabel = document.getElementById("overlayPositionLabel");
-const overlayPositionOptions = document.getElementById("overlayPositionOptions");
 const showToolNamesEl = document.getElementById("chipDisplay");
-const chipDisplayContainer = document.getElementById("chipDisplayContainer");
-const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
-const chipDisplayLabel = document.getElementById("chipDisplayLabel");
-const chipDisplayOptions = document.getElementById("chipDisplayOptions");
 const hoverExpandEl        = document.getElementById("hoverExpand");
 const hoverExpandRow       = document.getElementById("hoverExpandRow");
 const hoverExpandMinEl        = document.getElementById("hoverExpandMin");
 const hoverExpandMinRow       = document.getElementById("hoverExpandMinRow");
-const hoverExpandMinContainer = document.getElementById("hoverExpandMinContainer");
-const hoverExpandMinTrigger   = document.getElementById("hoverExpandMinTrigger");
-const hoverExpandMinLabel     = document.getElementById("hoverExpandMinLabel");
-const hoverExpandMinOptions   = document.getElementById("hoverExpandMinOptions");
 const hoverExpandDelayEl      = document.getElementById("hoverExpandDelay");
 const hoverExpandDelayRow     = document.getElementById("hoverExpandDelayRow");
-const hoverExpandDelayContainer = document.getElementById("hoverExpandDelayContainer");
-const hoverExpandDelayTrigger = document.getElementById("hoverExpandDelayTrigger");
-const hoverExpandDelayLabel   = document.getElementById("hoverExpandDelayLabel");
-const hoverExpandDelayOptions = document.getElementById("hoverExpandDelayOptions");
 const askDirectEl = document.getElementById("askDirect");
 const askPanelBtn = document.getElementById("askPanelBtn");
 const askDirectBtn = document.getElementById("askDirectBtn");
 const askTargetModeEl = document.getElementById("askTargetMode");
 const askTargetModeRow = document.getElementById("askTargetModeRow");
-const askTargetModeContainer = document.getElementById("askTargetModeContainer");
-const askTargetModeTrigger = document.getElementById("askTargetModeTrigger");
-const askTargetModeLabel = document.getElementById("askTargetModeLabel");
-const askTargetModeOptions = document.getElementById("askTargetModeOptions");
 const askTargetIdsRow = document.getElementById("askTargetIdsRow");
 const askToolPickerEl = document.getElementById("askToolPicker");
 const askToolPickerHintEl = document.getElementById("askToolPickerHint");
 const cookieConsentEl = document.getElementById("cookieConsent");
 const cookieConsentRow = document.getElementById("cookieConsentRow");
-const cookieConsentContainer = document.getElementById("cookieConsentContainer");
-const cookieConsentTrigger = document.getElementById("cookieConsentTrigger");
-const cookieConsentLabel = document.getElementById("cookieConsentLabel");
-const cookieConsentOptions = document.getElementById("cookieConsentOptions");
 const mainContainer = document.querySelector(".container");
 const confirmModal = document.getElementById("confirmModal");
 const cancelResetBtn = document.getElementById("cancelReset");
@@ -141,7 +119,9 @@ const DEFAULTS = {
   askTargetMode: "enabled",
   askTargetIds: [],
   chipDisplay: "logo-name",
-  theme: "dark",
+  // "system" follows the OS; resolveTheme in scripts/constants.js turns it
+  // into the light or dark that actually gets painted.
+  theme: THEME_DEFAULT,
   cookieConsent: "accept",
   customSelectors: {},
   customProviders: [],
@@ -175,6 +155,15 @@ document.addEventListener("DOMContentLoaded", async () => {
    cookieConsentWrap, groupTabsWrap, askTargetModeWrap,
    askTargetIdsWrap].forEach(w => w.style.transition = "none");
 
+  // Wire the dropdowns before any saved value is painted into them.
+  initSelect("theme", applyThemePreference);
+  initSelect("overlayPosition", () => { save(); updatePreview(); });
+  initSelect("chipDisplay", () => { save(); updatePreview(); });
+  initSelect("hoverExpandMin", save);
+  initSelect("hoverExpandDelay", save);
+  initSelect("cookieConsent", save);
+  initSelect("askTargetMode", () => { updateAskState(); save(); });
+
   // Fetch service registry from the background worker
   allServices = await new Promise((resolve) => {
     chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
@@ -198,31 +187,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   gridViewEl.checked = settings.gridView || false;
   updateModeButtons();
   hoverExpandEl.checked = settings.hoverExpand !== false;
-  const savedHoverExpandMin = String(settings.hoverExpandMin ?? 2);
-  hoverExpandMinEl.value = savedHoverExpandMin;
-  updateHoverExpandMinLabel(savedHoverExpandMin);
-  updateHoverExpandMinSelected(savedHoverExpandMin);
-  const savedHoverExpandDelay = String(settings.hoverExpandDelay ?? DEFAULTS.hoverExpandDelay);
-  hoverExpandDelayEl.value = savedHoverExpandDelay;
-  updateHoverExpandDelayLabel(savedHoverExpandDelay);
-  updateHoverExpandDelaySelected(savedHoverExpandDelay);
+  selects.hoverExpandMin.setValue(String(settings.hoverExpandMin ?? 2));
+  selects.hoverExpandDelay.setValue(String(settings.hoverExpandDelay ?? DEFAULTS.hoverExpandDelay));
   groupTabsEl.checked = settings.groupTabs;
   updateGroupTabsState();
   updateHoverExpandState();
-  // Cookie consent setting
-  const savedCookieConsent = settings.cookieConsent || "accept";
-  cookieConsentEl.value = savedCookieConsent;
-  updateCookieConsentLabel(savedCookieConsent);
-  updateCookieConsentSelected(savedCookieConsent);
+  selects.cookieConsent.setValue(settings.cookieConsent || "accept");
   updateCookieConsentState();
 
   // Ask Puchne (context menu / selection shortcut)
   askDirectEl.checked = settings.askAction === "direct";
   askTargetIds = Array.isArray(settings.askTargetIds) ? settings.askTargetIds : [];
-  const savedAskTargetMode = settings.askTargetMode || "enabled";
-  askTargetModeEl.value = savedAskTargetMode;
-  updateAskTargetModeLabel(savedAskTargetMode);
-  updateAskTargetModeSelected(savedAskTargetMode);
+  selects.askTargetMode.setValue(settings.askTargetMode || "enabled");
   updateAskButtons();
   updateAskState();
 
@@ -239,28 +215,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   showShortcutHintEl.checked = settings.showShortcutHint !== false;
   showFollowUpInputEl.checked = settings.showFollowUpInput !== false;
 
-  // Init chipDisplay
-  const savedChipDisplay = settings.chipDisplay || "logo-name";
-  showToolNamesEl.value = savedChipDisplay;
-  updateChipDisplayLabel(savedChipDisplay);
-  // Restore overlay position separately
-  overlayPositionEl.value = settings.overlayPosition || "center";
-  overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Center";
-  updateSelectedOption(settings.overlayPosition || "center");
+  selects.chipDisplay.setValue(settings.chipDisplay || "logo-name");
+  selects.overlayPosition.setValue(settings.overlayPosition || "center");
 
-  // Apply saved theme
-  const savedTheme = settings.theme || "dark";
-  applyTheme(document.documentElement, savedTheme);
-  darkModeEl.checked = savedTheme === "dark";
-  darkModeEl.addEventListener("change", () => {
-    const theme = darkModeEl.checked ? "dark" : "light";
-    applyTheme(document.documentElement, theme);
-    renderServices();
-    renderAskToolPicker();
-    save();
-    updatePreview();
+  // Apply saved theme. On "system" the OS can change it while the page is
+  // open, and the service logos are theme-specific, so watch for that too.
+  selects.theme.setValue(settings.theme || THEME_DEFAULT);
+  applyTheme(document.documentElement, themeEl.value);
+  // No repaint needed yet — renderServices() below is the first paint, and
+  // it reads the data-theme just set.
+  watchSystemTheme(() => {
+    if (themeEl.value !== "system") return;
+    applyTheme(document.documentElement, "system");
+    repaintThemedArtwork();
   });
-
 
   showRecentsEl.addEventListener("change", () => {
     save();
@@ -339,13 +307,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
   });
 
-  // Init custom selects
-  initCustomSelect();
-  initChipDisplaySelect();
-  initCookieConsentSelect();
-  initHoverExpandMinSelect();
-  initHoverExpandDelaySelect();
-  initAskTargetModeSelect();
   initAddCustomProvider();
 
   // Init custom number spinners
@@ -502,85 +463,198 @@ function toggleServiceAccess(service, checkbox, btn) {
   });
 }
 
-function initCustomSelect() {
-  overlayPositionTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    chipDisplayContainer.classList.remove("open");
-    cookieConsentContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.remove("open");
-    askTargetModeContainer.classList.remove("open");
-    overlayPositionContainer.classList.toggle("open");
-  });
+// ── Theme ────────────────────────────────────────────────────
 
-  overlayPositionOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      overlayPositionEl.value = val;
-      overlayPositionLabel.textContent = option.textContent;
-      updateSelectedOption(val);
-      overlayPositionContainer.classList.remove("open");
-      save();
-      updatePreview();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    overlayPositionContainer.classList.remove("open");
-  });
+/** Runs when the theme dropdown is used. */
+function applyThemePreference(pref) {
+  applyTheme(document.documentElement, pref);
+  repaintThemedArtwork();
+  save();
+  updatePreview();
 }
 
-function updateSelectedOption(val) {
-  overlayPositionOptions.querySelectorAll(".option").forEach(opt => {
-    if (opt.getAttribute("data-value") === val) {
-      opt.classList.add("selected");
-    } else {
-      opt.classList.remove("selected");
+/**
+ * Redraws the parts of the page that pick their own artwork by theme —
+ * both lists choose between a service's light and dark logo — which CSS
+ * variables can't do for them.
+ */
+function repaintThemedArtwork() {
+  renderServices();
+  renderAskToolPicker();
+}
+
+// ── Custom Selects ───────────────────────────────────────────
+/**
+ * These look like dropdowns and now behave like them for everyone. The
+ * markup is a button (role="combobox") plus a listbox of options; DOM focus
+ * stays on the button throughout and aria-activedescendant points at the
+ * option the arrow keys are on, which is the WAI-ARIA select-only combobox
+ * pattern.
+ *
+ * Every controller is registered here so one document-level click can close
+ * whichever is open, instead of each select listening for the others.
+ */
+const selects = {};
+
+/**
+ * @param {string} name — the id prefix shared by the container/trigger/list
+ * @param {(value: string) => void} [onCommit] — run after the user picks
+ * @returns {{el: HTMLInputElement, value: string, setValue: Function, close: Function}}
+ */
+function initSelect(name, onCommit) {
+  const container = document.getElementById(`${name}Container`);
+  const trigger   = document.getElementById(`${name}Trigger`);
+  const labelEl   = document.getElementById(`${name}Label`);
+  const listEl    = document.getElementById(`${name}Options`);
+  const input     = container.querySelector('input[type="hidden"]');
+  const options   = Array.from(listEl.querySelectorAll(".option"));
+
+  // The option label already lives in the DOM, so there is no value→text map
+  // to keep in step with the markup.
+  options.forEach((opt, i) => {
+    opt.id = `${name}Opt${i}`;
+    opt.setAttribute("role", "option");
+    opt.setAttribute("aria-selected", "false");
+  });
+
+  let activeIndex = 0;
+  let typeahead = "";
+  let typeaheadTimer = null;
+
+  const isOpen = () => container.classList.contains("open");
+  const indexOfValue = (val) => {
+    const i = options.findIndex((o) => o.dataset.value === val);
+    return i === -1 ? 0 : i;
+  };
+
+  function setActive(index) {
+    activeIndex = Math.max(0, Math.min(index, options.length - 1));
+    const opt = options[activeIndex];
+    options.forEach((o) => o.classList.toggle("active", o === opt));
+    trigger.setAttribute("aria-activedescendant", opt.id);
+    opt.scrollIntoView({ block: "nearest" });
+  }
+
+  /** Paints a value without notifying — used for the initial load. */
+  function setValue(val, { notify = false } = {}) {
+    const index = indexOfValue(val);
+    const opt = options[index];
+    input.value = opt.dataset.value;
+    labelEl.textContent = opt.textContent;
+    options.forEach((o) => {
+      const on = o === opt;
+      o.classList.toggle("selected", on);
+      o.setAttribute("aria-selected", String(on));
+    });
+    activeIndex = index;
+    if (notify) onCommit?.(input.value);
+  }
+
+  function open() {
+    if (isOpen()) return;
+    closeAllSelects(container);
+    container.classList.add("open");
+    trigger.setAttribute("aria-expanded", "true");
+    setActive(indexOfValue(input.value));
+  }
+
+  function close() {
+    if (!isOpen()) return;
+    container.classList.remove("open");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.removeAttribute("aria-activedescendant");
+    options.forEach((o) => o.classList.remove("active"));
+  }
+
+  /** Commits the option the keyboard is on and closes. */
+  function commitActive() {
+    setValue(options[activeIndex].dataset.value, { notify: true });
+    close();
+  }
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    isOpen() ? close() : open();
+  });
+
+  trigger.addEventListener("keydown", (e) => {
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        isOpen() ? setActive(activeIndex + 1) : open();
+        return;
+      case "ArrowUp":
+        e.preventDefault();
+        isOpen() ? setActive(activeIndex - 1) : open();
+        return;
+      case "Home":
+        if (!isOpen()) return;
+        e.preventDefault();
+        setActive(0);
+        return;
+      case "End":
+        if (!isOpen()) return;
+        e.preventDefault();
+        setActive(options.length - 1);
+        return;
+      case "Enter":
+      case " ":
+        // Closed, this falls through to the native button click, which opens
+        // the list. Open, it picks whatever the arrows landed on.
+        if (!isOpen()) return;
+        e.preventDefault();
+        commitActive();
+        return;
+      case "Escape":
+        if (!isOpen()) return;
+        e.preventDefault();
+        e.stopPropagation(); // don't also close the reset-confirmation modal
+        close();
+        return;
+      case "Tab":
+        close(); // leaving the control abandons the arrow-key position
+        return;
     }
-  });
-}
 
-function initChipDisplaySelect() {
-  chipDisplayTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    overlayPositionContainer.classList.remove("open");
-    cookieConsentContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.remove("open");
-    askTargetModeContainer.classList.remove("open");
-    chipDisplayContainer.classList.toggle("open");
+    // Type-ahead: jump to the first option starting with what was typed.
+    if (e.key.length !== 1 || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    if (!isOpen()) open();
+    typeahead += e.key.toLowerCase();
+    clearTimeout(typeaheadTimer);
+    typeaheadTimer = setTimeout(() => { typeahead = ""; }, 600);
+    const match = options.findIndex((o) =>
+      o.textContent.trim().toLowerCase().startsWith(typeahead)
+    );
+    if (match !== -1) setActive(match);
   });
 
-  chipDisplayOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      showToolNamesEl.value = val;
-      updateChipDisplayLabel(val);
-      updateChipDisplaySelected(val);
-      chipDisplayContainer.classList.remove("open");
-      save();
-      updatePreview();
+  options.forEach((opt, i) => {
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      activeIndex = i;
+      commitActive();
+      trigger.focus(); // focus never belonged to the option, but a click moved it off
     });
+    // Hovering shouldn't fight the keyboard for which option is "active",
+    // so the pointer only previews on the option it is actually over.
+    opt.addEventListener("mousemove", () => { if (isOpen()) setActive(i); });
   });
 
-  window.addEventListener("click", () => {
-    chipDisplayContainer.classList.remove("open");
-  });
-
-  // Mark initial selected option
-  updateChipDisplaySelected(showToolNamesEl.value || "logo-name");
+  const api = { el: input, setValue, close, get value() { return input.value; } };
+  selects[name] = api;
+  return api;
 }
 
-function updateChipDisplayLabel(val) {
-  const labels = { "none": "None", "logo": "Logo only", "name": "Name only", "logo-name": "Name with Logo" };
-  chipDisplayLabel.textContent = labels[val] || "Name with Logo";
-}
-
-function updateChipDisplaySelected(val) {
-  chipDisplayOptions.querySelectorAll(".option").forEach(opt => {
-    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+/** Closes every select except `keep`, so only one list is ever open. */
+function closeAllSelects(keep) {
+  Object.values(selects).forEach((s) => {
+    if (s.el.closest(".custom-select") !== keep) s.close();
   });
 }
+
+// One listener for all of them: a click anywhere else dismisses the open list.
+document.addEventListener("click", () => closeAllSelects(null));
 
 function initNumSpinners() {
   document.querySelectorAll(".num-spin").forEach(btn => {
@@ -634,7 +708,7 @@ function updateGroupTabsState() {
 
 function updateOverlayPositionState() {
   const disabled = useSidebarEl.checked;
-  const row = overlayPositionContainer.closest(".setting-row");
+  const row = overlayPositionEl.closest(".setting-row");
   if (row) {
     row.style.opacity = disabled ? "0.45" : "1";
     row.style.pointerEvents = disabled ? "none" : "";
@@ -652,133 +726,6 @@ function updateHoverExpandState() {
   const showSub = isGrid && hoverExpandEl.checked;
   hoverExpandMinWrap.classList.toggle("collapsed", !showSub);
   hoverExpandDelayWrap.classList.toggle("collapsed", !showSub);
-}
-
-function initHoverExpandMinSelect() {
-  hoverExpandMinTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    overlayPositionContainer.classList.remove("open");
-    chipDisplayContainer.classList.remove("open");
-    cookieConsentContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.remove("open");
-    askTargetModeContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.toggle("open");
-  });
-
-  hoverExpandMinOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      hoverExpandMinEl.value = val;
-      updateHoverExpandMinLabel(val);
-      updateHoverExpandMinSelected(val);
-      hoverExpandMinContainer.classList.remove("open");
-      save();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    hoverExpandMinContainer.classList.remove("open");
-  });
-
-  updateHoverExpandMinSelected(hoverExpandMinEl.value || "2");
-}
-
-function updateHoverExpandMinLabel(val) {
-  const labels = { "2": "2 or more", "3": "3 or more", "4": "4 or more" };
-  hoverExpandMinLabel.textContent = labels[val] || "2 or more";
-}
-
-function updateHoverExpandMinSelected(val) {
-  hoverExpandMinOptions.querySelectorAll(".option").forEach(opt => {
-    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
-  });
-}
-
-function initHoverExpandDelaySelect() {
-  hoverExpandDelayTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    overlayPositionContainer.classList.remove("open");
-    chipDisplayContainer.classList.remove("open");
-    cookieConsentContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.remove("open");
-    askTargetModeContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.toggle("open");
-  });
-
-  hoverExpandDelayOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      hoverExpandDelayEl.value = val;
-      updateHoverExpandDelayLabel(val);
-      updateHoverExpandDelaySelected(val);
-      hoverExpandDelayContainer.classList.remove("open");
-      save();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    hoverExpandDelayContainer.classList.remove("open");
-  });
-
-  updateHoverExpandDelaySelected(hoverExpandDelayEl.value || "0");
-}
-
-function updateHoverExpandDelayLabel(val) {
-  const labels = {
-    "0": "Instant (0s)",
-    "200": "0.2 seconds",
-    "500": "0.5 seconds",
-    "1000": "1.0 second",
-    "1500": "1.5 seconds",
-    "2000": "2.0 seconds"
-  };
-  hoverExpandDelayLabel.textContent = labels[val] || "1.5 seconds";
-}
-
-function updateHoverExpandDelaySelected(val) {
-  hoverExpandDelayOptions.querySelectorAll(".option").forEach(opt => {
-    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
-  });
-}
-
-function initCookieConsentSelect() {
-  cookieConsentTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    overlayPositionContainer.classList.remove("open");
-    chipDisplayContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.remove("open");
-    askTargetModeContainer.classList.remove("open");
-    cookieConsentContainer.classList.toggle("open");
-  });
-
-  cookieConsentOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      cookieConsentEl.value = val;
-      updateCookieConsentLabel(val);
-      updateCookieConsentSelected(val);
-      cookieConsentContainer.classList.remove("open");
-      save();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    cookieConsentContainer.classList.remove("open");
-  });
-
-  updateCookieConsentSelected(cookieConsentEl.value || "accept");
-}
-
-function updateCookieConsentLabel(val) {
-  const labels = { "accept": "Accept All", "reject": "Reject All", "off": "Off (Manual)" };
-  cookieConsentLabel.textContent = labels[val] || "Accept All";
-}
-
-function updateCookieConsentSelected(val) {
-  cookieConsentOptions.querySelectorAll(".option").forEach(opt => {
-    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
-  });
 }
 
 // ── Ask Puchne (context menu / selection shortcut) ───────────
@@ -801,47 +748,6 @@ function updateAskState() {
   const showPicker = isDirect && askTargetModeEl.value === "custom";
   askTargetIdsWrap.classList.toggle("collapsed", !showPicker);
   if (showPicker) renderAskToolPicker();
-}
-
-function initAskTargetModeSelect() {
-  askTargetModeTrigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    overlayPositionContainer.classList.remove("open");
-    chipDisplayContainer.classList.remove("open");
-    cookieConsentContainer.classList.remove("open");
-    hoverExpandMinContainer.classList.remove("open");
-    hoverExpandDelayContainer.classList.remove("open");
-    askTargetModeContainer.classList.toggle("open");
-  });
-
-  askTargetModeOptions.querySelectorAll(".option").forEach(option => {
-    option.addEventListener("click", () => {
-      const val = option.getAttribute("data-value");
-      askTargetModeEl.value = val;
-      updateAskTargetModeLabel(val);
-      updateAskTargetModeSelected(val);
-      askTargetModeContainer.classList.remove("open");
-      updateAskState();
-      save();
-    });
-  });
-
-  window.addEventListener("click", () => {
-    askTargetModeContainer.classList.remove("open");
-  });
-
-  updateAskTargetModeSelected(askTargetModeEl.value || "enabled");
-}
-
-function updateAskTargetModeLabel(val) {
-  const labels = { "enabled": "Enabled tools", "custom": "Specific tools" };
-  askTargetModeLabel.textContent = labels[val] || "Enabled tools";
-}
-
-function updateAskTargetModeSelected(val) {
-  askTargetModeOptions.querySelectorAll(".option").forEach(opt => {
-    opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
-  });
 }
 
 /**
@@ -1528,7 +1434,7 @@ async function _doSave() {
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
     enableHistory: showRecentsEl.checked,
     showRecents: showRecentsEl.checked,
-    theme: darkModeEl.checked ? "dark" : "light",
+    theme: themeEl.value || THEME_DEFAULT,
     showShortcutHint: showShortcutHintEl.checked,
     showFollowUpInput: showFollowUpInputEl.checked,
     overlayPosition: overlayPositionEl.value,
@@ -1772,7 +1678,9 @@ function applyNonSidebarPosition() {
 function updatePreview() {
   if (!mockOverlay) return;
 
-  const isDark = darkModeEl.checked;
+  // The preview mirrors what the page is actually painted as, which on
+  // "system" is whatever the OS said.
+  const isDark = document.documentElement.dataset.theme === "dark";
   const isSidebar = useSidebarEl.checked;
 
   if (isSidebar) {
