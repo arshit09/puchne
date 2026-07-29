@@ -454,10 +454,11 @@ chrome.permissions.onRemoved.addListener(() => syncHostAccess());
 
 
 // ── Delivery Status ──────────────────────────────────────────
-// The popup, side panel and overlay all render the same per-service
-// delivery list. It lives in storage.session (it is meaningless after a
-// browser restart) and is published here as each service progresses, so
-// the surfaces just subscribe rather than each tracking their own copy.
+// Per-service bookkeeping for the send in flight: which service is where,
+// and why one failed. No surface renders it — it exists so the worker can
+// re-run a single service (see retryService) and so the toolbar badge knows
+// whether anything failed. It lives in storage.session because it is
+// meaningless after a browser restart.
 
 // Injections finish concurrently, so every read-modify-write of the status
 // record is serialized through one queue to stop them clobbering each other.
@@ -528,7 +529,8 @@ function stateFromResult(result) {
 
 /**
  * Marks the services Puchne isn't allowed to open. They get their own state
- * so the delivery list can offer "Grant access" instead of a pointless retry.
+ * (needsPermission) so a retry doesn't pointlessly re-run a send that can
+ * only be fixed by granting the site.
  * @param {Array} blocked — service definitions
  */
 function markBlocked(blocked) {
@@ -936,8 +938,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
-  // Sent by any surface that can't ask Chrome itself — the overlay, the
-  // popup, the delivery list's "Grant access" button.
+  // Sent by any surface that can't ask Chrome itself — the overlay and the
+  // popup, from a locked chip or a send that needs a site first.
   if (message.action === "requestServiceAccess") {
     openAccessWindow(message.serviceIds, message.pendingSend).then(
       () => sendResponse({ ok: true }),
@@ -1090,6 +1092,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  // Recovery actions for a service that failed. The delivery list that used
+  // to offer them is gone, so nothing calls these today — they are kept as
+  // the entry points for whatever surfaces failures next.
   if (message.action === "retryService") {
     retryService(message.serviceId).then(
       (res) => sendResponse(res),
@@ -1224,9 +1229,9 @@ async function injectIntoGridFrame(tabId, target, query, { autoSubmit, cookieCon
 
 
 /**
- * Re-runs one service from the current delivery status — the "Retry" action
- * on a failed row. Reuses the tab/frame the first attempt used when it is
- * still around, so a retry doesn't pile up duplicate tabs.
+ * Re-runs one service from the current send-status record. Reuses the
+ * tab/frame the first attempt used when it is still around, so a retry
+ * doesn't pile up duplicate tabs.
  *
  * @param {string} serviceId
  */
@@ -1306,8 +1311,8 @@ async function handleMulticast(query, ids) {
 
   // The surfaces ask for access before sending, so this normally passes
   // everything through. It still matters when a permission was revoked
-  // between composing and sending: those services are reported rather than
-  // silently dropped, and the delivery row offers to ask for them again.
+  // between composing and sending: those services are recorded as failed
+  // rather than silently dropped, and the toolbar badge flags it.
   const { allowed: targets, blocked } = await partitionTargets(allTargets);
 
   if (targets.length === 0) {

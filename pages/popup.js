@@ -55,8 +55,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /**
- * Flips the theme, repaints the panel (chips and status rows pick
- * theme-specific service icons), and persists the choice.
+ * Flips the theme, repaints the panel (chips pick theme-specific
+ * service icons), and persists the choice.
  */
 async function toggleTheme(btn) {
   const next = (document.documentElement.dataset.theme || "light") === "dark" ? "light" : "dark";
@@ -66,7 +66,6 @@ async function toggleTheme(btn) {
   panel.theme = next;
   if (panel.settings) panel.settings.theme = next;
   panel.renderServiceChips();
-  if (panel.sendStatus) panel.renderStatus(panel.sendStatus);
 
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};

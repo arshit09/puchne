@@ -256,8 +256,8 @@ class PuchneOverlay {
       variant: "overlay",
       // Settings opens in another tab, so there is nothing left to look at here.
       onOpenSettings: () => this.hide(),
-      // Deliberately stays open after a send: the delivery status list is the
-      // whole point of not closing the moment the prompt leaves.
+      // Deliberately stays open after a send, so a follow-up prompt doesn't
+      // mean re-opening the overlay.
     });
     await this.panel.initPromise;
 
@@ -418,8 +418,8 @@ class PuchneOverlay {
  *                                      capped at SETTLE_CAP_MS
  *
  * @returns {Promise<{ok: boolean, filled?: boolean, submitted?: boolean, error?: string}>}
- *   `filled` and `submitted` are what the delivery status list reports back
- *   to the user, so they distinguish "typed but never sent" from "sent".
+ *   `filled` and `submitted` are what the worker records per service, so they
+ *   distinguish "typed but never sent" from "sent".
  */
 async function fillAndSubmit({
   query,

@@ -10,8 +10,8 @@
  *
  *  Everything the two surfaces share lives here: service chips
  *  (including drag-to-reorder), the prompt box, the send button
- *  and its disabled-state explanation, prompt history, the
- *  per-service delivery status list, and the shortcut hint.
+ *  and its disabled-state explanation, prompt history, and the
+ *  shortcut hint.
  *
  *  The hosts keep only what is genuinely theirs — the overlay
  *  owns its backdrop/drag/focus-trap, the popup owns its theme
@@ -60,11 +60,8 @@ class PuchnePromptPanel {
     this.showRecents = true;
     this.chipDisplay = "logo-name";
     this.showShortcutHint = true;
-    this.sendStatus = null;
 
     this._chipFingerprint = "";
-    this._statusPollTimer = null;
-    this._dismissedAt = 0;
 
     this.initPromise = this.init();
   }
@@ -90,8 +87,6 @@ class PuchnePromptPanel {
     this.renderServiceChips(true);
     this.renderHistory();
     this.updateShortcutHint();
-    await this.loadStatus();
-    this.watchStatus();
     await this.checkPendingPrompt();
   }
 
@@ -233,7 +228,6 @@ class PuchnePromptPanel {
     this.renderServiceChips();
     this.renderHistory();
     this.updateShortcutHint();
-    await this.loadStatus();
     await this.checkPendingPrompt();
   }
 
@@ -272,14 +266,6 @@ class PuchnePromptPanel {
         </div>
       </div>
       <p class="panel-hint hidden" id="panelHint"></p>
-
-      <div id="statusSection" class="status-section hidden">
-        <div class="status-head">
-          <p class="section-label">Delivery</p>
-          <button id="statusDismiss" class="text-btn" title="Hide delivery status">Dismiss</button>
-        </div>
-        <ul id="statusList" class="status-list"></ul>
-      </div>
 
       <div id="historySection" class="history-section hidden">
         <p class="history-label">Recent prompts</p>
@@ -339,8 +325,6 @@ class PuchnePromptPanel {
       chrome.runtime.sendMessage({ action: "openOptions" });
       this.onOpenSettings?.();
     });
-
-    this.$("statusDismiss").addEventListener("click", () => this.hideStatus());
 
     this.$("shortcutHint").addEventListener("click", async () => {
       await chrome.storage.local.set({ highlightShortcut: true });
@@ -619,195 +603,14 @@ class PuchnePromptPanel {
     await this.saveSettings();
     this.addToHistory(query);
 
-    // A new send un-dismisses the status list.
-    this._dismissedAt = 0;
-
-    // Paint an optimistic pending row per service immediately, so there is
-    // feedback in the same frame as the click rather than whenever the
-    // worker gets round to writing its first status update.
-    this.renderStatus({
-      query,
-      startedAt: Date.now(),
-      services: this.enabledServiceIds
-        .map((id) => this.allServices.find((s) => s.id === id))
-        .filter(Boolean)
-        .map((s) => ({ id: s.id, name: s.name, iconPath: s.iconPath, iconPathDark: s.iconPathDark, status: "pending" })),
-    });
-
     chrome.runtime.sendMessage({ action: "multicast", query }, () => {
       clearTimeout(abortTimer);
       void chrome.runtime.lastError;
       promptInput.value = "";
       resetUI();
       this.renderHistory();
-      this.watchStatus();
       this.onSent?.();
     });
-  }
-
-  // ── Delivery status ────────────────────────────────────────
-
-  /**
-   * Reads the live status the background worker publishes to storage.session.
-   * Content scripts can only reach that area when the worker has opened it
-   * to untrusted contexts, so every access is best-effort.
-   */
-  async loadStatus() {
-    try {
-      const data = await chrome.storage.session.get(SEND_STATUS_KEY);
-      const status = data[SEND_STATUS_KEY];
-      if (!status) return;
-      // Session storage outlives a popup, so an old record is still sitting
-      // there long after it stopped being interesting. Only adopt a fresh one.
-      const isStale = Date.now() - (status.startedAt || 0) > SEND_STATUS_STALE_MS;
-      if (!this.sendStatus && isStale) return;
-      this.renderStatus(status);
-    } catch {
-      // storage.session unreachable here — the optimistic rows still show.
-    }
-  }
-
-  /**
-   * Subscribes to status updates. storage.onChanged is the primary signal;
-   * a slow poll backs it up for contexts where session-area events don't
-   * reach us. It stops once every service reaches a final state, and gives
-   * up after SEND_STATUS_POLLS so an unreachable status area can't leave a
-   * timer running forever.
-   */
-  watchStatus() {
-    if (!this._statusListener) {
-      this._statusListener = (changes, area) => {
-        if (area === "session" && changes[SEND_STATUS_KEY]?.newValue) {
-          this.renderStatus(changes[SEND_STATUS_KEY].newValue);
-        }
-      };
-      try {
-        chrome.storage.onChanged.addListener(this._statusListener);
-      } catch {
-        this._statusListener = null;
-      }
-    }
-
-    clearInterval(this._statusPollTimer);
-    let ticks = 0;
-    this._statusPollTimer = setInterval(() => {
-      if (this.isStatusSettled() || ++ticks > SEND_STATUS_POLLS) {
-        clearInterval(this._statusPollTimer);
-        this._statusPollTimer = null;
-        return;
-      }
-      this.loadStatus();
-    }, SEND_STATUS_POLL_MS);
-  }
-
-  isStatusSettled() {
-    const services = this.sendStatus?.services || [];
-    return services.length > 0 && services.every((s) => s.status === "submitted" || s.status === "failed");
-  }
-
-  hideStatus() {
-    // Remembered so a still-running send's next update doesn't immediately
-    // put the list back up; only a newer send may re-open it.
-    this._dismissedAt = Date.now();
-    this.sendStatus = null;
-    this.$("statusSection").classList.add("hidden");
-    clearInterval(this._statusPollTimer);
-    this._statusPollTimer = null;
-  }
-
-  renderStatus(status) {
-    if (this._dismissedAt && (status?.startedAt || 0) <= this._dismissedAt) return;
-    // Ignore a stale storage read that would overwrite a newer local paint.
-    if (this.sendStatus?.id && status?.id && status.id < this.sendStatus.id) return;
-    this.sendStatus = status;
-
-    const section = this.$("statusSection");
-    const list = this.$("statusList");
-    const services = status?.services || [];
-
-    if (services.length === 0) {
-      section.classList.add("hidden");
-      return;
-    }
-
-    section.classList.remove("hidden");
-    list.innerHTML = "";
-
-    const isDark = (this.themeTarget.dataset.theme || "dark") === "dark";
-
-    services.forEach((svc) => {
-      const li = document.createElement("li");
-      li.className = `status-item state-${svc.status}`;
-
-      const icon = (isDark && svc.iconPathDark) ? svc.iconPathDark : svc.iconPath;
-      const row = document.createElement("div");
-      row.className = "status-row";
-      row.innerHTML = `
-        ${icon ? `<img class="service-icon" src="${chrome.runtime.getURL(icon)}" alt="" />` : ""}
-        <span class="status-name">${svc.name}</span>
-        <span class="status-badge">${this.statusLabel(svc.status)}</span>
-      `;
-      li.appendChild(row);
-
-      if (svc.status === "failed") {
-        if (svc.error) {
-          const why = document.createElement("p");
-          why.className = "status-error";
-          why.textContent = svc.error;
-          why.title = svc.error;
-          li.appendChild(why);
-        }
-
-        const actions = document.createElement("div");
-        actions.className = "status-actions";
-
-        if (svc.needsPermission) {
-          // Retrying or editing a selector fixes nothing here — the only way
-          // forward is granting the site.
-          actions.append(
-            // No pending send is attached: the other services in this record
-            // already got the prompt, and resuming it would send it twice.
-            this.actionButton("Grant access", () => this.requestAccess([svc.id])),
-            this.actionButton("Open in tab", () =>
-              chrome.runtime.sendMessage({ action: "openServiceTab", serviceId: svc.id })
-            )
-          );
-        } else {
-          actions.append(
-            this.actionButton("Retry", () =>
-              chrome.runtime.sendMessage({ action: "retryService", serviceId: svc.id })
-            ),
-            this.actionButton("Open in tab", () =>
-              chrome.runtime.sendMessage({ action: "openServiceTab", serviceId: svc.id })
-            ),
-            this.actionButton("Edit selector", () => {
-              chrome.runtime.sendMessage({ action: "editServiceSelector", serviceId: svc.id });
-              this.onOpenSettings?.();
-            })
-          );
-        }
-        li.appendChild(actions);
-      }
-
-      list.appendChild(li);
-    });
-  }
-
-  statusLabel(state) {
-    return {
-      pending: "Pending",
-      filled: "Filled",
-      submitted: "Submitted",
-      failed: "Failed",
-    }[state] || state;
-  }
-
-  actionButton(label, onClick) {
-    const btn = document.createElement("button");
-    btn.className = "status-action";
-    btn.textContent = label;
-    btn.addEventListener("click", onClick);
-    return btn;
   }
 
   // ── History ────────────────────────────────────────────────
@@ -938,12 +741,6 @@ class PuchnePromptPanel {
 
   /** Detaches listeners/timers. Called when a host tears the panel down. */
   destroy() {
-    clearInterval(this._statusPollTimer);
-    this._statusPollTimer = null;
-    if (this._statusListener) {
-      try { chrome.storage.onChanged.removeListener(this._statusListener); } catch {}
-      this._statusListener = null;
-    }
     if (this._permissionListener) {
       try { chrome.storage.onChanged.removeListener(this._permissionListener); } catch {}
       this._permissionListener = null;

@@ -232,8 +232,7 @@
   color: var(--text-muted);
 }
 
-.pb-panel .link-btn,
-.pb-panel .text-btn {
+.pb-panel .link-btn {
   background: none;
   border: none;
   padding: 0;
@@ -241,127 +240,6 @@
   color: var(--accent);
   cursor: pointer;
   text-decoration: underline;
-}
-
-.pb-panel .text-btn {
-  text-decoration: none;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.pb-panel .text-btn:hover { color: var(--text-primary); }
-
-/* ── Delivery status ────────────────────────────────────────── */
-.pb-panel .status-section {
-  display: flex;
-  flex-direction: column;
-  margin-top: 16px;
-}
-
-.pb-panel .status-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.pb-panel .status-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 190px;
-  overflow-y: auto;
-}
-
-.pb-panel .status-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-}
-
-.pb-panel .status-item.state-failed { border-color: #e0685f; }
-
-.pb-panel .status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pb-panel .status-row .service-icon { filter: none; }
-
-.pb-panel .status-name {
-  flex: 1;
-  font-size: 0.88rem;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pb-panel .status-badge {
-  flex-shrink: 0;
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  color: var(--text-muted);
-}
-
-/* Badge colours are literal rather than variable-driven: they read the same
-   against both the light and dark surface palettes. */
-.pb-panel .state-pending   .status-badge { color: #b0873c; }
-.pb-panel .state-filled    .status-badge { color: #4a86c8; }
-.pb-panel .state-submitted .status-badge { color: #2e9e63; }
-.pb-panel .state-failed    .status-badge { color: #e0685f; }
-
-/* A pending row is still working — make that legible at a glance. */
-.pb-panel .state-pending .status-badge {
-  animation: pb-status-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes pb-status-pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.45; }
-}
-
-.pb-panel .status-error {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--text-muted);
-  word-break: break-word;
-}
-
-.pb-panel .status-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.pb-panel .status-action {
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  font-family: var(--font);
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.pb-panel .status-action:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-light);
 }
 
 /* ── History ────────────────────────────────────────────────── */

@@ -1663,9 +1663,9 @@ async function checkShortcutHighlight() {
 }
 
 /**
- * Handles the "Edit selector" action from a failed delivery row: opens that
- * service's selector editor, scrolls to it and flashes it, so the user lands
- * on the exact field to fix rather than on the settings page in general.
+ * Handles an "edit this service's selector" deep link: opens that service's
+ * selector editor, scrolls to it and flashes it, so the user lands on the
+ * exact field to fix rather than on the settings page in general.
  */
 async function checkSelectorRequest() {
   const data = await chrome.storage.local.get("editSelectorFor");
