@@ -26,6 +26,12 @@ Ask once and Puchne sends your prompt to **ChatGPT, Claude, Gemini, Copilot, Dee
 - **Recent prompts** — reuse anything you've asked before, kept on your device only.
 - **Made to live in** — system / light / dark theme, full keyboard access, and it respects reduced motion.
 
+## Ask from any page
+
+Select some text anywhere, right-click, and **Ask Puchne** is sitting in the menu — same as `Ctrl+Shift+S`. It either opens the prompt panel with the selection filled in, or sends it straight to your tools; you choose which in Settings.
+
+![Ask Puchne in the right-click menu](docs/screenshots/context-menu.png)
+
 ## Settings
 
 Everything is on one page — right-click the Puchne icon and pick **Options**. Changes save as you make them.
