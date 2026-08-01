@@ -11,7 +11,7 @@ Ask once and Puchne sends your prompt to **ChatGPT, Claude, Gemini, Copilot, Dee
 *Puchne comes from the Gujarati **પૂછવું** (Puchhvu) — "to ask".*
 
 <p align="center">
-  <img src="docs/screenshots/popup.png" alt="The Puchne popup open over a web page, with ChatGPT, Claude and Gemini switched on and a prompt typed in" />
+  <img src="docs/screenshots/popup.png" alt="Puchne open in the middle of a web page, with ChatGPT, Claude and Gemini switched on and a prompt typed in" />
 </p>
 
 ---
