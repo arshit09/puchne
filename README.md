@@ -26,6 +26,26 @@ Ask once and Puchne sends your prompt to **ChatGPT, Claude, Gemini, Copilot, Dee
 - **Recent prompts** — reuse anything you've asked before, kept on your device only.
 - **Made to live in** — system / light / dark theme, full keyboard access, and it respects reduced motion.
 
+## Settings
+
+Everything is on one page — right-click the Puchne icon and pick **Options**. Changes save as you make them.
+
+**AI Tools** — switch tools on and off, grant or withdraw a site, override the CSS selectors Puchne types into, or add a tool that isn't on the list.
+
+![Puchne settings — AI Tools](docs/screenshots/settings-ai-tools.png)
+
+**Appearance** — theme, where the overlay sits on the page, whether it docks as a sidebar, how tools are labelled, and whether recent prompts are kept. The live preview updates as you change them.
+
+![Puchne settings — Appearance](docs/screenshots/settings-appearance.png)
+
+**Behavior** — grid view or new tabs, auto-submit, the follow-up bar, hover-to-expand and its delay, cookie handling, and how long to wait before typing.
+
+![Puchne settings — Behavior](docs/screenshots/settings-behavior.png)
+
+**Ask Puchne** — whether the right-click menu and `Ctrl+Shift+S` show the prompt first or send it straight away, and which tools that send reaches.
+
+![Puchne settings — Ask Puchne](docs/screenshots/settings-ask-puchne.png)
+
 ## Privacy
 
 Puchne installs with access to **no websites at all**. The first time you turn a tool on, Chrome asks for that one site — and you can withdraw it from Settings whenever you like. No account, no server, no tracking: your prompts go straight from your browser to the AI sites you chose.
