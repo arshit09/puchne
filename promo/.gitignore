@@ -1,0 +1,6 @@
+node_modules/
+out/
+.remotion/
+
+# Intermediate from tools/make-music.mjs — public/music.mp3 is the committed one
+public/music.wav

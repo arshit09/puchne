@@ -1,0 +1,26 @@
+{
+  "name": "puchne-promo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion project for the Puchne launch promo video",
+  "scripts": {
+    "studio": "remotion studio",
+    "music": "node tools/make-music.mjs",
+    "render": "remotion render LaunchPromo out/puchne-launch.mp4 --codec=h264",
+    "render:square": "remotion render LaunchPromoSquare out/puchne-launch-square.mp4 --codec=h264",
+    "render:vertical": "remotion render LaunchPromoVertical out/puchne-launch-vertical.mp4 --codec=h264",
+    "render:gif": "remotion render LaunchPromo out/puchne-launch.gif --codec=gif --every-nth-frame=2 --scale=0.5",
+    "still": "remotion still LaunchPromo out/poster.png --frame=200",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.507",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.507"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.0",
+    "typescript": "5.8.3"
+  }
+}
