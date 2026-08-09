@@ -35,8 +35,14 @@ works too — every link is relative.
 
 ## Deploying
 
-**GitHub Pages.** Settings → Pages → deploy from a branch, folder `/website`.
-The `.nojekyll` file is there so Pages serves the folder as-is.
+**GitHub Pages.** Settings → Pages → Source → **GitHub Actions**. The workflow
+in `.github/workflows/pages.yml` uploads this folder on every push to `main`
+that touches it. Do *not* use "Deploy from a branch" — that mode only offers
+`/ (root)` and `/docs`, never an arbitrary subfolder. The `.nojekyll` file is
+there so Pages serves the folder as-is.
+
+The site lands at `https://arshit09.github.io/puchne/`. Every link is relative,
+so the subpath needs no changes.
 
 **Netlify / Vercel / Cloudflare Pages.** No build command; publish directory
 `website`.
