@@ -70,6 +70,19 @@ git clone https://github.com/arshit09/puchne.git
 2. Click **Load unpacked** and select the cloned folder.
 3. Optional — change the shortcut keys at `chrome://extensions/shortcuts`.
 
+## Packaging
+
+The repo root holds more than the extension — `promo/` is the Remotion project
+behind the launch video, `website/` is the launch and documentation site, and
+`docs/` is the screenshots above. Don't zip the root by hand; run:
+
+```powershell
+pwsh tools/package.ps1
+```
+
+It writes `dist/puchne-<version>.zip` with only the files `manifest.json`
+references, and refuses to produce a zip if anything else gets in.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Contributions welcome: bug reports, selector fixes, UI polish.

@@ -6,3 +6,6 @@ newicon/
 
 # Claude Code
 .claude/
+
+# Store builds from tools/package.ps1
+dist/
