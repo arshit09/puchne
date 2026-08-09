@@ -1,0 +1,1950 @@
+/**
+ * ============================================================
+ *  Puchne — website styles
+ * ============================================================
+ *
+ *  The palette is the extension's, copied from styles/popup.css
+ *  and styles/overlay.css so the site and the product cannot
+ *  drift apart. If a colour changes there, change it here.
+ *
+ *  No frameworks, no CDNs, no build step — one stylesheet, one
+ *  script, static HTML. Drop the folder on any host.
+ * ============================================================
+ */
+
+/* ── Tokens ─────────────────────────────────────────────────── */
+:root {
+  /* Google light-mode palette */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f1f3f4;
+  --bg-tertiary: #e8eaed;
+  --bg-hover: #dadce0;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #80868b;
+  /* Not from the extension: captions and small print carry real content here,
+     and #80868b on white lands under 4.5:1. Same hue, enough contrast. */
+  --text-caption: #6a6f73;
+
+  /* Vibrant orange accent */
+  --accent: #fb923c;
+  --accent-hover: #f97316;
+  --accent-light: rgba(251, 146, 60, 0.14);
+  --accent-text: #c2410c;
+
+  --border: #dadce0;
+  --border-soft: rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.10), 0 32px 64px rgba(0, 0, 0, 0.12);
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --transition: 180ms ease;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --maxw: 1120px;
+  --nav-h: 64px;
+}
+
+[data-theme="dark"] {
+  /* Google dark-mode palette */
+  --bg-primary: #202124;
+  --bg-secondary: #303134;
+  --bg-tertiary: #3c4043;
+  --bg-hover: #5f6368;
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-muted: #9aa0a6;
+  --text-caption: #9aa0a6; /* already 6:1 on the dark background */
+  --accent: #fb923c;
+  --accent-hover: #f97316;
+  --accent-light: rgba(249, 115, 22, 0.16);
+  --accent-text: #fb923c;
+  --border: #3c4043;
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.5), 0 32px 64px rgba(0, 0, 0, 0.42);
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*,
+*::before,
+*::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 20px);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 17px;
+  line-height: 1.65;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, video, svg { max-width: 100%; display: block; }
+a { color: var(--accent-text); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+h1, h2, h3, h4 { line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+h1 { font-size: clamp(2.2rem, 5.2vw, 3.6rem); }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+h3 { font-size: 1.22rem; letter-spacing: -0.01em; }
+h4 { font-size: 1rem; }
+p { color: var(--text-secondary); }
+strong { color: var(--text-primary); font-weight: 650; }
+
+.lead {
+  font-size: clamp(1.05rem, 2vw, 1.3rem);
+  color: var(--text-secondary);
+  max-width: 62ch;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  margin-bottom: 12px;
+}
+
+.muted { color: var(--text-caption); font-size: 0.92rem; }
+.center { text-align: center; }
+.center .lead { margin-inline: auto; }
+
+kbd {
+  font-family: var(--font);
+  font-size: 0.82em;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+  padding: 2px 7px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  color: var(--text-primary);
+  /* Long CSS selectors have no spaces to break at — let them wrap rather
+     than pushing the page sideways on a phone. */
+  overflow-wrap: anywhere;
+}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.wrap {
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+.wrap-narrow { max-width: 780px; }
+
+section { padding-block: clamp(56px, 9vw, 104px); }
+.section-tight { padding-block: clamp(40px, 6vw, 64px); }
+.section-alt { background: var(--bg-secondary); }
+
+.section-head { max-width: 68ch; margin-bottom: 44px; }
+.section-head.center { margin-inline: auto; }
+
+.rule { border: 0; border-top: 1px solid var(--border); margin-block: 48px; }
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.98rem;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition),
+              transform var(--transition), color var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover { text-decoration: none; transform: translateY(-1px); }
+.btn svg { flex: none; }
+
+.btn-primary { background: var(--accent); color: #1a1005; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.btn-secondary:hover { background: var(--bg-tertiary); }
+
+.btn-ghost { background: transparent; color: var(--text-primary); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg-secondary); }
+
+.btn-sm { padding: 8px 16px; font-size: 0.9rem; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.center .btn-row { justify-content: center; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary); /* fallback where color-mix isn't supported */
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-right: auto;
+}
+.brand:hover { text-decoration: none; }
+.brand img { width: 28px; height: 28px; }
+
+/* The hero carries its own lockup, so the header's copy would only
+   repeat it. `brand-swap` is set by JS — with scripting off the header
+   brand simply stays — and the brand keeps its box while hidden, so the
+   nav never shifts sideways when it comes back. */
+.brand-swap .brand {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity var(--transition), transform var(--transition), visibility 0s 0.2s;
+}
+.brand-swap.brand-shown .brand {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav a {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 550;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+}
+.nav a:hover { color: var(--text-primary); background: var(--bg-secondary); text-decoration: none; }
+.nav a[aria-current="page"] { color: var(--accent-text); background: var(--accent-light); }
+
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.icon-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+.nav-toggle { display: none; }
+[data-theme="dark"] .theme-icon-dark { display: none; }
+:root:not([data-theme="dark"]) .theme-icon-light { display: none; }
+
+@media (max-width: 900px) {
+  .nav {
+    position: fixed;
+    inset: var(--nav-h) 0 auto 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px 20px;
+    box-shadow: var(--shadow-md);
+    display: none;
+  }
+  .nav.open { display: flex; }
+  .nav a { padding: 12px; font-size: 1rem; }
+  .nav-toggle { display: inline-grid; }
+  .header-cta { display: none; }
+}
+
+/* ── Hero ───────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  padding-block: clamp(56px, 8vw, 96px) clamp(40px, 6vw, 72px);
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% 20% auto;
+  height: 520px;
+  background: radial-gradient(ellipse at 50% 40%, var(--accent-light), transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero h1 { margin-bottom: 18px; }
+.hero .lead { margin-bottom: 28px; }
+
+/* The lockup the header hands over to. While this is on screen the
+   header brand stays out of the way; see .brand-swap. */
+.hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3.6vw, 2rem);
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.hero-brand img { width: clamp(36px, 6vw, 44px); height: auto; }
+
+.hero-note {
+  margin-top: 18px;
+  font-size: 0.9rem;
+  color: var(--text-caption);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: center;
+}
+.hero-note span { display: inline-flex; align-items: center; gap: 6px; }
+/* Dot between the items — the margin matches the row gap so it sits dead-centre. */
+.hero-note span:not(:last-child)::after {
+  content: "·";
+  margin-left: 12px;
+  opacity: 0.55;
+}
+/* Narrow screens wrap the list, which would leave a dot dangling at a line end. */
+@media (max-width: 560px) {
+  .hero-note span:not(:last-child)::after { content: none; margin-left: 0; }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  margin-bottom: 22px;
+}
+
+/* ── Media frames ───────────────────────────────────────────── */
+.shot {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg);
+}
+.shot img, .shot video { width: 100%; height: auto; }
+
+.shot-plain { box-shadow: var(--shadow-md); }
+
+/* ── Screenshot cards ───────────────────────────────────────────
+   The three source screenshots are 788, 768 and 1425px tall. Left
+   at their natural sizes they made a ragged row with one image
+   nearly twice the height of its neighbours, so the cards crop
+   them all to one ratio, anchored at the top where the interesting
+   part of each screen is.
+   ────────────────────────────────────────────────────────────── */
+/* One per row, full container width. Three across meant each screenshot
+   was shrunk ~4×, which shredded the text; showing a 1:1 crop instead
+   kept it sharp but read as an extreme close-up. At full width the
+   downscale is only 1.35×, so the whole window fits AND the text
+   survives. There is no arrangement that is compact, complete and
+   sharp all at once — this drops compact. */
+.shot-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px;
+}
+
+.shot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-primary);
+  transition: transform var(--transition);
+}
+.shot-card:hover { text-decoration: none; transform: translateY(-3px); }
+.shot-card .shot { transition: border-color var(--transition), box-shadow var(--transition); }
+.shot-card:hover .shot {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: var(--shadow-lg);
+}
+/* The sources are 1440×788, 1440×768 and 1440×1425 — same width, wildly
+   different heights. A fixed 2:1 box with a top-anchored cover crops only
+   the bottom: every card is the same height, every window is shown full
+   width, and because 2:1 is wider than all three natural ratios the
+   scale is always set by the width — never a sideways crop, never a
+   zoom. At 1070px that is 0.74×, so 17px UI text lands at ~12.6px. */
+.shot-card img {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  object-position: top center;
+}
+.shot-cap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.shot-card:hover .shot-cap { color: var(--accent-text); }
+.shot-cap svg { flex: none; transition: transform var(--transition); }
+.shot-card:hover .shot-cap svg { transform: translateX(3px); }
+
+figure { margin: 0; }
+figure .shot { margin-bottom: 12px; }
+figcaption { font-size: 0.9rem; color: var(--text-caption); }
+
+.hero-media { margin-top: 44px; }
+
+/* ── Tool strip ─────────────────────────────────────────────── */
+.tools-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.tool-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  font-size: 0.92rem;
+  font-weight: 550;
+  color: var(--text-primary);
+}
+.tool-chip img { width: 18px; height: 18px; border-radius: 4px; }
+[data-theme="dark"] .tool-chip img[data-invert] { filter: invert(1); }
+
+/* ── Cards & grids ──────────────────────────────────────────── */
+.grid { display: grid; gap: 20px; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+  .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+.card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px;
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+.section-alt .card { background: var(--bg-primary); }
+.card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+.card h3 { margin-bottom: 8px; }
+.card p { font-size: 0.97rem; }
+.card p + p { margin-top: 10px; }
+
+.card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+  margin-bottom: 16px;
+}
+
+.card-link {
+  display: block;
+  color: inherit;
+}
+.card-link:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.card-link .more { color: var(--accent-text); font-weight: 600; font-size: 0.93rem; margin-top: 14px; display: inline-block; }
+
+/* ── Split rows (feature + screenshot) ──────────────────────── */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+}
+.split + .split { margin-top: clamp(56px, 8vw, 96px); }
+.split.reverse .split-media { order: -1; }
+.split h2 { margin-bottom: 14px; }
+.split .lead { font-size: 1.05rem; }
+
+@media (max-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split.reverse .split-media { order: 0; }
+}
+
+.tick-list { list-style: none; margin-top: 20px; display: grid; gap: 12px; }
+.tick-list li {
+  position: relative;
+  padding-left: 30px;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+}
+.tick-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.tick-list li::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 0.72em;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
+  transform: rotate(-45deg);
+}
+
+/* ── Steps ──────────────────────────────────────────────────── */
+.steps { counter-reset: step; display: grid; gap: 22px; }
+.steps.grid-3 { gap: 20px; }
+
+.step {
+  position: relative;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px 26px 24px;
+}
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1005;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+.step h3 { margin-bottom: 8px; }
+.step p { font-size: 0.97rem; }
+
+/* ── Numbered how-to steps (docs) ───────────────────────────── */
+.howto {
+  counter-reset: howto;
+  list-style: none;
+  display: grid;
+  gap: 20px;
+  margin-block: 24px;
+  padding-left: 0; /* the numbers are drawn by ::before, not by the list marker */
+}
+.howto > li {
+  counter-increment: howto;
+  position: relative;
+  padding-left: 46px;
+  min-height: 32px;
+}
+.howto > li::before {
+  content: counter(howto);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.howto > li > strong { display: block; color: var(--text-primary); margin-bottom: 2px; }
+.howto > li > p { font-size: 0.97rem; }
+
+/* ── Code blocks ────────────────────────────────────────────── */
+.code {
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-block: 18px;
+}
+.code pre {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  padding: 16px 56px 16px 18px;
+  overflow-x: auto;
+  color: var(--text-primary);
+}
+.code code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.copy-btn:hover { color: var(--accent-text); border-color: var(--accent); }
+
+/* ── Callouts ───────────────────────────────────────────────── */
+.note {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  margin-block: 22px;
+  font-size: 0.96rem;
+  color: var(--text-secondary);
+}
+.note strong { display: inline; }
+.note.warn { border-left-color: #e0a020; }
+.note.privacy { border-left-color: #2e9e63; }
+
+/* ── Docs layout ────────────────────────────────────────────── */
+.docs {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 60px);
+  align-items: start;
+  padding-block: clamp(36px, 5vw, 56px) clamp(56px, 8vw, 96px);
+}
+
+.docs-nav {
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+  max-height: calc(100vh - var(--nav-h) - 48px);
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  padding-left: 4px;
+}
+.docs-nav h4 {
+  font-size: 0.72rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-caption);
+  padding: 0 12px 8px;
+}
+.docs-nav a {
+  display: block;
+  padding: 7px 12px;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  border-left: 2px solid transparent;
+  margin-left: -5px;
+  transition: color var(--transition), border-color var(--transition);
+}
+.docs-nav a:hover { color: var(--text-primary); text-decoration: none; }
+.docs-nav a.active {
+  color: var(--accent-text);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
+.docs-body > section { padding-block: 0; }
+.docs-body h2 { margin-top: 8px; margin-bottom: 12px; }
+.docs-body h3 { margin-top: 28px; margin-bottom: 8px; }
+.docs-body p + p, .docs-body p + ul, .docs-body p + ol { margin-top: 12px; }
+.docs-body ul, .docs-body ol { padding-left: 22px; color: var(--text-secondary); }
+.docs-body li + li { margin-top: 6px; }
+.docs-body figure { margin-block: 26px; }
+.docs-body > section + section { margin-top: clamp(48px, 6vw, 72px); }
+
+.docs-lede { margin-bottom: 8px; }
+
+@media (max-width: 900px) {
+  .docs { grid-template-columns: minmax(0, 1fr); }
+  .docs-nav {
+    position: static;
+    max-height: none;
+    border-left: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 0 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .docs-nav h4 { width: 100%; padding-left: 0; }
+  .docs-nav a { border-left: 0; padding: 6px 12px; border-radius: 999px; background: var(--bg-secondary); margin-left: 0; }
+  .docs-nav a.active { background: var(--accent-light); }
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin-block: 22px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+table { border-collapse: collapse; width: 100%; font-size: 0.94rem; min-width: 520px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--bg-secondary); font-weight: 650; color: var(--text-primary); white-space: nowrap; }
+td { color: var(--text-secondary); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+
+/* ── FAQ ────────────────────────────────────────────────────── */
+.faq { display: grid; gap: 12px; }
+.faq details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.faq summary {
+  cursor: pointer;
+  padding: 16px 46px 16px 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  position: relative;
+  list-style: none;
+  font-size: 1rem;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: "";
+  position: absolute;
+  right: 20px;
+  top: 24px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform var(--transition);
+}
+.faq details[open] summary::after { transform: rotate(-135deg); top: 27px; }
+.faq details[open] summary { color: var(--accent-text); }
+.faq .faq-body { padding: 0 18px 18px; font-size: 0.97rem; color: var(--text-secondary); }
+.faq .faq-body p + p { margin-top: 10px; }
+.faq .faq-body ul { margin-top: 10px; padding-left: 20px; }
+
+/* ── Use-case cards ─────────────────────────────────────────── */
+.persona {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.persona .who {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.persona .prompt {
+  font-family: var(--mono);
+  font-size: 0.86rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.persona ul { list-style: none; display: grid; gap: 8px; font-size: 0.95rem; color: var(--text-secondary); }
+.persona ul li { padding-left: 18px; position: relative; }
+.persona ul li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ── CTA band ───────────────────────────────────────────────── */
+.cta {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(140deg, var(--accent-light), transparent 60%), var(--bg-secondary);
+  padding: clamp(36px, 6vw, 64px);
+  text-align: center;
+}
+.cta h2 { margin-bottom: 12px; }
+.cta .lead { margin: 0 auto 26px; }
+
+.cta-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.cta-brand img {
+  width: clamp(64px, 9vw, 88px);
+  height: auto;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.14));
+}
+.cta-wordmark {
+  font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding-block: 52px 36px;
+  background: var(--bg-secondary);
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: 32px;
+}
+@media (max-width: 780px) { .footer-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .footer-grid { grid-template-columns: 1fr; } }
+
+.footer-grid h4 {
+  font-size: 0.75rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-caption);
+  margin-bottom: 14px;
+}
+.footer-grid ul { list-style: none; display: grid; gap: 9px; }
+.footer-grid a { color: var(--text-secondary); font-size: 0.94rem; }
+.footer-grid a:hover { color: var(--accent-text); }
+.footer-brand p { font-size: 0.94rem; margin-top: 12px; max-width: 34ch; }
+
+.footer-bottom {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--text-caption);
+}
+.footer-bottom a { color: var(--text-secondary); }
+
+/* ── Skip link ──────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+  background: var(--accent);
+  color: #1a1005;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+.skip-link:focus { left: 16px; text-decoration: none; }
+
+/* ── Misc helpers ───────────────────────────────────────────── */
+.stack-sm > * + * { margin-top: 10px; }
+.mt-lg { margin-top: 40px; }
+.mt-md { margin-top: 24px; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOTION & ILLUSTRATIONS
+   ────────────────────────────────────────────────────────────
+   Rule for this whole section: the *resting* state is the base
+   style, and movement is only ever added inside
+   `@media (prefers-reduced-motion: no-preference)`. Turn motion
+   off and every illustration still reads correctly — it just
+   stops moving. Nothing here carries information that only
+   exists while it animates.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Reveal on scroll ───────────────────────────────────────── */
+/* Gated on .js so the content is visible when scripting is off. */
+.js [data-reveal] { opacity: 0; transform: translateY(16px); }
+.js [data-reveal].in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+  transition-delay: var(--d, 0s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
+
+/* ── Shared mock chrome ─────────────────────────────────────── */
+.mock {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.mock-dots { display: flex; gap: 5px; }
+.mock-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--bg-hover); }
+.mock-url {
+  flex: 1;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+  color: var(--text-caption);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Skeleton text lines used inside every mock. */
+.ln {
+  display: block;
+  height: 9px;
+  border-radius: 5px;
+  background: var(--bg-tertiary);
+  transform-origin: left center;
+}
+.ln + .ln { margin-top: 9px; }
+.ln.w90 { width: 90%; } .ln.w80 { width: 80%; } .ln.w70 { width: 70%; }
+.ln.w60 { width: 60%; } .ln.w45 { width: 45%; } .ln.w30 { width: 30%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Every looping illustration on the site runs on the same 9s clock,
+     so two of them side by side never fight each other. */
+  .anim .ln {
+    animation: lnDraw 9s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.16s);
+  }
+  @keyframes lnDraw {
+    0%, 38% { transform: scaleX(0); opacity: 0.35; }
+    52%, 94% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(0); opacity: 0.35; }
+  }
+
+  /* In the hero the empty phase is the point — the answers arrive after you
+     press send. A standalone mock has no send button to wait for, so it
+     fills early and stays full; otherwise it just looks like a broken
+     screenshot for a third of every loop. */
+  .mock.anim .ln {
+    animation-name: lnDrawEarly;
+    animation-delay: calc(var(--i, 0) * 0.14s);
+  }
+  @keyframes lnDrawEarly {
+    0%, 5% { transform: scaleX(0); opacity: 0.35; }
+    20%, 96% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(0); opacity: 0.35; }
+  }
+}
+
+/* ── Hero stage: one prompt, delivered to every tool ─────────
+   Alignment here is structural, not eyeballed. The connector
+   column and the card column are both grids of FOUR EQUAL ROWS
+   with the same gap, stretched to the same height — so row n of
+   the connector is always exactly centred on card n, at every
+   viewport width. The old version drew rays at guessed
+   percentages of a stretched viewBox, which is why they wandered
+   off the cards.
+   ──────────────────────────────────────────────────────────── */
+.stage {
+  --row-gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) 104px minmax(0, 1fr);
+  grid-template-areas:
+    "cap-a .    cap-b"
+    "panel link targets";
+  align-items: stretch;
+  gap: 0;
+  text-align: left;
+  margin-top: 52px;
+}
+.stage-cap {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-caption);
+  padding-bottom: 12px;
+}
+.stage-cap.a { grid-area: cap-a; }
+.stage-cap.b { grid-area: cap-b; }
+.stage-panel { grid-area: panel; align-self: center; }
+.stage-link { grid-area: link; }
+.stage-targets { grid-area: targets; }
+
+@media (max-width: 860px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "cap-a" "panel" "cap-b" "targets";
+  }
+  .stage-cap.b { padding-top: 26px; }
+  /* Narrow enough that the prompt wraps. The caret follows the typed
+     span's box, which on a wrapped line puts it out in the middle of the
+     first line — so drop it here; the reveal still reads as typing. */
+  .caret { display: none; }
+  .stage-input { font-size: 0.94rem; padding-right: 56px; }
+  /* The connector is hidden further down, *after* the rule that gives it
+     `display: grid` — media queries add no specificity, so hiding it up
+     here would lose to that later rule and leave stray lines on phones. */
+}
+
+.stage-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-lg);
+  padding: 20px 22px;
+}
+.stage-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 18px;
+}
+.stage-panel-head img { width: 24px; height: 24px; }
+.stage-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-caption);
+  margin-bottom: 9px;
+}
+.stage-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.86rem;
+  font-weight: 550;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.stage-chip img { width: 16px; height: 16px; }
+.stage-chip.on {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-text);
+}
+.stage-chip.off img { filter: grayscale(1); opacity: 0.6; }
+
+.stage-input {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 14px 60px 14px 16px; /* room for the send button */
+  min-height: 86px;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+.type {
+  display: inline-block;
+  max-width: 100%;
+  clip-path: inset(0 0 0 0);
+}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  background: var(--accent);
+  margin-left: 3px;
+  translate: 0 3px;
+}
+.stage-send {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1005;
+  display: grid;
+  place-items: center;
+}
+
+/* Connector column: four rows matching the four cards exactly. */
+.stage-link {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--row-gap);
+}
+
+/* The trunk runs from the centre of row 1 to the centre of row 4.
+   With four equal rows and three gaps, half a row is
+   (100% - 3 × gap) / 8 — so these insets are exact, not eyeballed. */
+.stage-bus {
+  position: absolute;
+  left: calc(50% - 2px);
+  width: 4px;
+  top: calc((100% - 3 * var(--row-gap)) / 8);
+  bottom: calc((100% - 3 * var(--row-gap)) / 8);
+  background-image: repeating-linear-gradient(180deg, var(--accent) 0 8px, transparent 8px 17px);
+  opacity: 0.65;
+  border-radius: 2px;
+}
+
+/* Panel → trunk, on the vertical centre line of both. */
+.stage-feed {
+  position: absolute;
+  left: 0;
+  width: 50%;
+  top: calc(50% - 2px);
+  height: 4px;
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 17px);
+  opacity: 0.65;
+  border-radius: 2px;
+}
+
+/* One branch per row: trunk → card, centred in its own row. */
+.stage-branch { position: relative; }
+.stage-branch::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  right: 0;
+  top: calc(50% - 2px);
+  height: 4px;
+  background-image: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 17px);
+  opacity: 0.65;
+  border-radius: 2px;
+}
+/* The dot where a branch meets its card. */
+.stage-branch::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-light);
+}
+
+/* Stacked layout: the connector has nothing left to connect. This must sit
+   after the `.stage-link { display: grid }` above to win on source order. */
+@media (max-width: 860px) {
+  .stage-link { display: none; }
+}
+
+.stage-targets {
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--row-gap);
+}
+.stage-target {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  padding: 13px 15px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.stage-target-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.stage-target-head img { width: 18px; height: 18px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* One 9-second story, told in beats:
+     type (0–32%) → send (36–44%) → deliver (46–62%) → hold → reset. */
+  .type { animation: typeIn 9s steps(40, end) infinite; }
+  @keyframes typeIn {
+    0%, 3% { clip-path: inset(0 100% 0 0); }
+    24%, 94% { clip-path: inset(0 0 0 0); }
+    100% { clip-path: inset(0 100% 0 0); }
+  }
+  .caret { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .stage-chip.on { animation: chipPop 9s ease infinite; animation-delay: calc(var(--i, 0) * 0.22s); }
+  @keyframes chipPop {
+    0%, 4% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-light); }
+    10% { transform: scale(1.08); box-shadow: 0 0 0 8px var(--accent-light); }
+    18%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  }
+
+  .stage-send { animation: sendPulse 9s ease infinite; }
+  @keyframes sendPulse {
+    0%, 26% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-light); }
+    30% { transform: scale(0.86); box-shadow: 0 0 0 0 var(--accent-light); }
+    36% { transform: scale(1.16); box-shadow: 0 0 0 12px transparent; }
+    44%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  }
+
+  /* The dashes travel panel → trunk → card, so the direction of
+     travel is the direction of the data. The trunk stays still: it
+     carries the prompt both up and down, and a single flow would
+     lie about one half of it. */
+  .stage-feed { animation: flowX 1.5s linear infinite; }
+  .stage-branch::before { animation: flowX 1.5s linear infinite; }
+  @keyframes flowX { to { background-position-x: 17px; } }
+
+  .stage-branch::after {
+    animation: dotArrive 9s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.12s);
+  }
+  @keyframes dotArrive {
+    0%, 30% { transform: scale(0.7); box-shadow: 0 0 0 0 var(--accent-light); opacity: 0.5; }
+    38% { transform: scale(1.3); box-shadow: 0 0 0 10px var(--accent-light); opacity: 1; }
+    46%, 94% { transform: scale(1); box-shadow: 0 0 0 4px var(--accent-light); opacity: 1; }
+    100% { transform: scale(0.7); box-shadow: 0 0 0 0 var(--accent-light); opacity: 0.5; }
+  }
+
+  /* The card grows out of the line it is attached to. Its left edge —
+     the end of the branch — never moves, so the connection never
+     visibly breaks. (An earlier translateX slid the card away from
+     its own line for half the loop.) */
+  .stage-target {
+    transform-origin: left center;
+    animation: arrive 9s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.12s);
+  }
+  @keyframes arrive {
+    0%, 32% { opacity: 0.5; transform: scale(0.965); }
+    44%, 94% { opacity: 1; transform: none; }
+    100% { opacity: 0.5; transform: scale(0.965); }
+  }
+}
+
+/* ── Step flow (how it works) ───────────────────────────────── */
+.flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr) 56px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+}
+@media (max-width: 900px) {
+  .flow { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .flow-arrow { display: none; }
+}
+
+.flow-step {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  padding: 26px 22px;
+  text-align: center;
+}
+.flow-step h3 { margin-bottom: 6px; }
+.flow-step p { font-size: 0.95rem; }
+
+.flow-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+  position: relative;
+}
+.flow-icon::after {
+  content: counter(flowstep);
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1005;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.flow { counter-reset: flowstep; }
+.flow-step { counter-increment: flowstep; }
+
+.flow-arrow { position: relative; align-self: center; height: 3px; background: var(--border); border-radius: 2px; }
+/* In a step row the connector belongs beside the icons, not halfway
+   down the tallest card — 26px of card padding plus half of the 56px
+   icon puts its centre on the icon's centre. */
+.flow > .flow-arrow { align-self: start; margin-top: 54px; }
+.flow-arrow i {
+  position: absolute;
+  top: -4.5px;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 5px var(--accent-light);
+}
+/* A static chevron so the direction reads even when nothing moves. */
+.flow-arrow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-top: 3px solid var(--border);
+  border-right: 3px solid var(--border);
+  transform: translate(1px, -50%) rotate(45deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flow-arrow i { animation: travel 2.6s cubic-bezier(0.45, 0, 0.4, 1) infinite; }
+  @keyframes travel {
+    0% { left: 0; opacity: 0; transform: scale(0.6); }
+    15% { opacity: 1; transform: scale(1); }
+    75% { opacity: 1; transform: scale(1); }
+    100% { left: calc(100% - 12px); opacity: 0; transform: scale(0.6); }
+  }
+  .flow-icon { transition: transform var(--transition); }
+  .flow-step:hover .flow-icon { transform: translateY(-3px) scale(1.05); }
+}
+
+/* ── Grid-view mock (hover a column to expand it) ───────────── */
+/* Side by side is the whole point of grid view, so this must not be
+   scoped to .gridmock — the comparison mock further down uses .gm-cols
+   without that class and was stacking its columns vertically, showing
+   the opposite of what it claims. */
+.gm-cols { display: flex; align-items: stretch; }
+.gm-col {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 215px; /* tall enough to read as a panel, short enough not to look empty */
+  border-right: 1px solid var(--border);
+  transition: flex-grow 300ms cubic-bezier(0.2, 0.7, 0.3, 1), background var(--transition);
+  padding-bottom: 16px;
+}
+.gm-col:last-child { border-right: 0; }
+/* The real feature, really working: hovering a column expands it. */
+.gm-col:hover { flex-grow: 2.6; background: var(--accent-light); }
+.gm-col:hover .gm-head { background: var(--accent-light); color: var(--accent-text); }
+.gm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem;
+  font-weight: 650;
+  background: var(--bg-secondary);
+  transition: background var(--transition), color var(--transition);
+}
+.gm-head img { width: 17px; height: 17px; flex: none; }
+.gm-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gm-head .gm-tools { margin-left: auto; display: flex; gap: 7px; color: var(--text-caption); flex: none; }
+.gm-head .gm-tools svg { width: 13px; height: 13px; }
+.gm-body { padding: 14px 13px; }
+.gm-bubble {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gm-bar {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.gm-bar .gm-input {
+  flex: 1;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  color: var(--text-caption);
+  background: var(--bg-primary);
+  overflow: hidden;
+  white-space: nowrap;
+}
+/* “Try it” label — a pill, so it reads as an instruction, not a caption. */
+.gm-hint {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 999px;
+  padding: 7px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 14px auto 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gm-hint svg { animation: nudge 2.6s ease-in-out infinite; }
+  @keyframes nudge {
+    0%, 100% { transform: translate(0, 0); }
+    45% { transform: translate(5px, -3px); }
+  }
+}
+/* There is nothing to hover on a phone, so the pill would be an
+   instruction the reader cannot follow. The mock's resting state is
+   already the honest one — equal columns — so only the label goes. */
+@media (hover: none) {
+  .gm-hint { display: none; }
+}
+
+/* Three columns inside a phone-width mock left ~16px for the tool name:
+   "ChatGPT" rendered as "C…", which is the one thing in that header the
+   illustration exists to say. The ⤢/× controls are the least
+   load-bearing part of the row, so they give up their 41px first and the
+   names get it back. Padding tightens too, which buys the prompt bubble
+   a few more characters before it ellipses. */
+@media (max-width: 620px) {
+  .gm-head { padding: 10px 8px; gap: 6px; }
+  .gm-head .gm-tools { display: none; }
+  .gm-body { padding: 12px 8px; }
+  .gm-bubble { padding: 8px 9px; }
+}
+
+/* ── Tab-group mock ─────────────────────────────────────────── */
+.tabsmock .tm-strip { display: flex; align-items: flex-end; gap: 4px; padding: 10px 12px 0; background: var(--bg-secondary); }
+.tm-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 8px;
+  border-radius: 10px 10px 0 0;
+  background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-bottom: 0;
+}
+.tm-group-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-text);
+  padding-right: 4px;
+}
+.tm-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  padding: 5px 9px;
+  border-radius: 8px 8px 0 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.tm-tab img { width: 12px; height: 12px; }
+.tm-body { padding: 16px 14px 18px; border-top: 1px solid var(--border); }
+
+/* Four named tabs want ~345px of strip and a phone gives ~325px, so the
+   last one was sliced down the middle by the mock's own `overflow:
+   hidden`. Chrome drops tab titles when tabs get tight; so does this —
+   the favicons still identify the tools and the group label, which is
+   the point of the picture, stays. The title is a bare text node with no
+   element of its own to hide, hence `font-size: 0`. */
+@media (max-width: 620px) {
+  .tm-tab { font-size: 0; gap: 0; padding: 5px 8px; }
+  .tm-tab img { width: 14px; height: 14px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim .tm-tab { animation: tabIn 9s ease infinite; animation-delay: calc(var(--i, 0) * 0.3s); }
+  @keyframes tabIn {
+    0%, 30% { opacity: 0; transform: translateY(14px) scale(0.94); }
+    44%, 93% { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: translateY(14px) scale(0.94); }
+  }
+  .anim .tm-group { animation: groupIn 9s ease infinite; }
+  @keyframes groupIn {
+    0%, 26% { background: transparent; border-color: transparent; }
+    46%, 93% { background: var(--accent-light); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+    100% { background: transparent; border-color: transparent; }
+  }
+}
+
+/* ── Page + context-menu mock ───────────────────────────────── */
+.pagemock .pm-body { padding: 22px 20px 30px; position: relative; }
+.pm-sel {
+  position: relative;
+  display: inline;
+  background: var(--accent-light);
+  box-shadow: 0 0 0 4px var(--accent-light);
+  border-radius: 3px;
+}
+.pm-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.9; }
+/* The menu is anchored to the click point below the selection, with the
+   pointer sitting on its corner, so the cause and the effect are visibly
+   the same spot. */
+.pm-anchor { position: relative; margin: 20px 0 0 40px; width: fit-content; }
+.pm-menu {
+  width: 246px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  padding: 8px 11px;
+  border-radius: var(--radius-xs);
+}
+.pm-item.on { background: var(--accent-light); color: var(--accent-text); font-weight: 650; }
+.pm-item img { width: 16px; height: 16px; }
+.pm-item .pm-key { margin-left: auto; font-size: 0.74rem; color: var(--text-caption); }
+.pm-anchor .cursor { left: -10px; top: -8px; }
+
+/* A fixed 246px menu indented 40px needs 286px of page; a 320px phone
+   offers 230px, so the right-hand third of the menu — including the
+   shortcut hints — was cut off. The indent shrinks and the menu becomes
+   fluid up to its original width, so it still reads as a menu dropped at
+   a click point rather than a full-width bar. */
+@media (max-width: 620px) {
+  .pm-anchor { margin-left: 14px; width: auto; }
+  .pm-menu { width: auto; max-width: 246px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Same 9s clock: select (0–20%) → click (24%) → menu (30%) → hit (58%). */
+  .anim .pm-sel { animation: selectIn 9s ease infinite; }
+  @keyframes selectIn {
+    0%, 6% { box-shadow: 0 0 0 4px transparent; background: transparent; }
+    20%, 93% { box-shadow: 0 0 0 4px var(--accent-light); background: var(--accent-light); }
+    100% { box-shadow: 0 0 0 4px transparent; background: transparent; }
+  }
+  .anim .pm-anchor .cursor { animation: clickPoint 9s ease infinite; }
+  @keyframes clickPoint {
+    0%, 10% { opacity: 0; transform: translate(26px, -34px) scale(0.9); }
+    22% { opacity: 1; transform: translate(0, 0) scale(1); }
+    26% { transform: translate(0, 3px) scale(0.86); }
+    32%, 93% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(26px, -34px) scale(0.9); }
+  }
+  .anim .pm-menu { transform-origin: top left; animation: menuIn 9s ease infinite; }
+  @keyframes menuIn {
+    0%, 26% { opacity: 0; transform: scale(0.9) translateY(-8px); }
+    36%, 93% { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: scale(0.9) translateY(-8px); }
+  }
+  .anim .pm-item.on { animation: itemFlash 9s ease infinite; }
+  @keyframes itemFlash {
+    0%, 54% { background: var(--accent-light); }
+    60% { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+    68%, 100% { background: var(--accent-light); }
+  }
+}
+
+/* ── Data-flow diagram (privacy) ────────────────────────────── */
+.diagram {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+}
+@media (max-width: 760px) {
+  .diagram { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .diagram .flow-arrow { display: none; }
+}
+.node {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  padding: 20px;
+  text-align: center;
+}
+.node .card-icon { margin-inline: auto; }
+.node h4 { margin-bottom: 4px; }
+.node p { font-size: 0.88rem; }
+.node.off {
+  border-style: dashed;
+  opacity: 0.75;
+  position: relative;
+}
+.node.off .card-icon { background: var(--bg-secondary); color: var(--text-caption); }
+.node.off::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom right, transparent calc(50% - 1px), var(--border) 50%, transparent calc(50% + 1px));
+  border-radius: var(--radius);
+}
+
+/* ── Icon rows: a sentence's worth of meaning, in a line ────── */
+.iconrows { display: grid; gap: 10px; }
+.iconrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  transition: border-color var(--transition), transform var(--transition);
+}
+.iconrow:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.iconrow > svg, .iconrow .ir-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 9px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+}
+.iconrow b { display: block; font-weight: 650; color: var(--text-primary); font-size: 0.97rem; }
+.iconrow span { font-size: 0.9rem; color: var(--text-secondary); }
+
+/* ── Icon tiles: dense, wordless-ish grid ───────────────────────
+   Fixed column counts, not auto-fit. auto-fit packed as many as
+   would fit — which left an eight-tile group as a row of seven
+   plus one orphan. Each modifier is chosen so the tile count
+   divides evenly at every breakpoint: 8 and 4 on the default
+   (4 / 2 / 1), 6 on .t6 (3 / 2 / 1), 3 on .t3 (3 / 3 / 1).
+   ────────────────────────────────────────────────────────────── */
+.tiles {
+  --cols: 4;
+  --cols-md: 2;
+  --cols-sm: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 12px;
+}
+.tiles.t6 { --cols: 3; --cols-md: 2; }
+.tiles.t3 { --cols: 3; --cols-md: 3; }
+
+@media (max-width: 980px) {
+  .tiles { grid-template-columns: repeat(var(--cols-md), minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: repeat(var(--cols-sm), minmax(0, 1fr)); }
+}
+.tile {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  padding: 18px 14px;
+  text-align: center;
+  color: var(--text-primary); /* tiles are often links — don't take the link colour */
+  transition: transform var(--transition), border-color var(--transition);
+}
+.tile:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  text-decoration: none;
+}
+.tile svg {
+  margin: 0 auto 10px;
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  border-radius: 10px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+}
+.tile b { display: block; font-size: 0.92rem; font-weight: 650; }
+.tile span { display: block; font-size: 0.82rem; color: var(--text-caption); margin-top: 3px; }
+
+/* ── Key caps as a visual, not a sentence ───────────────────── */
+.keys { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.keys kbd { font-size: 0.86rem; padding: 5px 10px; }
+
+/* ── Compare: two illustrated options ─────────────────────────
+   Both sides stretch to the same height and their mocks fill it, so
+   the pair reads as a comparison rather than as one tall thing next
+   to one short thing. */
+.versus {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+.versus > * { display: flex; flex-direction: column; }
+.versus .mock { flex: 1; display: flex; flex-direction: column; }
+.versus .gm-cols { flex: 1; }
+.versus .gm-col { min-height: 0; }   /* height comes from the row, not the column */
+.versus .tm-body { flex: 1; }
+@media (max-width: 760px) { .versus { grid-template-columns: minmax(0, 1fr); } }
+.versus-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.versus-head svg {
+  width: 30px; height: 30px; padding: 6px;
+  border-radius: 8px; background: var(--accent-light); color: var(--accent-text);
+}
+
+/* ── Switch, and a pointer that goes to it ──────────────────── */
+.switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  position: relative;
+  flex: none;
+}
+.switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.switch.on { background: var(--accent); }
+.switch.on i { left: 18px; }
+
+/* A pointer is always positioned inside the thing it points at, so it
+   cannot drift away from its target when the container resizes. Each
+   one just fades in, presses, and fades out on its own beat. */
+.cursor {
+  position: absolute;
+  color: var(--text-primary);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim .switch.on { animation: swBg 9s ease infinite; }
+  .anim .switch.on i { animation: swKnob 9s ease infinite; }
+  @keyframes swBg {
+    0%, 24% { background: var(--bg-hover); }
+    32%, 100% { background: var(--accent); }
+  }
+  @keyframes swKnob {
+    0%, 24% { left: 2px; }
+    32%, 100% { left: 18px; }
+  }
+
+  /* Beat 1: flip Developer mode. Beat 2: click Load unpacked. */
+  .anim .cursor-a { animation: pressA 9s ease infinite; }
+  @keyframes pressA {
+    0%, 6% { opacity: 0; transform: translate(14px, 14px) scale(0.9); }
+    16%, 22% { opacity: 1; transform: none; }
+    26% { transform: translate(0, 3px) scale(0.86); }
+    32%, 42% { opacity: 1; transform: none; }
+    50%, 100% { opacity: 0; transform: translate(-8px, 10px) scale(0.9); }
+  }
+  .anim .cursor-b { animation: pressB 9s ease infinite; }
+  @keyframes pressB {
+    0%, 48% { opacity: 0; transform: translate(16px, -12px) scale(0.9); }
+    58% { opacity: 1; transform: none; }
+    62% { transform: translate(0, 3px) scale(0.86); }
+    68%, 92% { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: translate(16px, -12px) scale(0.9); }
+  }
+}
+
+/* ── Extension-page mock (install steps) ────────────────────── */
+.extmock .ex-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.ex-dev {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 550;
+}
+.ex-dev .cursor { right: -12px; top: 16px; }
+.ex-btns { display: flex; gap: 9px; padding: 14px; position: relative; }
+.ex-btn {
+  position: relative;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 8px 13px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  white-space: nowrap;
+}
+.ex-btn.hot { border-color: var(--accent); color: var(--accent-text); background: var(--accent-light); }
+.ex-btn.hot .cursor { left: 55%; top: 62%; }
+.ex-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 14px 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.ex-card img { width: 26px; height: 26px; }
+.ex-card b { display: block; font-size: 0.84rem; }
+.ex-card span { font-size: 0.72rem; color: var(--text-caption); }
+
+/* Two things fell off the right edge on a phone. The three buttons need
+   ~341px in a row and a 320px screen gives 297, so "Update" was pushed
+   clean outside the mock — the real chrome://extensions wraps them, and
+   so does this. And the pointer for step 1 hangs 12px past the switch it
+   points at, which put half of it under the mock's `overflow: hidden`;
+   moved inside, it still lands on the switch. */
+@media (max-width: 620px) {
+  .ex-btns { flex-wrap: wrap; }
+  .ex-dev .cursor { right: -2px; }
+}
+
+/* ── Section header with an icon ────────────────────────────── */
+.h-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+  margin-bottom: 14px;
+}
+.center .h-icon { margin-inline: auto; }
+
+/* Inline icon before a heading in the docs body. */
+.docs-body h2 { display: flex; align-items: center; gap: 10px; }
+.docs-body h2 > svg {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--accent-text);
+}

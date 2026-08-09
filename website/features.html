@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features — Puchne</title>
+<meta name="description" content="Multicast prompting, grid view, new tabs, the follow-up bar, Ask from any page, custom AI tools and per-site permissions — illustrated.">
+<link rel="icon" href="assets/img/icons/icon-128.png">
+<link rel="stylesheet" href="assets/css/site.css">
+<meta property="og:title" content="Features — Puchne">
+<meta property="og:description" content="Everything Puchne does, in pictures.">
+<meta property="og:image" content="assets/video/poster.png">
+<script>(function(){var e=document.documentElement;e.classList.add("js");try{var t=localStorage.getItem("puchne-site-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");e.setAttribute("data-theme",t);}catch(n){}})();</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/img/icons/icon-128.png" alt="" width="28" height="28">
+      Puchne
+    </a>
+    <nav class="nav" id="primary-nav" aria-label="Primary">
+      <a href="features.html" aria-current="page">Features</a>
+      <a href="use-cases.html">Use cases</a>
+      <a href="guide.html">Guide</a>
+      <a href="settings.html">Settings</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg class="theme-icon-light" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="theme-icon-dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/arshit09/puchne" target="_blank" rel="noopener" aria-label="Puchne on GitHub">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+      <a class="btn btn-primary btn-sm header-cta" href="install.html">Install</a>
+      <button class="icon-btn nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap center">
+      <p class="eyebrow">Features</p>
+      <h1>Everything Puchne does</h1>
+      <p class="lead">One prompt goes to every AI you've switched on.</p>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="docs">
+
+      <nav class="docs-nav" aria-label="On this page">
+        <h4>On this page</h4>
+        <a href="#multicast">Multicast</a>
+        <a href="#grid">Grid view</a>
+        <a href="#tabs">New tabs</a>
+        <a href="#followup">Follow-up bar</a>
+        <a href="#ask">Ask from any page</a>
+        <a href="#surfaces">Where it opens</a>
+        <a href="#custom">Custom tools</a>
+        <a href="#submit">Submit or pre-fill</a>
+        <a href="#friction">Friction handling</a>
+        <a href="#history">Recent prompts</a>
+        <a href="#permissions">Per-site access</a>
+        <a href="#craft">Theme &amp; a11y</a>
+        <a href="#compare">Grid vs. tabs</a>
+      </nav>
+
+      <div class="docs-body">
+
+        <section id="multicast" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            Multicast prompting
+          </h2>
+          <p class="docs-lede">Type once. Every tool you've switched on answers.</p>
+
+          <div class="tiles mt-md">
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><rect x="2" y="7" width="20" height="10" rx="5"/></svg>
+              <b>7 built in</b><span>Plus your own</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <b>No API keys</b><span>Your own logins</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+              <b>Waits for each</b><span>Types when ready</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              <b>Per-send chips</b><span>Change the line-up</span>
+            </div>
+          </div>
+
+          <figure>
+            <div class="shot">
+              <img src="assets/img/screenshots/popup.png" width="1440" height="788" loading="lazy"
+                   alt="The Puchne panel over a web page: tool chips on top with ChatGPT, Claude and Gemini active, prompt box below">
+            </div>
+            <figcaption>Chips choose the tools. The box takes the prompt.</figcaption>
+          </figure>
+        </section>
+
+        <section id="grid" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Grid view
+          </h2>
+          <p class="docs-lede">One tab. One column per tool. All answering at once.</p>
+
+          <div class="mock gridmock anim mt-md" aria-hidden="true">
+            <div class="mock-bar">
+              <div class="mock-dots"><i></i><i></i><i></i></div>
+              <div class="mock-url">Puchne — Grid View</div>
+            </div>
+            <div class="gm-cols">
+              <div class="gm-col">
+                <div class="gm-head"><img src="assets/img/icons/chatgpt_dark.png" alt=""><span>ChatGPT</span><span class="gm-tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+                <div class="gm-body"><div class="gm-bubble">Explain quantum computing…</div>
+                  <span class="ln w90" style="--i:1"></span><span class="ln w80" style="--i:2"></span><span class="ln w60" style="--i:3"></span></div>
+              </div>
+              <div class="gm-col">
+                <div class="gm-head"><img src="assets/img/icons/claude.png" alt=""><span>Claude</span><span class="gm-tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+                <div class="gm-body"><div class="gm-bubble">Explain quantum computing…</div>
+                  <span class="ln w80" style="--i:2"></span><span class="ln w90" style="--i:3"></span><span class="ln w45" style="--i:4"></span><span class="ln w80" style="--i:5"></span></div>
+              </div>
+              <div class="gm-col">
+                <div class="gm-head"><img src="assets/img/icons/gemini.png" alt=""><span>Gemini</span><span class="gm-tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span></div>
+                <div class="gm-body"><div class="gm-bubble">Explain quantum computing…</div>
+                  <span class="ln w90" style="--i:3"></span><span class="ln w70" style="--i:4"></span><span class="ln w80" style="--i:5"></span></div>
+              </div>
+            </div>
+            <div class="gm-bar">
+              <img src="assets/img/icons/icon-128.png" alt="" width="16" height="16">
+              <span class="gm-input">Now in three bullet points…</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-text)"><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+            </div>
+          </div>
+          <p class="gm-hint">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.5 18 2-7.5L20 11z"/></svg>
+            Hover a column to try it
+          </p>
+
+          <div class="iconrows mt-md">
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              <span><b>Hover to expand</b>Your delay, your threshold.</span>
+            </div>
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <span><b>Close a column</b>Re-open it from the same bar.</span>
+            </div>
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+              <span><b>Reset layout</b>One button, equal widths.</span>
+            </div>
+          </div>
+
+          <figure>
+            <div class="shot">
+              <img src="assets/img/screenshots/grid-view.png" width="1920" height="1080" loading="lazy"
+                   alt="Grid view with ChatGPT, Claude and Gemini in three columns answering the same prompt">
+            </div>
+            <figcaption>From the launch film. Answer text is illustrative.</figcaption>
+          </figure>
+
+          <div class="note">
+            <strong>Framing.</strong> A few sites refuse to load inside a frame. Put those in <a href="#tabs">new tabs</a>.
+          </div>
+        </section>
+
+        <section id="tabs" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="13" rx="2"/><path d="M2 12h20"/><path d="M7 12V9a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3"/></svg>
+            New tabs mode
+          </h2>
+          <p class="docs-lede">Real tabs instead — filed into one Chrome tab group.</p>
+
+          <div class="mock tabsmock anim mt-md" aria-hidden="true">
+            <div class="tm-strip">
+              <div class="tm-group">
+                <span class="tm-group-name">Puchne</span>
+                <span class="tm-tab" style="--i:0"><img src="assets/img/icons/chatgpt_dark.png" alt="">ChatGPT</span>
+                <span class="tm-tab" style="--i:1"><img src="assets/img/icons/claude.png" alt="">Claude</span>
+                <span class="tm-tab" style="--i:2"><img src="assets/img/icons/gemini.png" alt="">Gemini</span>
+                <span class="tm-tab" style="--i:3"><img src="assets/img/icons/perplexity.png" alt="">Perplexity</span>
+              </div>
+            </div>
+            <div class="tm-body">
+              <span class="ln w45" style="--i:1"></span><span class="ln w90" style="--i:2"></span>
+              <span class="ln w80" style="--i:3"></span><span class="ln w60" style="--i:4"></span>
+            </div>
+          </div>
+          <p class="muted mt-md">Same prompt, same typing, same submit — just real tabs. Switch in <a href="settings.html#behavior">Settings → Behavior</a>.</p>
+        </section>
+
+        <section id="followup" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Follow-up bar
+          </h2>
+          <p class="docs-lede">Your next question, to everything already open.</p>
+          <div class="iconrows mt-md">
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 16h18"/></svg>
+              <span><b>In the grid</b>Bottom bar, always there.</span>
+            </div>
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+              <span><b>On real tabs</b>Drag it anywhere; it remembers.</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="ask" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M7.2 2.2 8 5.1"/><path d="m5.1 7.9-2.9-.8"/><path d="M14 4.1 11.9 6.2"/><path d="m6.2 11.8-2.1 2.1"/></svg>
+            Ask from any page
+          </h2>
+          <p class="docs-lede">Select text → <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>, or right-click.</p>
+
+          <div class="mock pagemock anim mt-md" aria-hidden="true">
+            <div class="mock-bar">
+              <div class="mock-dots"><i></i><i></i><i></i></div>
+              <div class="mock-url">example.com/article</div>
+            </div>
+            <div class="pm-body">
+              <p class="pm-text">A qubit holds a superposition of states, so
+                <span class="pm-sel">the calculation explores many paths at once</span>
+                until it is measured.</p>
+              <div class="pm-anchor">
+                <span class="cursor">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="m4 2 7 18 2.5-7.5L21 10z"/></svg>
+                </span>
+                <div class="pm-menu">
+                  <div class="pm-item">Back</div>
+                  <div class="pm-item">Reload</div>
+                  <div class="pm-item on"><img src="assets/img/icons/icon-128.png" alt="">Ask Puchne <span class="pm-key">Ctrl+Shift+S</span></div>
+                  <div class="pm-item">Inspect</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="versus mt-md">
+            <div class="card">
+              <span class="card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              <h3>Show prompt</h3>
+              <p>Add an instruction before it goes.</p>
+            </div>
+            <div class="card">
+              <span class="card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span>
+              <h3>Send directly</h3>
+              <p>Straight out, no confirmation.</p>
+            </div>
+          </div>
+
+          <figure>
+            <div class="shot">
+              <img src="assets/img/screenshots/context-menu.png" width="1440" height="768" loading="lazy"
+                   alt="Selected text on a web page with the browser context menu open showing the Ask Puchne entry">
+            </div>
+          </figure>
+        </section>
+
+        <section id="surfaces" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            Three places to type
+          </h2>
+          <div class="tiles t3 mt-md">
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="7" y="9" width="10" height="6" rx="1"/></svg>
+              <b>Overlay</b><span>Over any page</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 8 10 8 10s8-5 8-10V6z"/></svg>
+              <b>Toolbar popup</b><span>Works everywhere</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+              <b>Sidebar</b><span>Docked, always open</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="custom" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Custom AI tools
+          </h2>
+          <p class="docs-lede">Mistral, Qwen, Kimi, a self-hosted UI — anything with a text box.</p>
+
+          <div class="flow mt-md">
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>
+              <h3>URL</h3>
+              <p>The chat page.</p>
+            </div>
+            <div class="flow-arrow"><i></i></div>
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></span>
+              <h3>Selector</h3>
+              <p>Its input box.</p>
+            </div>
+            <div class="flow-arrow"><i></i></div>
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+              <h3>Test</h3>
+              <p>One click, before saving.</p>
+            </div>
+          </div>
+
+          <p class="muted mt-md">The same editor re-points a built-in tool when a site redesigns — no waiting for a release. <a href="guide.html#custom">Walkthrough →</a></p>
+
+          <figure>
+            <div class="shot">
+              <img src="assets/img/screenshots/settings-ai-tools.png" width="1440" height="1425" loading="lazy"
+                   alt="AI Tools settings: a row per tool with toggle, site access and selector editor, plus an Add Custom AI Tool card">
+            </div>
+          </figure>
+        </section>
+
+        <section id="submit" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10 4 15l5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+            Auto-submit or pre-fill
+          </h2>
+          <div class="versus mt-md">
+            <div class="card">
+              <span class="card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+              <h3>On</h3>
+              <p>Puchne presses Enter for you.</p>
+            </div>
+            <div class="card">
+              <span class="card-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+              <h3>Off</h3>
+              <p>Text waits in the box — tweak per tool.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="friction" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>
+            It handles the annoying parts
+          </h2>
+          <div class="tiles mt-md">
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9h.01M15 13h.01M10 15h.01"/></svg>
+              <b>Cookie banners</b><span>Accept, reject or off</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <b>Slow pages</b><span>Waits, then types</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+              <b>Retries</b><span>If it wasn't ready</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <b>Login walls</b><span>Detected, not guessed</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="history" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+            Recent prompts
+          </h2>
+          <p class="docs-lede">Your last prompts, one click to reuse.</p>
+          <div class="iconrows mt-md">
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/></svg>
+              <span><b>This device only</b>Never synced, never uploaded.</span>
+            </div>
+            <div class="iconrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+              <span><b>Clear or disable</b>5–100 kept, or none at all.</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="permissions" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            One site at a time
+          </h2>
+          <p class="docs-lede">Puchne installs with access to <strong>no websites at all</strong>.</p>
+
+          <div class="flow mt-md">
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
+              <h3>Install</h3>
+              <p>Zero sites.</p>
+            </div>
+            <div class="flow-arrow"><i></i></div>
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><circle cx="16" cy="12" r="3"/></svg></span>
+              <h3>Switch one on</h3>
+              <p>Chrome asks for that site.</p>
+            </div>
+            <div class="flow-arrow"><i></i></div>
+            <div class="flow-step">
+              <span class="flow-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+              <h3>Withdraw</h3>
+              <p>Any row, any time.</p>
+            </div>
+          </div>
+
+          <div class="note privacy">
+            <strong>No account, no server, no tracking.</strong> <a href="privacy.html">What's stored →</a>
+          </div>
+        </section>
+
+        <section id="craft" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            Theme &amp; accessibility
+          </h2>
+          <div class="tiles mt-md">
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9h-9z"/></svg>
+              <b>System theme</b><span>Light or dark too</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 16h10"/></svg>
+              <b>Keyboard first</b><span>Never touch the mouse</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M18 6 6 18"/></svg>
+              <b>Reduced motion</b><span>Respected</span>
+            </div>
+            <div class="tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              <b>Labelled controls</b><span>Proper roles</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="compare" data-reveal>
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 8H3l3-5 3 5H7v8H5z"/><path d="M17 16h2l-3 5-3-5h2V8h2z"/></svg>
+            Grid vs. tabs
+          </h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>&nbsp;</th><th>Grid</th><th>Tabs</th></tr></thead>
+              <tbody>
+                <tr><td>Answers land in</td><td>One tab, columns</td><td>One tab per tool</td></tr>
+                <tr><td>Side by side</td><td>Yes</td><td>No</td></tr>
+                <tr><td>Tab strip</td><td>One tab</td><td>One group</td></tr>
+                <tr><td>Hover to expand</td><td>Yes</td><td>—</td></tr>
+                <tr><td>Sites that block framing</td><td>May not render</td><td>Always works</td></tr>
+                <tr><td>Best for</td><td>Comparing</td><td>Long sessions</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="btn-row mt-md">
+            <a class="btn btn-primary" href="install.html">Install</a>
+            <a class="btn btn-ghost" href="guide.html">How-to guide</a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <img src="assets/img/icons/icon-128.png" alt="" width="28" height="28">
+          Puchne
+        </a>
+        <p>From the Gujarati <strong>પૂછવું</strong> (Puchhvu) — “to ask”.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="use-cases.html">Use cases</a></li>
+          <li><a href="install.html">Download</a></li>
+          <li><a href="index.html#film">Launch film</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Docs</h4>
+        <ul>
+          <li><a href="guide.html">How-to guide</a></li>
+          <li><a href="settings.html">Settings</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/arshit09/puchne" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/arshit09/puchne/issues" target="_blank" rel="noopener">Issues</a></li>
+          <li><a href="https://github.com/arshit09/puchne/blob/main/LICENSE" target="_blank" rel="noopener">MIT licence</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Puchne contributors · MIT</span>
+      <span>By <a href="https://www.instagram.com/geek_updates" target="_blank" rel="noopener">Arshit Vaghasiya</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/site.js"></script>
+</body>
+</html>
