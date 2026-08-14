@@ -333,6 +333,20 @@ class PuchneOverlay {
         }
       }
     });
+
+    // Keeps focus inside the overlay while it's open. The overlay lives in a
+    // closed shadow root, so from the host page's side `document.activeElement`
+    // never resolves past this.container — an AI chat site's own "keep my
+    // composer focused" or "nothing else on the page is a text field" logic
+    // reads that as nothing being focused and grabs focus (and the next
+    // keystroke — including a paste) back to itself. Tab is already trapped
+    // above; this catches focus taken programmatically, which never goes
+    // through Tab at all.
+    document.addEventListener("focusin", (e) => {
+      if (!this.visible) return;
+      if (e.target === this.container) return; // focus moved within the overlay
+      this.panel?.focusInput();
+    });
   }
 
   /**

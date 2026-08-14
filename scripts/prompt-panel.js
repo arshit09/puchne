@@ -348,6 +348,15 @@ class PuchnePromptPanel {
     });
     promptInput.addEventListener("keyup", (e) => e.stopPropagation());
     promptInput.addEventListener("keypress", (e) => e.stopPropagation());
+    // Paste is its own event, not a keydown — AI chat sites commonly attach a
+    // document/window-level "paste" listener of their own (to catch images
+    // pasted anywhere on the page for their composer) and it doesn't check
+    // whether the paste actually landed in *their* input. Left unstopped,
+    // that handler sees this box's paste too, calls preventDefault(), and
+    // swallows it or redirects it into their own textbox. Stopping it here,
+    // at the target, keeps it from ever reaching a bubble-phase listener on
+    // the host page.
+    promptInput.addEventListener("paste", (e) => e.stopPropagation());
     promptInput.addEventListener("input", () => this.updateSendButton());
 
     this.$("settingsBtn").addEventListener("click", () => {
