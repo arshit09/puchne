@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-theme-pref="system">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puchne — How It Works</title>
+<link rel="icon" href="../icons/app/icon-48.png">
+<style>
+/* ============================================================
+   Puchne — How It Works
+   Palette lifted verbatim from styles/popup.css + website/assets/css/site.css
+   so this page and the product cannot drift apart.
+   ============================================================ */
+
+:root {
+  --bg-primary:#ffffff; --bg-secondary:#f1f3f4; --bg-tertiary:#e8eaed; --bg-hover:#dadce0;
+  --text-primary:#202124; --text-secondary:#5f6368; --text-muted:#80868b; --text-caption:#6a6f73;
+  --accent:#fb923c; --accent-hover:#f97316; --accent-light:rgba(251,146,60,.14); --accent-text:#c2410c;
+  --border:#dadce0; --border-soft:rgba(0,0,0,.06);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 28px rgba(0,0,0,.10), 0 32px 64px rgba(0,0,0,.12);
+  --radius:14px; --radius-sm:8px; --radius-xs:6px;
+  --transition:180ms ease;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --maxw:1240px; --nav-h:60px;
+  --sync:#2563eb; --sync-bg:rgba(37,99,235,.12);
+  --local:#15803d; --local-bg:rgba(21,128,61,.12);
+  --session:#b45309; --session-bg:rgba(180,83,9,.12);
+}
+[data-theme="dark"]{
+  --bg-primary:#202124; --bg-secondary:#303134; --bg-tertiary:#3c4043; --bg-hover:#5f6368;
+  --text-primary:#e8eaed; --text-secondary:#bdc1c6; --text-muted:#9aa0a6; --text-caption:#9aa0a6;
+  --accent:#fb923c; --accent-hover:#f97316; --accent-light:rgba(249,115,22,.16); --accent-text:#fb923c;
+  --border:#3c4043; --border-soft:rgba(255,255,255,.07);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 12px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.32);
+  --shadow-lg:0 12px 28px rgba(0,0,0,.5), 0 32px 64px rgba(0,0,0,.42);
+  --sync:#8ab4f8; --sync-bg:rgba(138,180,248,.14);
+  --local:#81c995; --local-bg:rgba(129,201,149,.14);
+  --session:#fdd663; --session-bg:rgba(253,214,99,.14);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 18px)}
+body{font-family:var(--font);background:var(--bg-primary);color:var(--text-primary);
+     font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img,svg{max-width:100%;display:block}
+a{color:var(--accent-text);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--radius-xs)}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+h1,h2,h3,h4{line-height:1.2;letter-spacing:-.02em;font-weight:700}
+h1{font-size:clamp(2rem,4.4vw,3rem)}
+h2{font-size:clamp(1.5rem,3vw,2.05rem)}
+h3{font-size:1.15rem;letter-spacing:-.01em}
+h4{font-size:.95rem}
+p{color:var(--text-secondary)}
+strong{color:var(--text-primary);font-weight:650}
+code,kbd,pre{font-family:var(--mono)}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px}
+.lead{font-size:clamp(1rem,1.8vw,1.2rem);color:var(--text-secondary);max-width:66ch}
+.muted{color:var(--text-caption);font-size:.9rem}
+
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#fff;padding:10px 16px;z-index:100;border-radius:0 0 var(--radius-xs) 0}
+.skip:focus{left:0}
+
+/* ── Nav ─────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:60;height:var(--nav-h);display:flex;align-items:center;gap:18px;
+     padding:0 22px;background:color-mix(in srgb,var(--bg-primary) 88%,transparent);
+     backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:-.01em;flex-shrink:0}
+.nav-brand img{width:22px;height:22px}
+.nav-brand span.sub{font-weight:500;color:var(--text-muted);font-size:.82rem;letter-spacing:0}
+.nav-links{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav-links a{font-size:.85rem;color:var(--text-secondary);padding:6px 10px;border-radius:var(--radius-xs);transition:all var(--transition)}
+.nav-links a:hover{color:var(--accent-text);background:var(--accent-light);text-decoration:none}
+.nav-tools{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+.tech-toggle{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--text-secondary);
+             border:1px solid var(--border);border-radius:999px;padding:5px 12px 5px 10px;cursor:pointer;
+             background:none;font-family:inherit;transition:all var(--transition);white-space:nowrap}
+.tech-toggle:hover{border-color:var(--accent);color:var(--accent-text)}
+.tech-toggle .sw{width:30px;height:17px;border-radius:999px;background:var(--bg-hover);position:relative;transition:background var(--transition);flex-shrink:0}
+.tech-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:transform var(--transition)}
+body:not(.hide-tech) .tech-toggle .sw{background:var(--accent)}
+body:not(.hide-tech) .tech-toggle .sw::after{transform:translateX(13px)}
+.icon-btn{background:none;border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-secondary);
+          cursor:pointer;padding:7px;display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-light)}
+
+/* Technical detail hiding */
+body.hide-tech .tech{display:none!important}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+section{padding:56px 0;border-bottom:1px solid var(--border-soft)}
+section:last-of-type{border-bottom:none}
+.sec-head{margin-bottom:28px}
+.sec-head p{margin-top:8px}
+
+.card{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:999px;
+      padding:6px 14px;font-size:.82rem;color:var(--text-secondary);background:var(--bg-secondary)}
+.chip b{color:var(--text-primary);font-weight:650}
+
+.callout{border-left:3px solid var(--accent);background:var(--accent-light);padding:14px 18px;
+         border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin:20px 0}
+.callout p{color:var(--text-primary)}
+.callout .t{font-weight:700;font-size:.9rem;margin-bottom:4px;color:var(--accent-text)}
+
+/* ── Architecture diagram ─────────────────────────────────── */
+.diagram{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);
+         padding:16px;overflow-x:auto;margin-top:24px}
+.diagram svg{min-width:860px;margin:0 auto}
+.dg-box{fill:var(--bg-primary);stroke:var(--border);stroke-width:1.5}
+.dg-hub{fill:var(--accent-light);stroke:var(--accent);stroke-width:2}
+.dg-store{fill:var(--bg-tertiary);stroke:var(--border);stroke-width:1.5}
+.dg-t{fill:var(--text-primary);font-family:var(--font);font-size:13px;font-weight:650}
+.dg-s{fill:var(--text-muted);font-family:var(--mono);font-size:10.5px}
+.dg-l{fill:var(--text-caption);font-family:var(--mono);font-size:10px}
+.dg-hd{fill:var(--accent-text);font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:.08em}
+.dg-line{stroke:var(--text-muted);stroke-width:1.4;fill:none;opacity:.5}
+.dg-line-a{stroke:var(--text-muted);stroke-width:1.4;fill:none;opacity:.5}
+.dg-flow{stroke:var(--accent);stroke-width:2.6;fill:none;stroke-linecap:round;
+         stroke-dasharray:8 92;stroke-dashoffset:100;animation:march 2.6s linear infinite}
+@media (prefers-reduced-motion:reduce){.dg-flow{animation:none;stroke-dasharray:none;stroke-dashoffset:0;opacity:.5}}
+
+/* ── Screens gallery ──────────────────────────────────────── */
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px}
+.shot{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);
+      overflow:hidden;display:flex;flex-direction:column;transition:border-color var(--transition),transform var(--transition)}
+.shot:hover{border-color:var(--accent)}
+.shot-media{position:relative;background:var(--bg-tertiary);border-bottom:1px solid var(--border);
+            aspect-ratio:16/10;overflow:hidden;cursor:zoom-in;display:block;width:100%;border:none;padding:0}
+.shot-media img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.shot-media .mockwrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:14px}
+.shot-body{padding:15px 17px 17px;display:flex;flex-direction:column;gap:7px;flex:1}
+.shot-body h3{font-size:1rem}
+.shot-body p{font-size:.87rem;line-height:1.5}
+.shot-files{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:9px}
+.pill{font-family:var(--mono);font-size:.685rem;background:var(--bg-tertiary);color:var(--text-secondary);
+      border:1px solid var(--border);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.acc{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text)}
+
+/* ── Mocks (screens with no screenshot) ───────────────────── */
+.mock{font-family:var(--font);width:100%}
+.mock-card{background:#202124;border:1px solid #3c4043;border-radius:12px;padding:14px;color:#e8eaed;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.mock-access{max-width:330px;margin:0 auto}
+.mock-access .hd{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+.mock-access .hd img{width:28px;height:28px}
+.mock-access h4{font-size:.9rem;color:#e8eaed}
+.mock-access .sub{font-size:.7rem;color:#9aa0a6;line-height:1.4}
+.mock-row{display:flex;align-items:center;gap:9px;background:#303134;border:1px solid #3c4043;
+          border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.mock-row img{width:20px;height:20px}
+.mock-row .n{font-size:.78rem;font-weight:600}
+.mock-row .h{font-size:.66rem;color:#9aa0a6;font-family:var(--mono)}
+.mock-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.mock-btn{font-size:.74rem;padding:6px 14px;border-radius:6px;border:1px solid #3c4043;color:#bdc1c6;background:none}
+.mock-btn.pri{background:#fb923c;border-color:#fb923c;color:#202124;font-weight:650}
+
+.mock-followup{display:flex;align-items:center;gap:10px;background:#3c4043;border:1px solid #5f6368;
+               border-radius:24px;padding:7px 15px;max-width:430px;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.mock-followup .dots{color:#9aa0a6;opacity:.5;font-size:.8rem;letter-spacing:-2px}
+.mock-followup img{width:19px;height:19px;opacity:.85}
+.mock-followup .ph{flex:1;font-size:.78rem;color:#9aa0a6}
+.mock-followup .snd{color:#fb923c}
+
+.mock-toast{display:flex;gap:10px;align-items:flex-start;background:#202124;border:1px solid #3c4043;
+            border-radius:12px;padding:12px 14px;max-width:330px;margin:0 auto;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.mock-toast img{width:22px;height:22px}
+.mock-toast .tt{font-size:.8rem;font-weight:650;color:#e8eaed;margin-bottom:2px}
+.mock-toast .tx{font-size:.7rem;color:#9aa0a6;line-height:1.45}
+.mock-toast .cl{color:#9aa0a6;font-size:1rem;line-height:1}
+
+.mock-tabs{background:#202124;border:1px solid #3c4043;border-radius:10px;overflow:hidden;max-width:460px;margin:0 auto}
+.mock-tabstrip{display:flex;align-items:center;gap:4px;padding:7px 8px;background:#171717}
+.mock-group{display:flex;align-items:center;gap:4px;border:1.5px solid #8ab4f8;border-radius:8px;padding:3px 5px}
+.mock-group .glabel{font-size:.64rem;color:#8ab4f8;font-weight:700;padding:0 4px}
+.mock-tab{display:flex;align-items:center;gap:5px;background:#303134;border-radius:6px;padding:4px 8px;font-size:.64rem;color:#bdc1c6;white-space:nowrap}
+.mock-tab img{width:12px;height:12px}
+.mock-tab.act{background:#3c4043;color:#e8eaed}
+
+.mock-keys{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+kbd{display:inline-block;font-family:var(--mono);font-size:.78rem;background:var(--bg-tertiary);
+    border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:3px 8px;color:var(--text-primary)}
+.mock-keys .row{display:flex;gap:6px;align-items:center}
+.mock-keys .cap{font-size:.75rem;color:var(--text-muted)}
+
+.mock-worker{width:100%;max-width:420px;margin:0 auto;background:#202124;border:1px solid #3c4043;border-radius:10px;overflow:hidden}
+.mock-worker .wh{display:flex;align-items:center;gap:7px;padding:7px 12px;background:#303134;border-bottom:1px solid #3c4043;font-size:.7rem;color:#9aa0a6;font-family:var(--mono)}
+.mock-worker .dot{width:7px;height:7px;border-radius:50%;background:#fb923c}
+.mock-worker .wb{padding:12px;font-family:var(--mono);font-size:.7rem;line-height:1.75;color:#bdc1c6}
+.mock-worker .wb .fn{color:#fb923c}
+.mock-worker .wb .cm{color:#5f6368}
+
+.mock-frame{width:100%;max-width:420px;margin:0 auto;background:#202124;border:1px solid #3c4043;border-radius:10px;overflow:hidden}
+.mock-frame .fh{display:flex;align-items:center;gap:7px;padding:7px 11px;background:#303134;border-bottom:1px solid #3c4043;font-size:.7rem;color:#e8eaed;font-weight:600}
+.mock-frame .fh img{width:14px;height:14px}
+.mock-frame .fb{padding:16px 12px;min-height:96px;display:flex;flex-direction:column;justify-content:flex-end;gap:9px}
+.mock-frame .composer{display:flex;align-items:center;gap:8px;border:1.5px solid #fb923c;border-radius:22px;padding:8px 10px 8px 14px;background:#303134}
+.mock-frame .composer .txt{flex:1;font-size:.74rem;color:#e8eaed}
+.mock-frame .composer .cursor{display:inline-block;width:1px;height:.85em;background:#fb923c;vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.mock-frame .sendbtn{width:24px;height:24px;border-radius:50%;background:#fb923c;color:#202124;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0}
+
+/* ── Flow player ──────────────────────────────────────────── */
+.player{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.flow-tabs{display:flex;gap:6px;padding:12px;border-bottom:1px solid var(--border);overflow-x:auto;background:var(--bg-primary)}
+.flow-tab{flex-shrink:0;display:flex;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;
+          border:1px solid var(--border);background:var(--bg-secondary);border-radius:var(--radius-sm);
+          padding:8px 13px;cursor:pointer;font-family:inherit;transition:all var(--transition)}
+.flow-tab .ft-n{font-size:.86rem;font-weight:650;color:var(--text-primary)}
+.flow-tab .ft-m{font-size:.68rem;color:var(--text-muted);font-family:var(--mono)}
+.flow-tab:hover{border-color:var(--accent)}
+.flow-tab[aria-selected="true"]{background:var(--accent-light);border-color:var(--accent)}
+.flow-tab[aria-selected="true"] .ft-n{color:var(--accent-text)}
+
+.player-body{display:grid;grid-template-columns:290px 1fr;min-height:520px}
+@media (max-width:940px){.player-body{grid-template-columns:1fr}}
+
+.steplist{border-right:1px solid var(--border);background:var(--bg-primary);overflow-y:auto;max-height:620px}
+@media (max-width:940px){.steplist{border-right:none;border-bottom:1px solid var(--border);max-height:220px}}
+.steplist ol{list-style:none}
+.step-btn{display:flex;gap:10px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border-soft);
+          padding:10px 14px;cursor:pointer;font-family:inherit;transition:background var(--transition);align-items:flex-start}
+.step-btn:hover{background:var(--bg-secondary)}
+.step-btn .num{flex-shrink:0;width:21px;height:21px;border-radius:50%;background:var(--bg-tertiary);color:var(--text-muted);
+               font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.step-btn .lbl{font-size:.82rem;color:var(--text-secondary);line-height:1.4}
+.step-btn[aria-current="true"]{background:var(--accent-light)}
+.step-btn[aria-current="true"] .num{background:var(--accent);color:#202124}
+.step-btn[aria-current="true"] .lbl{color:var(--text-primary);font-weight:600}
+.step-btn.done .num{background:var(--bg-hover);color:var(--text-secondary)}
+
+.stage{display:flex;flex-direction:column;min-width:0;position:relative}
+/* Fade at the foot of the detail panel, so a scrollable one reads as scrollable. */
+body:not(.hide-tech) .stage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:26px;
+  background:linear-gradient(to top,var(--bg-secondary),transparent);pointer-events:none}
+@media (max-width:940px){body:not(.hide-tech) .stage::after{display:none}}
+
+/* lanes */
+.lanes{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 16px 20px;
+       border-bottom:1px solid var(--border);background:var(--bg-primary)}
+.lane{border:1px solid var(--border);border-radius:var(--radius-xs);padding:7px 5px;text-align:center;
+      background:var(--bg-secondary);transition:all 260ms ease;min-width:0}
+.lane .ln{font-size:.68rem;font-weight:650;color:var(--text-secondary);line-height:1.25;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lane .lm{font-size:.6rem;color:var(--text-muted);font-family:var(--mono);
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lane.on{background:var(--accent-light);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.lane.on .ln{color:var(--accent-text)}
+/* Narrow: the six lanes get ~50px each, so let the label wrap instead of
+   truncating "Service worker" to "Serv…". */
+@media (max-width:640px){
+  .lanes{padding:12px 10px 18px;gap:4px}
+  .lane{padding:6px 3px}
+  .lane .ln{white-space:normal;overflow-wrap:anywhere;font-size:.6rem;line-height:1.15}
+  .lane .lm{display:none}
+}
+.packet{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--accent);
+        box-shadow:0 0 0 4px var(--accent-light);top:44px;left:0;opacity:0;pointer-events:none;
+        transition:left 620ms cubic-bezier(.4,0,.2,1),opacity 200ms ease}
+.packet.fly{opacity:1}
+
+/* screen viewport — fixed height so stepping never shifts the layout */
+.screenwrap{position:relative;flex:0 0 auto;height:376px;display:flex;align-items:center;justify-content:center;
+            padding:18px;background:var(--bg-tertiary);overflow:hidden}
+/* Technical detail on: the payloads matter more than a big screenshot, so the
+   stage gives height back to the detail panel. Total player height is unchanged. */
+body:not(.hide-tech) .screenwrap{height:300px}
+@media (max-width:940px){.screenwrap,body:not(.hide-tech) .screenwrap{height:280px}}
+.screenwrap .frame{position:relative;max-width:100%;max-height:340px;border-radius:var(--radius-sm);
+                   overflow:hidden;box-shadow:var(--shadow-md);line-height:0}
+.screenwrap .frame img{max-height:340px;width:auto;object-fit:contain}
+body:not(.hide-tech) .screenwrap .frame,
+body:not(.hide-tech) .screenwrap .frame img{max-height:264px}
+.screenwrap .frame .mockwrap{padding:20px;line-height:1.6;background:var(--bg-secondary);
+                             border:1px solid var(--border);border-radius:var(--radius-sm);min-width:min(430px,80vw)}
+.focusbox{position:absolute;border:2px solid var(--accent);border-radius:4px;
+          box-shadow:0 0 0 9999px rgba(0,0,0,.42);pointer-events:none;transition:all 380ms cubic-bezier(.4,0,.2,1)}
+.screen-cap{position:absolute;left:16px;bottom:12px;font-size:.68rem;font-family:var(--mono);
+            color:var(--text-secondary);background:color-mix(in srgb,var(--bg-primary) 86%,transparent);
+            border:1px solid var(--border);border-radius:999px;padding:3px 10px}
+
+/* detail */
+.detail{padding:18px 20px 20px;border-top:1px solid var(--border);background:var(--bg-secondary);
+        flex:0 0 auto;min-height:150px}
+/* With technical detail on the content varies a lot, so the panel becomes a
+   fixed scroll region — otherwise the controls bar jumps around under the
+   cursor mid-playback. */
+body:not(.hide-tech) .detail{flex:0 0 380px;height:380px;overflow-y:auto;scroll-behavior:auto;padding-bottom:28px}
+@media (max-width:940px){body:not(.hide-tech) .detail{flex:0 0 auto;height:auto}}
+.detail-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.detail-head h3{font-size:1.05rem}
+.detail-head .idx{font-family:var(--mono);font-size:.72rem;color:var(--text-muted)}
+.detail .say{font-size:.94rem;color:var(--text-secondary);line-height:1.62}
+.detail .say b{color:var(--text-primary)}
+
+.kv{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.kvrow{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:start}
+@media (max-width:600px){.kvrow{grid-template-columns:1fr;gap:3px}}
+.kvk{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);padding-top:3px}
+.kvv{font-size:.84rem;color:var(--text-secondary);min-width:0}
+pre.code{font-size:.755rem;line-height:1.6;background:var(--bg-primary);border:1px solid var(--border);
+         border-radius:var(--radius-xs);padding:9px 12px;overflow-x:auto;color:var(--text-primary);white-space:pre}
+code.inl{font-size:.79rem;background:var(--bg-primary);border:1px solid var(--border);
+         border-radius:4px;padding:1px 6px;color:var(--text-primary);word-break:break-word}
+.ref{font-family:var(--mono);font-size:.75rem;color:var(--accent-text)}
+.note{font-size:.82rem;color:var(--text-caption);border-left:2px solid var(--border);padding-left:11px;line-height:1.55}
+.note b{color:var(--text-secondary)}
+
+.storepill{display:inline-flex;align-items:center;gap:7px;border-radius:var(--radius-xs);padding:5px 10px;
+           font-size:.76rem;font-family:var(--mono);margin:0 6px 6px 0;border:1px solid transparent}
+.storepill .op{font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8;font-family:var(--font)}
+.storepill.sync{background:var(--sync-bg);color:var(--sync);border-color:color-mix(in srgb,var(--sync) 35%,transparent)}
+.storepill.local{background:var(--local-bg);color:var(--local);border-color:color-mix(in srgb,var(--local) 35%,transparent)}
+.storepill.session{background:var(--session-bg);color:var(--session);border-color:color-mix(in srgb,var(--session) 35%,transparent)}
+.storeshape{font-size:.74rem;color:var(--text-caption);font-family:var(--mono);margin-top:2px;line-height:1.5}
+
+/* controls */
+.controls{display:flex;align-items:center;gap:9px;padding:12px 16px;border-top:1px solid var(--border);
+          background:var(--bg-primary);flex-wrap:wrap}
+.ctl{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--bg-secondary);
+     color:var(--text-secondary);border-radius:var(--radius-xs);padding:7px 12px;cursor:pointer;
+     font-family:inherit;font-size:.82rem;transition:all var(--transition)}
+.ctl:hover:not(:disabled){border-color:var(--accent);color:var(--accent-text);background:var(--accent-light)}
+.ctl:disabled{opacity:.4;cursor:not-allowed}
+.ctl.primary{background:var(--accent);border-color:var(--accent);color:#202124;font-weight:650}
+.ctl.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#202124}
+.ctl-sep{width:1px;height:22px;background:var(--border)}
+.speed{display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--text-muted)}
+.speed input{accent-color:var(--accent);width:88px}
+.chk{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-secondary);cursor:pointer;white-space:nowrap}
+.chk input{accent-color:var(--accent);width:14px;height:14px}
+.progress{flex:1;min-width:110px;height:4px;background:var(--bg-tertiary);border-radius:999px;overflow:hidden}
+.progress .bar{height:100%;background:var(--accent);width:0;transition:width 300ms ease}
+
+/* ── Tables ───────────────────────────────────────────────── */
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-secondary)}
+table{border-collapse:collapse;width:100%;font-size:.845rem;min-width:640px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--border-soft);vertical-align:top}
+th{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);
+   background:var(--bg-primary);position:sticky;top:0;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-primary)}
+td code{font-size:.775rem;color:var(--text-primary);word-break:break-word}
+td .k{font-family:var(--mono);font-weight:600;color:var(--accent-text);word-break:break-word}
+.area-head{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+.area-head h3{font-size:1.05rem}
+.area-tag{font-size:.68rem;font-family:var(--mono);border-radius:999px;padding:3px 10px;font-weight:700}
+.area-tag.sync{background:var(--sync-bg);color:var(--sync)}
+.area-tag.local{background:var(--local-bg);color:var(--local)}
+.area-tag.session{background:var(--session-bg);color:var(--session)}
+
+/* ── Lightbox ─────────────────────────────────────────────── */
+.lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);
+          display:none;align-items:center;justify-content:center;padding:34px}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:calc(100vh - 100px);object-fit:contain;border-radius:var(--radius-sm);box-shadow:var(--shadow-lg)}
+.lightbox .lb-cap{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#e8eaed;font-size:.85rem}
+.lightbox .lb-close{position:absolute;top:18px;right:20px;background:none;border:1px solid #5f6368;color:#e8eaed;
+                    border-radius:var(--radius-xs);width:36px;height:36px;font-size:1.2rem;cursor:pointer;line-height:1}
+
+/* ── Footer ───────────────────────────────────────────────── */
+footer{padding:34px 0 46px;text-align:center}
+footer p{font-size:.85rem;color:var(--text-caption)}
+
+.kbdhint{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:.8rem;color:var(--text-muted)}
+.kbdhint span{display:flex;align-items:center;gap:6px}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.hero{display:grid;grid-template-columns:minmax(260px,.8fr) 1.2fr;gap:38px;align-items:center}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:22px}}
+.hero-viz{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
+.fan-base{stroke:var(--border);stroke-width:1.5;fill:none}
+/* pathLength="100" on every path normalises the dash maths, so a long curve
+   and a short straight line pulse at exactly the same rate. */
+.fan-path{stroke:var(--accent);stroke-width:2.4;fill:none;stroke-linecap:round;
+          stroke-dasharray:7 93;stroke-dashoffset:100;animation:march 2.6s linear infinite}
+@keyframes march{to{stroke-dashoffset:0}}
+.fan-node{fill:var(--bg-primary);stroke:var(--border);stroke-width:1.4}
+.fan-mark{fill:var(--accent-light);stroke:var(--accent);stroke-width:2}
+.fan-t{fill:var(--text-primary);font-family:var(--font);font-size:13px;font-weight:600}
+.fan-c{fill:var(--text-muted);font-family:var(--mono);font-size:11px}
+.caret{fill:var(--accent);animation:blink 1.05s steps(2) infinite}
+@media (prefers-reduced-motion:reduce){
+  .fan-path{animation:none;stroke-dasharray:none;stroke-dashoffset:0;opacity:.5}
+  .caret{animation:none}
+}
+/* ChatGPT ships a light and a dark mark; show the one this theme needs. */
+[data-theme="dark"] .only-light{display:none}
+[data-theme="light"] .only-dark{display:none}
+/* Grok and the custom mark are currentColor SVGs — same trick the website uses. */
+[data-theme="dark"] .inv{filter:invert(1)}
+
+/* ── Facts ────────────────────────────────────────────────── */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:26px}
+.fact{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);
+      padding:15px 12px;text-align:center;transition:all var(--transition)}
+.fact:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:var(--shadow-sm)}
+.fact .n{font-size:1.55rem;font-weight:700;color:var(--accent-text);letter-spacing:-.03em;line-height:1.1}
+.fact .l{font-size:.74rem;color:var(--text-muted);margin-top:3px}
+
+/* ── Storage mapping legend ───────────────────────────────── */
+.maprow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:18px}
+.mapcell{display:flex;align-items:center;gap:9px;background:var(--bg-secondary);border:1px solid var(--border);
+         border-radius:var(--radius-sm);padding:10px 15px;font-size:.85rem;color:var(--text-secondary)}
+.mapcell b{color:var(--accent-text);font-family:var(--mono);font-size:.8rem}
+.maparrow{color:var(--text-muted);font-size:1.1rem}
+
+/* ── Reveal on scroll ─────────────────────────────────────── */
+/* The hidden state only exists once the script has taken charge of revealing
+   (html.rv-on). Without JS — or if anything throws first — content just shows. */
+.rv-on .rv{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.rv-on .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.rv-on .rv{opacity:1;transform:none;transition:none}}
+
+/* ── Disclosure ───────────────────────────────────────────── */
+details.disc{background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);
+             overflow:hidden;transition:border-color var(--transition)}
+details.disc:hover{border-color:var(--accent)}
+details.disc>summary{cursor:pointer;list-style:none;padding:15px 18px;font-weight:650;font-size:.95rem;
+                     display:flex;align-items:center;gap:10px;color:var(--text-primary)}
+details.disc>summary::-webkit-details-marker{display:none}
+details.disc>summary::after{content:"+";margin-left:auto;color:var(--accent);font-size:1.15rem;line-height:1}
+details.disc[open]>summary::after{content:"\2212"}
+details.disc .dbody{padding:0 18px 17px;font-size:.88rem;color:var(--text-secondary);line-height:1.65}
+
+/* ── Logos ────────────────────────────────────────────────── */
+.logostrip{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:18px}
+.logostrip img{width:30px;height:30px;border-radius:8px;background:var(--bg-secondary);
+               border:1px solid var(--border);padding:4px;transition:transform var(--transition),border-color var(--transition)}
+.logostrip img:hover{transform:translateY(-4px) scale(1.06);border-color:var(--accent)}
+td .tlogo{width:20px;height:20px;vertical-align:-5px;margin-right:9px;display:inline-block}
+.shot-short{font-size:.9rem;color:var(--text-secondary)}
+body:not(.hide-tech) .shot-short{color:var(--text-primary);font-weight:600}
+</style>
+</head>
+<body class="hide-tech">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="nav-brand">
+    <img src="../icons/app/icon-48.png" alt="">
+    Puchne <span class="sub">— How It Works</span>
+  </div>
+  <nav class="nav-links">
+    <a href="#overview">Overview</a>
+    <a href="#screens">Screens</a>
+    <a href="#flows">Flows</a>
+    <a href="#storage">Storage</a>
+    <a href="#messages">Messages</a>
+    <a href="#reference">Reference</a>
+  </nav>
+  <div class="nav-tools">
+    <button class="tech-toggle" id="techToggle" aria-pressed="false">
+      <span class="sw" aria-hidden="true"></span> Technical detail
+    </button>
+    <button class="icon-btn" id="themeBtn" title="Theme: match system" aria-label="Theme: match system"></button>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ═══════════ OVERVIEW ═══════════ -->
+<section id="overview">
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Overview</p>
+        <h1>One prompt.<br>Every AI. At once.</h1>
+        <p class="lead" style="margin-top:14px">
+          A Chrome extension that types your prompt into seven AI sites for you.
+        </p>
+        <div class="logostrip">
+          <img class="only-light" src="../icons/services/chatgpt_dark.png" alt="ChatGPT" title="ChatGPT">
+          <img class="only-dark" src="../icons/services/chatgpt_light.png" alt="ChatGPT" title="ChatGPT">
+          <img src="../icons/services/claude.png" alt="Claude" title="Claude">
+          <img src="../icons/services/gemini.png" alt="Gemini" title="Gemini">
+          <img src="../icons/services/copilot.png" alt="Copilot" title="Copilot">
+          <img src="../icons/services/deepseek.png" alt="DeepSeek" title="DeepSeek">
+          <img src="../icons/services/perplexity.png" alt="Perplexity" title="Perplexity">
+          <img class="inv" src="../icons/services/grok.svg" alt="Grok" title="Grok">
+          <img class="inv" src="../icons/services/custom.svg" alt="Your own tool" title="Add your own">
+        </div>
+      </div>
+
+      <div class="hero-viz">
+        <svg viewBox="0 0 760 320" role="img" aria-label="One prompt fans out from Puchne to seven AI services.">
+          <!-- prompt -->
+          <rect class="fan-node" x="10" y="131" width="152" height="58" rx="11"/>
+          <text class="fan-c" x="26" y="153">your prompt</text>
+          <text class="fan-t" x="26" y="174" style="font-size:12px;font-weight:500">Explain qubits…</text>
+          <rect class="caret" x="128" y="164" width="2" height="12"/>
+          <path class="fan-base" d="M162 160 H214"/>
+          <path class="fan-path" pathLength="100" d="M162 160 H214" style="stroke-dasharray:10 60;stroke-dashoffset:70;animation-duration:1.4s"/>
+
+          <!-- puchne -->
+          <circle class="fan-mark" cx="248" cy="160" r="31"/>
+          <image href="../icons/app/icon-128.png" x="231" y="143" width="34" height="34"/>
+
+          <!-- fan -->
+          <path class="fan-base" d="M282 160 C 380 160 440 21 546 21"/>
+          <path class="fan-base" d="M282 160 C 380 160 440 67 546 67"/>
+          <path class="fan-base" d="M282 160 C 380 160 440 113 546 113"/>
+          <path class="fan-base" d="M282 160 H546"/>
+          <path class="fan-base" d="M282 160 C 380 160 440 205 546 205"/>
+          <path class="fan-base" d="M282 160 C 380 160 440 251 546 251"/>
+          <path class="fan-base" d="M282 160 C 380 160 440 297 546 297"/>
+
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 21 546 21"   style="animation-delay:0s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 67 546 67"   style="animation-delay:.11s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 113 546 113" style="animation-delay:.22s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 H546"                      style="animation-delay:.33s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 205 546 205" style="animation-delay:.44s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 251 546 251" style="animation-delay:.55s"/>
+          <path class="fan-path" pathLength="100" d="M282 160 C 380 160 440 297 546 297" style="animation-delay:.66s"/>
+
+          <rect class="fan-node" x="546" y="4"   width="200" height="34" rx="9"/>
+          <image class="only-light" href="../icons/services/chatgpt_dark.png"  x="556" y="10" width="22" height="22"/>
+          <image class="only-dark"  href="../icons/services/chatgpt_light.png" x="556" y="10" width="22" height="22"/>
+          <text class="fan-t" x="588" y="26">ChatGPT</text>
+
+          <rect class="fan-node" x="546" y="50"  width="200" height="34" rx="9"/>
+          <image href="../icons/services/claude.png" x="556" y="56" width="22" height="22"/>
+          <text class="fan-t" x="588" y="72">Claude</text>
+
+          <rect class="fan-node" x="546" y="96"  width="200" height="34" rx="9"/>
+          <image href="../icons/services/gemini.png" x="556" y="102" width="22" height="22"/>
+          <text class="fan-t" x="588" y="118">Gemini</text>
+
+          <rect class="fan-node" x="546" y="142" width="200" height="34" rx="9"/>
+          <image href="../icons/services/copilot.png" x="556" y="148" width="22" height="22"/>
+          <text class="fan-t" x="588" y="164">Copilot</text>
+
+          <rect class="fan-node" x="546" y="188" width="200" height="34" rx="9"/>
+          <image href="../icons/services/deepseek.png" x="556" y="194" width="22" height="22"/>
+          <text class="fan-t" x="588" y="210">DeepSeek</text>
+
+          <rect class="fan-node" x="546" y="234" width="200" height="34" rx="9"/>
+          <image href="../icons/services/perplexity.png" x="556" y="240" width="22" height="22"/>
+          <text class="fan-t" x="588" y="256">Perplexity</text>
+
+          <rect class="fan-node" x="546" y="280" width="200" height="34" rx="9"/>
+          <image class="inv" href="../icons/services/grok.svg" x="556" y="286" width="22" height="22"/>
+          <text class="fan-t" x="588" y="302">Grok</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="facts rv">
+      <div class="fact"><div class="n">0</div><div class="l">servers</div></div>
+      <div class="fact"><div class="n">0</div><div class="l">sites granted at install</div></div>
+      <div class="fact"><div class="n">0</div><div class="l">build steps</div></div>
+      <div class="fact"><div class="n">5</div><div class="l">execution contexts</div></div>
+      <div class="fact"><div class="n">12</div><div class="l">storage keys</div></div>
+      <div class="fact"><div class="n">23</div><div class="l">message types</div></div>
+    </div>
+
+    <h2 style="margin-top:52px">No server. No database.</h2>
+    <p class="lead" style="margin-top:8px">
+      So “where is it stored” always means <code class="inl">chrome.storage</code>. Read it like this:
+    </p>
+    <div class="maprow rv">
+      <span class="mapcell">database <span class="maparrow">=</span> <b>area</b></span>
+      <span class="maparrow">·</span>
+      <span class="mapcell">table <span class="maparrow">=</span> <b>key</b></span>
+      <span class="maparrow">·</span>
+      <span class="mapcell">row <span class="maparrow">=</span> <b>the value under it</b></span>
+    </div>
+
+    <h2 style="margin-top:52px">Five places code runs</h2>
+    <p class="lead" style="margin-top:8px">
+      Every arrow is a message, a storage write, or a script injection — never a function call.
+    </p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 960 470" role="img" aria-label="Puchne architecture: surfaces and content scripts both talk to the service worker, which drives AI sites and reads and writes chrome.storage.">
+        <!-- column headings -->
+        <text class="dg-hd" x="30" y="26">SURFACES (EXTENSION PAGES + OVERLAY)</text>
+        <text class="dg-hd" x="392" y="26">THE HUB</text>
+        <text class="dg-hd" x="700" y="26">TARGETS</text>
+
+        <!-- surfaces -->
+        <rect class="dg-box" x="30" y="42" width="250" height="52" rx="8"/>
+        <text class="dg-t" x="44" y="64">Compose panel</text>
+        <text class="dg-s" x="44" y="82">prompt-panel.js — popup · sidebar · overlay</text>
+
+        <rect class="dg-box" x="30" y="104" width="250" height="52" rx="8"/>
+        <text class="dg-t" x="44" y="126">Grid page</text>
+        <text class="dg-s" x="44" y="144">pages/grid.html + grid.js</text>
+
+        <rect class="dg-box" x="30" y="166" width="250" height="52" rx="8"/>
+        <text class="dg-t" x="44" y="188">Options page</text>
+        <text class="dg-s" x="44" y="206">pages/options.html + options.js</text>
+
+        <rect class="dg-box" x="30" y="228" width="250" height="52" rx="8"/>
+        <text class="dg-t" x="44" y="250">Access window</text>
+        <text class="dg-s" x="44" y="268">pages/permissions.html — the only place</text>
+        <text class="dg-s" x="44" y="280">permissions.request() is legal</text>
+
+        <!-- hub -->
+        <rect class="dg-hub" x="360" y="42" width="230" height="238" rx="10"/>
+        <text class="dg-t" x="378" y="66">Service worker</text>
+        <text class="dg-s" x="378" y="84">scripts/background.js</text>
+        <line x1="378" y1="96" x2="572" y2="96" class="dg-line"/>
+        <text class="dg-s" x="378" y="116">AI_SERVICES registry</text>
+        <text class="dg-s" x="378" y="136">onMessage router (16 actions)</text>
+        <text class="dg-s" x="378" y="156">handleMulticast — the send</text>
+        <text class="dg-s" x="378" y="176">syncHostAccess — permissions</text>
+        <text class="dg-s" x="378" y="196">sendStatus bookkeeping</text>
+        <text class="dg-s" x="378" y="216">contextMenus + commands</text>
+        <text class="dg-l" x="378" y="248">Not persistent: Chrome kills it when</text>
+        <text class="dg-l" x="378" y="262">idle and respawns it on the next event.</text>
+
+        <!-- targets -->
+        <rect class="dg-box" x="670" y="42" width="260" height="66" rx="8"/>
+        <text class="dg-t" x="684" y="64">Content script</text>
+        <text class="dg-s" x="684" y="82">scripts/content.js — on AI tabs</text>
+        <text class="dg-s" x="684" y="98">overlay · follow-up bar · the typist</text>
+
+        <rect class="dg-box" x="670" y="118" width="260" height="66" rx="8"/>
+        <text class="dg-t" x="684" y="140">Grid sub-frames</text>
+        <text class="dg-s" x="684" y="158">same content.js, injected per frameId</text>
+        <text class="dg-s" x="684" y="174">+ cookie-dismiss.js</text>
+
+        <rect class="dg-box" x="670" y="194" width="260" height="86" rx="8"/>
+        <text class="dg-t" x="684" y="216">The AI websites</text>
+        <image class="only-light" href="../icons/services/chatgpt_dark.png"  x="684" y="228" width="22" height="22"/>
+        <image class="only-dark"  href="../icons/services/chatgpt_light.png" x="684" y="228" width="22" height="22"/>
+        <image href="../icons/services/claude.png"     x="712" y="228" width="22" height="22"/>
+        <image href="../icons/services/gemini.png"     x="740" y="228" width="22" height="22"/>
+        <image href="../icons/services/copilot.png"    x="768" y="228" width="22" height="22"/>
+        <image href="../icons/services/deepseek.png"   x="796" y="228" width="22" height="22"/>
+        <image href="../icons/services/perplexity.png" x="824" y="228" width="22" height="22"/>
+        <image class="inv" href="../icons/services/grok.svg" x="852" y="228" width="22" height="22"/>
+        <text class="dg-l" x="684" y="268">No API access — it types into their real composers.</text>
+
+        <!-- storage -->
+        <rect class="dg-store" x="30" y="330" width="900" height="112" rx="10"/>
+        <text class="dg-hd" x="46" y="354">CHROME.STORAGE — THE ONLY PERSISTENCE</text>
+        <rect class="dg-box" x="46" y="366" width="282" height="60" rx="7"/>
+        <text class="dg-t" x="60" y="388">sync</text>
+        <text class="dg-s" x="60" y="406">settings — 1 key, follows your profile</text>
+        <text class="dg-l" x="60" y="419">100 KB quota</text>
+
+        <rect class="dg-box" x="340" y="366" width="282" height="60" rx="7"/>
+        <text class="dg-t" x="354" y="388">local</text>
+        <text class="dg-s" x="354" y="406">history · grants · layouts · grid payload</text>
+        <text class="dg-l" x="354" y="419">this device only, survives restart</text>
+
+        <rect class="dg-box" x="634" y="366" width="282" height="60" rx="7"/>
+        <text class="dg-t" x="648" y="388">session</text>
+        <text class="dg-s" x="648" y="406">sendStatus · activeSessionTabs · pending*</text>
+        <text class="dg-l" x="648" y="419">in memory, dies with the browser</text>
+
+        <!-- arrows -->
+        <path class="dg-line-a" d="M280 68 H322 Q340 68 340 88 V150 H358"/>
+        <path class="dg-line-a" d="M280 130 H320 Q340 130 340 145 V152 H358"/>
+        <path class="dg-line" d="M280 192 H320 Q340 192 340 178 V162 H358"/>
+        <path class="dg-line" d="M280 250 H320 Q340 250 340 220 V172 H358"/>
+        <text class="dg-l" x="292" y="118">runtime.sendMessage</text>
+
+        <path class="dg-line-a" d="M590 90 H630 Q650 90 650 78 V72 H668"/>
+        <path class="dg-line-a" d="M590 140 H630 Q650 140 650 148 V152 H668"/>
+        <path class="dg-line" d="M590 200 H630 Q650 200 650 220 V236 H668"/>
+        <text class="dg-l" x="596" y="118">tabs.sendMessage</text>
+        <text class="dg-l" x="596" y="132">scripting.executeScript</text>
+
+        <path class="dg-line" d="M475 282 V330"/>
+        <path class="dg-line" d="M155 282 V330"/>
+        <path class="dg-line" d="M800 284 V330"/>
+        <text class="dg-l" x="482" y="312">read / write</text>
+        <text class="dg-l" x="162" y="312">read / write</text>
+        <text class="dg-l" x="700" y="312">read (grantedOrigins mirror, session)</text>
+
+        <!-- Pulses along the same geometry, so the diagram reads as traffic. -->
+        <path class="dg-flow" pathLength="100" d="M280 68 H322 Q340 68 340 88 V150 H358"  style="animation-delay:0s"/>
+        <path class="dg-flow" pathLength="100" d="M280 130 H320 Q340 130 340 145 V152 H358" style="animation-delay:.2s"/>
+        <path class="dg-flow" pathLength="100" d="M280 192 H320 Q340 192 340 178 V162 H358" style="animation-delay:.4s"/>
+        <path class="dg-flow" pathLength="100" d="M280 250 H320 Q340 250 340 220 V172 H358" style="animation-delay:.6s"/>
+        <path class="dg-flow" pathLength="100" d="M590 90 H630 Q650 90 650 78 V72 H668"    style="animation-delay:.9s"/>
+        <path class="dg-flow" pathLength="100" d="M590 140 H630 Q650 140 650 148 V152 H668" style="animation-delay:1.05s"/>
+        <path class="dg-flow" pathLength="100" d="M590 200 H630 Q650 200 650 220 V236 H668" style="animation-delay:1.2s"/>
+        <path class="dg-flow" pathLength="100" d="M475 282 V330" style="animation-delay:1.5s"/>
+        <path class="dg-flow" pathLength="100" d="M155 282 V330" style="animation-delay:1.65s"/>
+        <path class="dg-flow" pathLength="100" d="M800 284 V330" style="animation-delay:1.8s"/>
+      </svg>
+    </div>
+
+    <div class="grid3 rv" style="margin-top:26px">
+      <details class="disc">
+        <summary>Why a worker in the middle?</summary>
+        <div class="dbody">
+          Only the service worker can open tabs, inject scripts and read
+          <code class="inl">chrome.permissions</code>. A content script has none of those, and the popup dies
+          the instant you click away — so anything that must outlive the click lives here.
+        </div>
+      </details>
+      <details class="disc">
+        <summary>One panel, three surfaces?</summary>
+        <div class="dbody">
+          <code class="inl">PuchnePromptPanel</code> is a single class rendered into the popup, the Chrome side
+          panel and an in-page overlay. Each host supplies only what is genuinely its own — a backdrop, a theme
+          toggle, a layout mode.
+        </div>
+      </details>
+      <details class="disc">
+        <summary>Why type instead of call an API?</summary>
+        <div class="dbody">
+          No API keys, no accounts, no per-token cost — it drives the sessions you are already signed into.
+          The price is fragility: when a site redesigns its composer, a CSS selector in the registry has to change.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SCREENS ═══════════ -->
+<section id="screens">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Screens</p>
+      <h2>Every surface in the app</h2>
+      <p class="lead">Click any shot to enlarge.</p>
+    </div>
+    <div class="shots" id="shotGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ FLOWS ═══════════ -->
+<section id="flows">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Flows</p>
+      <h2>Watch a request travel end to end</h2>
+      <p class="lead">Pick a flow, press Play. Flip on <b>Technical detail</b> for payloads and source refs.</p>
+      <div class="kbdhint">
+        <span><kbd>Space</kbd> play / pause</span>
+        <span><kbd>→</kbd> <kbd>←</kbd> next / previous step</span>
+        <span><kbd>1</kbd>–<kbd>6</kbd> jump to a flow</span>
+        <span><kbd>Esc</kbd> close image</span>
+      </div>
+    </div>
+
+    <div class="player">
+      <div class="flow-tabs" id="flowTabs" role="tablist" aria-label="Flows"></div>
+      <div class="player-body">
+        <aside class="steplist" id="stepList" aria-label="Steps"><ol id="stepOl"></ol></aside>
+        <div class="stage">
+          <div class="lanes" id="lanes">
+            <div class="packet" id="packet" aria-hidden="true"></div>
+          </div>
+          <div class="screenwrap" id="screenWrap"></div>
+          <div class="detail" id="detail" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="ctl primary" id="btnPlay">▶ Play</button>
+        <button class="ctl" id="btnPrev">◀ Prev</button>
+        <button class="ctl" id="btnNext">Next ▶</button>
+        <button class="ctl" id="btnReset">↺ Reset</button>
+        <span class="ctl-sep"></span>
+        <label class="speed">Speed
+          <input type="range" id="speed" min="1" max="5" value="3" aria-label="Playback speed">
+          <span id="speedLabel" style="font-family:var(--mono);min-width:38px">3.5s</span>
+        </label>
+        <span class="ctl-sep"></span>
+        <label class="chk"><input type="checkbox" id="chainAll"> Auto-play all flows</label>
+        <div class="progress"><div class="bar" id="progressBar"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ STORAGE ═══════════ -->
+<section id="storage">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Storage</p>
+      <h2>Everything it remembers</h2>
+      <p class="lead">Twelve keys, three areas. That is the whole persistence layer.</p>
+    </div>
+    <div id="storageTables"></div>
+
+    <h3 style="margin:34px 0 12px">Inside <code class="inl">sync → settings</code></h3>
+    <p class="muted" style="margin-bottom:14px">One object, four writers. Each re-reads before writing, so it only overwrites the keys it owns.</p>
+    <div class="tablewrap"><table id="settingsTable"></table></div>
+  </div>
+</section>
+
+<!-- ═══════════ MESSAGES ═══════════ -->
+<section id="messages">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Messages</p>
+      <h2>The message catalog</h2>
+      <p class="lead">Contexts share no memory. Every interaction is an <code class="inl">action</code> string.</p>
+    </div>
+    <h3 style="margin-bottom:12px">Anything → service worker</h3>
+    <div class="tablewrap"><table id="msgInTable"></table></div>
+    <h3 style="margin:30px 0 12px">Service worker → content script</h3>
+    <div class="tablewrap"><table id="msgOutTable"></table></div>
+  </div>
+</section>
+
+<!-- ═══════════ REFERENCE ═══════════ -->
+<section id="reference">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Reference</p>
+      <h2>The registry, the clocks, and the permissions</h2>
+    </div>
+
+    <h3 style="margin-bottom:12px">AI service registry</h3>
+    <p class="muted" style="margin-bottom:14px">Add a tool by adding one object to <code class="inl">background.js</code>. Nothing else changes.</p>
+    <div class="tablewrap"><table id="registryTable"></table></div>
+
+    <h3 style="margin:34px 0 12px">Every timeout and delay</h3>
+    <p class="muted" style="margin-bottom:14px">The whole send is a race against seven single-page apps booting at once.</p>
+    <div class="tablewrap"><table id="timingTable"></table></div>
+
+    <h3 style="margin:34px 0 12px">The permission model</h3>
+    <div class="grid3 rv" style="margin-bottom:18px">
+      <details class="disc">
+        <summary>Granted at install — but zero websites</summary>
+        <div class="dbody">
+          <code class="inl">storage</code>, <code class="inl">tabs</code>, <code class="inl">scripting</code>,
+          <code class="inl">activeTab</code>, <code class="inl">tabGroups</code>,
+          <code class="inl">webNavigation</code>, <code class="inl">sidePanel</code>,
+          <code class="inl">contextMenus</code>, <code class="inl">declarativeNetRequestWithHostAccess</code>.
+          <br><br><b>Websites: none.</b> Not one.
+        </div>
+      </details>
+      <details class="disc">
+        <summary>Asked for, one site at a time</summary>
+        <div class="dbody">
+          Every AI host sits in <code class="inl">optional_host_permissions</code> and is requested the first
+          time you switch that tool on. Chrome shows its own dialog; Puchne only opens the window that can
+          legally ask. Withdraw any of them from Settings › AI Tools at any time.
+        </div>
+      </details>
+      <details class="disc">
+        <summary>What that costs the code</summary>
+        <div class="dbody">
+          A site can be granted or revoked at any moment, so three things are re-derived on every change: the
+          <code class="inl">local.grantedOrigins</code> mirror (content scripts have no
+          <code class="inl">chrome.permissions</code> API), the dynamically registered
+          <code class="inl">puchne-service-hosts</code> script, and any send parked mid-flight. That is
+          <code class="inl">syncHostAccess()</code> — and it runs on every worker startup, because
+          permissions can be revoked from Chrome's own UI while the worker is asleep.
+        </div>
+      </details>
+    </div>
+
+    <h3 style="margin:34px 0 12px">Concepts worth knowing</h3>
+    <div class="grid2 rv" id="glossary"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+Generated from the source of <b>Puchne v1.0.6</b>. Every claim traces to a file and line.
+    </p>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot">
+  <button class="lb-close" id="lbClose" aria-label="Close">&times;</button>
+  <img id="lbImg" src="" alt="">
+  <p class="lb-cap" id="lbCap"></p>
+</div>
+
+<script src="how-it-works.data.js"></script>
+<script src="how-it-works.js"></script>
+</body>
+</html>
