@@ -264,7 +264,7 @@ const FLOWS = [
         from: "you", to: "surface", screen: "compose",
         focus: { x: 17.9, y: 56.7, w: 64.4, h: 16.2 },
         api: "keydown / keyup / keypress / paste → e.stopPropagation()",
-        ref: "scripts/prompt-panel.js:342-359",
+        ref: "scripts/prompt-panel.js:340-357",
         note: "<b>paste</b> is stopped too, and that was a real bug: AI chat sites attach a document-level paste listener to catch images pasted anywhere, don't check whether the paste landed in <i>their</i> input, and call <code>preventDefault()</code> — swallowing pastes into this box.",
       },
       {
@@ -277,7 +277,7 @@ const FLOWS = [
           { area: "sync", key: "settings", op: "write", shape: "enabledServices: [...], serviceOrder: [...] — merged in, other keys untouched" },
           { area: "local", key: "promptHistory", op: "write", shape: "unshift({ text, timestamp }), de-duplicated, sliced to the limit" },
         ],
-        ref: "scripts/prompt-panel.js:618-643",
+        ref: "scripts/prompt-panel.js:614-639",
         note: "The prompt deliberately stays in the box: you might decline, and this surface may not even exist by the time the answer comes back.",
       },
       {
@@ -651,7 +651,7 @@ const FLOWS = [
         focus: { x: 17.9, y: 56.7, w: 64.4, h: 16.2 },
         api: 'chrome.tabs.sendMessage(tab.id, { action: "openOverlayWithPrompt", promptText }, { frameId: 0 })',
         store: [{ area: "session", key: "pendingPrompt", op: "write", shape: "the prompt text — read once by the panel on init, then deleted" }],
-        ref: "scripts/background.js:865-908 · scripts/prompt-panel.js:604-614",
+        ref: "scripts/background.js:865-908 · scripts/prompt-panel.js:600-610",
       },
       {
         t: "Direct mode — the worker does the panel's job",

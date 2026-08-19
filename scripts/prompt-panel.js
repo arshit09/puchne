@@ -268,13 +268,11 @@ class PuchnePromptPanel {
         </div>
       </header>
 
-      <p class="section-label" id="chipsLabel">Send to</p>
-      <div id="serviceChips" class="service-chips" role="group" aria-labelledby="chipsLabel"></div>
+      <div id="serviceChips" class="service-chips" role="group" aria-label="Send to"></div>
 
-      <p class="section-label" id="promptLabel">Your prompt</p>
       <div class="input-area">
         <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus
-                  aria-labelledby="promptLabel" aria-describedby="panelHint"></textarea>
+                  aria-label="Your prompt" aria-describedby="panelHint"></textarea>
         <div class="input-footer">
           <button type="button" id="sendBtn" class="send-btn" disabled title="Send Multicast" aria-label="Send Multicast">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -394,10 +392,8 @@ class PuchnePromptPanel {
     this._chipFingerprint = fp;
 
     const chipsEl = this.$("serviceChips");
-    const label = this.$("chipsLabel");
     const hideChips = mode === "none";
     chipsEl.style.display = hideChips ? "none" : "flex";
-    label.style.display = hideChips ? "none" : "";
     chipsEl.innerHTML = "";
 
     if (hideChips) {

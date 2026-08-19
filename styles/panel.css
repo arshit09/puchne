@@ -102,22 +102,15 @@
   background: var(--accent-light);
 }
 
-/* ── Section labels ─────────────────────────────────────────── */
-.pb-panel .section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
 /* ── Service chips ──────────────────────────────────────────── */
 .pb-panel .service-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+  /* Tighter than the gap under the header. With no "Send to" label left,
+     proximity is the only cue that these chips are the targets for the
+     box below, so the picker sits closer to it than to the header. */
+  margin-bottom: 12px;
   min-height: 44px; /* Space for at least one row of chips */
 }
 
@@ -438,7 +431,9 @@
 .pb-panel[data-variant="overlay"] { gap: 4px; }
 .pb-panel[data-variant="overlay"] .header { margin-bottom: 12px; }
 .pb-panel[data-variant="overlay"] .logo h1 { font-size: 22px; }
-.pb-panel[data-variant="overlay"] .service-chips { margin-bottom: 12px; }
+/* Flex gap is additive with item margins, so 8px + the column's 4px
+   gap lands on the same 12px the popup gets from margin alone. */
+.pb-panel[data-variant="overlay"] .service-chips { margin-bottom: 8px; }
 .pb-panel[data-variant="overlay"] .chip { font-size: 15px; }
 .pb-panel[data-variant="overlay"] textarea { font-size: 18px; }
 .pb-panel[data-variant="overlay"] .send-btn { width: 48px; height: 48px; }
