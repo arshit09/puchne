@@ -164,6 +164,7 @@ async function getSettings() {
     hoverExpandMin: 2,
     hoverExpandDelay: 200,
     groupTabs: false,
+    cycleTabs: false,
     delayMs: 2000,
     enableHistory: true,
     showRecents: true,
@@ -1422,7 +1423,14 @@ async function handleMulticast(query, ids) {
     // 1. Activate the first tab immediately so the user knows work has started
     chrome.tabs.update(tabs[0].id, { active: true });
 
-    // 2. Fire all injections in parallel and track their completion.
+    // 2. Wake every tab before a single character is typed. Sites that only
+    //    start loading once their tab is viewed — and tabs the browser has
+    //    suspended — are rendered by the time step 3 goes looking for their
+    //    prompt box, instead of stalling it until one of the timeouts fires.
+    //    Awaited on purpose: nothing may switch tabs mid-injection.
+    if (settings.cycleTabs) await cycleThroughTabs(tabs);
+
+    // 3. Fire all injections in parallel and track their completion.
     const injectionPromises = tabs.map(async (tab, index) => {
       const service = targets[index];
       try {
@@ -1463,7 +1471,8 @@ async function handleMulticast(query, ids) {
 
 /**
  * Returns a promise that resolves once a tab reaches "complete"
- * loading status. Times out after 30s to avoid hanging forever.
+ * loading status. Times out after TAB_LOAD_TIMEOUT (10s) to avoid
+ * hanging forever.
  */
 function waitForTabLoad(tabId) {
   return new Promise((resolve) => {
@@ -1472,7 +1481,7 @@ function waitForTabLoad(tabId) {
 
     const timer = setTimeout(() => {
       if (!resolved) {
-        console.warn(`[Puchne] Tab ${tabId} load timed out after 10s`);
+        console.warn(`[Puchne] Tab ${tabId} load timed out after ${TIMEOUT}ms`);
         resolved = true;
         resolve();
       }
@@ -1492,7 +1501,11 @@ function waitForTabLoad(tabId) {
     chrome.tabs.onUpdated.addListener(listener);
 
     chrome.tabs.get(tabId, (tab) => {
-      if (tab?.status === "complete" && !resolved) {
+      if (resolved) return;
+      // A missing tab (the user closed it mid-send) sets lastError, which has
+      // to be read or Chrome logs it. Nothing is ever going to load there, so
+      // resolve now instead of burning the full timeout waiting on it.
+      if (chrome.runtime.lastError || !tab || tab.status === "complete") {
         chrome.tabs.onUpdated.removeListener(listener);
         clearTimeout(timer);
         resolved = true;
@@ -1500,6 +1513,50 @@ function waitForTabLoad(tabId) {
       }
     });
   });
+}
+
+
+/**
+ * Visits every tab Puchne opened, in the order it opened them, and lands the
+ * user back on the first one.
+ *
+ * This runs the moment the tabs exist, before any prompt is typed into them.
+ * Some AI sites only start loading their chat once the tab is actually looked
+ * at, and browsers that suspend background tabs never let them get that far.
+ * One visit each is enough to wake them, so injection finds a rendered page
+ * with a real input box rather than a blank shell. The dwell matters: firing
+ * the activations in one burst would switch away again before the page
+ * painted, which is the whole point of the feature.
+ *
+ * Callers await this. Injection must not begin part-way through the walk, or
+ * a tab would be switched away from while its editor is being filled.
+ *
+ * The tabs all live in the window the send started in and that window is
+ * already frontmost, so activating is enough — nothing here focuses a window.
+ *
+ * @param {chrome.tabs.Tab[]} tabs — in creation order
+ */
+async function cycleThroughTabs(tabs) {
+  if (!tabs || tabs.length < 2) return; // Nothing to cycle through
+
+  console.log(`[Puchne] Cycling through ${tabs.length} tab(s)...`);
+  for (const tab of tabs) {
+    try {
+      await chrome.tabs.update(tab.id, { active: true });
+    } catch (err) {
+      // The user closed this one mid-send; the rest of the cycle still stands.
+      console.log(`[Puchne] Cycle skipped tab ${tab.id}:`, err.message);
+      continue;
+    }
+    await new Promise((resolve) => setTimeout(resolve, CYCLE_DWELL_MS));
+  }
+
+  try {
+    await chrome.tabs.update(tabs[0].id, { active: true });
+  } catch (err) {
+    console.log("[Puchne] Cycle could not return to the first tab:", err.message);
+  }
+  console.log("[Puchne] Tab cycle complete.");
 }
 
 

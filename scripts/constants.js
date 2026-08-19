@@ -11,6 +11,7 @@ var SETTLE_CAP_MS      = 300;     // Max settle wait after the input is detected
 var GRID_STAGGER_MS    = 200;     // ms between grid iframe navigations
 var TAB_LOAD_TIMEOUT   = 10_000;  // Max wait for a tab to reach "complete" status
 var INJECT_TIMEOUT_MS  = 15_000;  // Per-tab safety timeout for query injection
+var CYCLE_DWELL_MS     = 400;     // ms spent on each tab while cycling, so it gets a chance to paint
 var GRID_DATA_PREFIX   = "gridData_";  // local storage key prefix, suffixed with the grid tab id
 var GRID_DATA_WAIT_MS  = 5_000;   // Max wait for the background to write a grid tab's payload
 // Per-service delivery status the worker keeps for its own bookkeeping (it

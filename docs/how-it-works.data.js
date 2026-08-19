@@ -177,7 +177,7 @@ const GALLERY = [
   },
   {
     screen: "setBehav", short: "Grid or tabs — and everything around the send.", title: "Settings › Behavior",
-    body: "The big fork: grid view or new tabs. Plus auto-submit, tab grouping, the follow-up bar, hover-to-expand and its dwell delay, cookie-banner handling, and how long to wait before typing.",
+    body: "The big fork: grid view or new tabs. Plus auto-submit, tab grouping and cycling, the follow-up bar, hover-to-expand and its dwell delay, cookie-banner handling, and how long to wait before typing.",
     files: ["pages/options.html"], acc: "section-behavior",
   },
   {
@@ -206,7 +206,7 @@ const FLOWS = [
         from: "you", to: "worker", screen: "keys",
         mockArgs: { keys: ["Ctrl", "Shift", "X"], cap: "…or click the Puchne toolbar icon" },
         api: "chrome.commands → _execute_action → chrome.action.onClicked",
-        ref: "manifest.json:55 · scripts/background.js:701",
+        ref: "manifest.json:55 · scripts/background.js:702",
         note: "If <b>Dock as sidebar</b> is on, the worker has already called <code>sidePanel.setPanelBehavior({openPanelOnActionClick:true})</code> — Chrome then opens the side panel itself and <code>onClicked</code> never fires at all.",
       },
       {
@@ -216,7 +216,7 @@ const FLOWS = [
         mockArgs: { lines: ["// chrome.action.onClicked", "skip chrome:// edge:// about: URLs", "tabs.sendMessage(tab.id, …, {frameId: 0})"] },
         api: 'chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" }, { frameId: 0 })',
         payload: '{ action: "toggleOverlay" }',
-        ref: "scripts/background.js:701-728",
+        ref: "scripts/background.js:702-729",
         note: 'If that throws <code>"Could not establish connection"</code> — no content script in this tab yet — the worker injects the four content-script files with <code>chrome.scripting.executeScript</code> and sends the message again.',
       },
       {
@@ -235,7 +235,7 @@ const FLOWS = [
         focus: { x: 17.9, y: 44.7, w: 64.4, h: 6.1 },
         api: 'chrome.runtime.sendMessage({ action: "getServices" })',
         payload: '// response\n{ services: [ ...AI_SERVICES, ...settings.customProviders ] }',
-        ref: "scripts/prompt-panel.js:96 · scripts/background.js:947",
+        ref: "scripts/prompt-panel.js:96 · scripts/background.js:948",
       },
       {
         t: "…and which of those sites are actually allowed",
@@ -244,7 +244,7 @@ const FLOWS = [
         focus: { x: 17.9, y: 44.7, w: 64.4, h: 6.1 },
         api: 'chrome.runtime.sendMessage({ action: "getPermissionState" }) → worker calls chrome.permissions.getAll()',
         payload: '// response\n{ grantedOrigins: ["https://chatgpt.com/*", …],\n  grantedIds:     ["chatgpt", "claude", "gemini"] }',
-        ref: "scripts/prompt-panel.js:111 · scripts/background.js:955",
+        ref: "scripts/prompt-panel.js:111 · scripts/background.js:956",
         note: "This is a message and not a direct call because <code>chrome.permissions</code> simply does not exist in a content script.",
       },
       {
@@ -287,7 +287,7 @@ const FLOWS = [
         mockArgs: { lines: ["// openAccessWindow(ids, pendingSend)", "storage.session.set({ pendingSend })", 'windows.create({ url: "pages/permissions.html?ids=copilot,grok" })'] },
         api: 'chrome.windows.create({ url: "pages/permissions.html?ids=…", type: "popup", width: 480, height: 620 })',
         store: [{ area: "session", key: "pendingSend", op: "write", shape: "{ query, serviceIds, targetIds, at: Date.now() }" }],
-        ref: "scripts/background.js:370-401",
+        ref: "scripts/background.js:371-402",
         note: "An already-open access window is re-used and re-pointed rather than stacking a second one on top.",
       },
       {
@@ -308,7 +308,7 @@ const FLOWS = [
           { area: "local", key: "grantedOrigins", op: "write", shape: '["https://chatgpt.com/*", "https://claude.ai/*", …] — the mirror content scripts read' },
           { area: "sync", key: "settings", op: "write", shape: "enabledServices — asking for a site counts as intent to use it" },
         ],
-        ref: "scripts/background.js:269-326 · 408-427",
+        ref: "scripts/background.js:270-327 · 409-428",
         note: "There is no static <code>content_scripts</code> block in the manifest at all. This single dynamic registration, rewritten on every change, is what puts the follow-up bar on an allowed AI page.",
       },
       {
@@ -318,7 +318,7 @@ const FLOWS = [
         mockArgs: { lines: ["// resumePendingSend()", "storage.session.get(pendingSend)", "storage.session.remove(pendingSend)", "if (age > 5 min) → drop it", "handleMulticast(query, targetIds)"] },
         api: "resumePendingSend() → handleMulticast(query, targetIds)",
         store: [{ area: "session", key: "pendingSend", op: "delete", shape: "read once, then removed — dropped entirely if older than 5 minutes" }],
-        ref: "scripts/background.js:434-449",
+        ref: "scripts/background.js:435-450",
         note: "By five minutes you have moved on, and firing a forgotten prompt at six tabs is worse than losing it.",
       },
       {
@@ -327,7 +327,7 @@ const FLOWS = [
         from: "worker", to: "worker", screen: "worker",
         mockArgs: { lines: ["// handleMulticast(query, ids)", "resolveTargets(settings, ids)", "  ← merges settings.customSelectors[id]", "partitionTargets(targets)", "  → { allowed, blocked }"] },
         api: "resolveTargets(settings, ids) → partitionTargets(targets)",
-        ref: "scripts/background.js:208-221 · 1328-1350",
+        ref: "scripts/background.js:209-222 · 1329-1351",
         note: "Blocked services are recorded as failed rather than silently dropped — this is the path a permission revoked <i>between</i> composing and sending takes.",
       },
       {
@@ -336,7 +336,7 @@ const FLOWS = [
         from: "worker", to: "surface", screen: "worker",
         mockArgs: { lines: ["// settings.gridView === true", 'tabs.create({ url: runtime.getURL("pages/grid.html"), active: true })', "  → tab 42"] },
         api: 'chrome.tabs.create({ url: chrome.runtime.getURL("pages/grid.html"), active: true })',
-        ref: "scripts/background.js:1353-1356",
+        ref: "scripts/background.js:1354-1357",
       },
       {
         t: "The grid's payload is written, keyed by tab id",
@@ -348,7 +348,7 @@ const FLOWS = [
           { area: "local", key: "gridData_42", op: "write", shape: "{ query, autoSubmit, cookieConsent, delayMs,\n  targets: [{ id, name, url, inputType, selector,\n              submitType, buttonSel, waitMs, iconPath, iconPathDark }] }" },
           { area: "session", key: "sendStatus", op: "write", shape: '{ id, query, mode: "grid", gridTabId: 42, startedAt,\n  services: [{ id, name, url, status: "pending" }] }' },
         ],
-        ref: "scripts/background.js:1356-1380",
+        ref: "scripts/background.js:1357-1381",
         note: "Keyed by tab id so reloading the grid re-renders the same layout. The key is deleted in <code>chrome.tabs.onRemoved</code>, and any survivors are swept on the next browser start.",
       },
       {
@@ -394,7 +394,7 @@ const FLOWS = [
         from: "worker", to: "content", screen: "worker",
         mockArgs: { lines: ["// injectIntoGridFrame(tabId, target, query, opts)", "webNavigation.getAllFrames({ tabId: 42 })", "  → frameId 7  (https://claude.ai/…)", "scripting.executeScript → cookie-dismiss.js", "scripting.executeScript → 4 content-script files"] },
         api: "chrome.webNavigation.getAllFrames({ tabId }) → chrome.scripting.executeScript({ target: { tabId, frameIds: [frameId] } })",
-        ref: "scripts/background.js:1194-1229",
+        ref: "scripts/background.js:1195-1230",
         note: "cookie-dismiss.js retries 10 times at 800 ms and also watches for banners injected later — it clicks accept or reject depending on Settings › Behavior.",
       },
       {
@@ -404,7 +404,7 @@ const FLOWS = [
         mockArgs: { name: "Claude", icon: "claude.png", text: "" },
         api: "chrome.tabs.sendMessage(tabId, { action: 'fillQuery', … }, { frameId })",
         payload: '{ action: "fillQuery",\n  query: "Explain quantum computing like I\'m 12 …",\n  autoSubmit: true,\n  waitMs: 2000,\n  inputType: "prosemirror",\n  selector: \'div.ProseMirror[contenteditable="true"], …\',\n  submitType: "button",\n  buttonSel: \'button[aria-label="Send message"], …\' }',
-        ref: "scripts/background.js:1230-1255",
+        ref: "scripts/background.js:1231-1256",
         note: "The worker arms a 15 second timeout on this message. If the frame never answers, the service is recorded as failed rather than hanging the whole send.",
       },
       {
@@ -440,7 +440,7 @@ const FLOWS = [
         mockArgs: { lines: ["// stateFromResult(response) → markService(id, patch)", "{ ok: true, filled: true, submitted: true }", '  → status: "submitted"'] },
         api: "stateFromResult(result) → markService(serviceId, patch)",
         store: [{ area: "session", key: "sendStatus", op: "write", shape: 'services[i] = { …, status: "submitted", error: null, needsPermission: false }' }],
-        ref: "scripts/background.js:518-531 · 1105-1110",
+        ref: "scripts/background.js:519-532 · 1106-1111",
         note: "<b>Nothing in the UI renders sendStatus today.</b> It exists so the worker can re-run a single service (<code>retryService</code>) and so the toolbar badge knows whether anything failed. The delivery list that used to show it has been removed.",
       },
     ],
@@ -458,7 +458,7 @@ const FLOWS = [
         from: "you", to: "storage", screen: "setBehav",
         api: "settings.gridView === false",
         store: [{ area: "sync", key: "settings", op: "write", shape: "gridView: false" }],
-        ref: "pages/options.js:1428 · scripts/background.js:1353",
+        ref: "pages/options.js:1445 · scripts/background.js:1354",
       },
       {
         t: "One tab per service, all at once",
@@ -466,7 +466,7 @@ const FLOWS = [
         from: "worker", to: "site", screen: "worker",
         mockArgs: { lines: ["// handleMulticast — tabs branch", "Promise.all(targets.map(s =>", "  tabs.create({ url: s.url, active: false })", "))"] },
         api: "Promise.all(targets.map(s => chrome.tabs.create({ url: s.url, active: false })))",
-        ref: "scripts/background.js:1389-1395",
+        ref: "scripts/background.js:1390-1396",
       },
       {
         t: "The session is recorded — in session storage, on purpose",
@@ -475,7 +475,7 @@ const FLOWS = [
         mockArgs: { lines: ["storage.session.set({ activeSessionTabs })", "// NOT storage.local — see the note"] },
         api: "chrome.storage.session.set({ activeSessionTabs })",
         store: [{ area: "session", key: "activeSessionTabs", op: "write", shape: "[{ tabId: 88, target: { id, name, url, selector, … } }, …]" }],
-        ref: "scripts/background.js:1400-1401",
+        ref: "scripts/background.js:1401-1402",
         note: "Tab ids are recycled after a restart. A persisted list would attach the follow-up bar to whatever unrelated tab inherited the number.",
       },
       {
@@ -483,22 +483,30 @@ const FLOWS = [
         say: "If Settings › Behavior › Group tabs is on, Chrome bundles them under a blue group labelled “Puchne”.",
         from: "worker", to: "site", screen: "tabs",
         api: 'chrome.tabs.group({ tabIds }) → chrome.tabGroups.update(groupId, { title: "Puchne", color: "blue", collapsed: false })',
-        ref: "scripts/background.js:1404-1416",
+        ref: "scripts/background.js:1405-1417",
       },
       {
         t: "The first tab is activated immediately",
-        say: "Before any injection has finished — so you can see that something is happening rather than staring at the page you were on.",
+        say: "Before any injection has begun — so you can see that something is happening rather than staring at the page you were on.",
         from: "worker", to: "you", screen: "tabs",
         api: "chrome.tabs.update(tabs[0].id, { active: true })",
-        ref: "scripts/background.js:1423",
+        ref: "scripts/background.js:1424",
+      },
+      {
+        t: "If asked, every tab is woken before anything is typed",
+        say: "With Settings › Behavior › Cycle tabs once on, the worker walks the new tabs in the order it opened them, resting <b>CYCLE_DWELL_MS</b> on each, then hands you back to the first. It runs here, before a single character has been typed into anything, and that order is the point: some sites don't start rendering until their tab is actually looked at, and browsers that suspend background tabs never let them finish. Waking them all first means the next step goes hunting for a composer on a page that has actually painted.",
+        from: "worker", to: "you", screen: "tabs",
+        api: "await cycleThroughTabs(tabs) → chrome.tabs.update(id, { active: true }) per tab, CYCLE_DWELL_MS apart, then back to tabs[0]",
+        ref: "scripts/background.js:1431 · 1539-1560",
+        note: "The walk is awaited deliberately: injection must not begin until it is over, or a tab would be switched away from while the content script is focusing and filling its editor. Off by default, and tabs-only — the grid is a single tab, so there is nothing to cycle. A one-tool send skips it too, and a tab closed mid-walk is stepped over rather than aborting the rest.",
       },
       {
         t: "Each tab is waited for, then injected",
-        say: "Per tab and in parallel: wait for the load to complete (10 s cap), make sure the content script is present, trigger a login check, then send the same <b>fillQuery</b> message the grid path uses.",
+        say: "Now the prompt goes in. Per tab and in parallel: wait for the load to complete (10 s cap), make sure the content script is present, trigger a login check, then send the same <b>fillQuery</b> message the grid path uses.",
         from: "worker", to: "content", screen: "worker",
         mockArgs: { lines: ["// per tab, in parallel", "waitForTabLoad(tabId)        // 10 s cap", "ensureContentScript(tabId)", 'tabs.sendMessage(… "checkLogin")', "injectQuery(tabId, service, …)  // 15 s cap"] },
         api: "waitForTabLoad → ensureContentScript → checkLogin → injectQuery",
-        ref: "scripts/background.js:1426-1441",
+        ref: "scripts/background.js:1434-1449",
       },
       {
         t: "If a site wants a login, a toast says so",
@@ -526,7 +534,7 @@ const FLOWS = [
         from: "worker", to: "you", screen: "worker",
         mockArgs: { lines: ["const failures = results.filter(…)", 'action.setBadgeText({ text: "!" })', 'action.setBadgeBackgroundColor({ color: "#e74c3c" })', "setTimeout(clear, 10_000)"] },
         api: 'chrome.action.setBadgeText({ text: "!" })',
-        ref: "scripts/background.js:1448-1458",
+        ref: "scripts/background.js:1456-1466",
         note: "Only the tabs path and the follow-up path set the badge. The grid path never does.",
       },
       {
@@ -539,7 +547,7 @@ const FLOWS = [
           { area: "session", key: "activeSessionTabs", op: "write", shape: "filtered; the key is removed entirely once the last session tab closes" },
           { area: "local", key: "gridData_<tabId>", op: "delete", shape: "deleted with the tab" },
         ],
-        ref: "scripts/background.js:652-695",
+        ref: "scripts/background.js:653-696",
       },
     ],
   },
@@ -565,7 +573,7 @@ const FLOWS = [
         mockArgs: { lines: ["const { activeSessionTabs } = await storage.session.get(…)", "const sessionTabs = activeSessionTabs?.length", "  ? activeSessionTabs", "  : tabsFromSender"] },
         api: 'chrome.storage.session.get("activeSessionTabs")',
         store: [{ area: "session", key: "activeSessionTabs", op: "read", shape: "the authoritative list — kept pruned by chrome.tabs.onRemoved" }],
-        ref: "scripts/background.js:1570-1581",
+        ref: "scripts/background.js:1627-1638",
       },
       {
         t: "A follow-up gets its own status record",
@@ -574,7 +582,7 @@ const FLOWS = [
         mockArgs: { lines: ['startSendStatus(query, targets, "tabs")'] },
         api: "startSendStatus(query, sessionTabs.map(t => t.target), 'tabs')",
         store: [{ area: "session", key: "sendStatus", op: "write", shape: '{ id, query, mode: "tabs", startedAt, services: [ …all pending… ] }' }],
-        ref: "scripts/background.js:1584",
+        ref: "scripts/background.js:1641",
       },
       {
         t: "Access is re-checked, because a session outlives it",
@@ -582,7 +590,7 @@ const FLOWS = [
         from: "worker", to: "worker", screen: "worker",
         mockArgs: { lines: ["const granted = await grantedOrigins()", "activeTabs = sessionTabs.filter(t =>", "  isServiceGranted(t.target, granted))", "markBlocked(the rest)"] },
         api: "grantedOrigins() → isServiceGranted(target, granted)",
-        ref: "scripts/background.js:1586-1596",
+        ref: "scripts/background.js:1643-1653",
       },
       {
         t: "Injected with no wait at all",
@@ -590,7 +598,7 @@ const FLOWS = [
         from: "worker", to: "content", screen: "frame",
         mockArgs: { name: "Claude", icon: "claude.png", text: "Now give me the version for a physicist.", sent: true },
         api: "injectQuery(tabId, target, query, autoSubmit, /* waitMs */ 0)",
-        ref: "scripts/background.js:1609",
+        ref: "scripts/background.js:1666",
       },
       {
         t: "In the grid, it's the header box instead",
@@ -623,7 +631,7 @@ const FLOWS = [
         from: "you", to: "worker", screen: "ctx",
         focus: { x: 26.4, y: 65, w: 22, h: 4.8 },
         api: 'chrome.contextMenus.create({ id: "puchne-ask-selection", contexts: ["selection"] })',
-        ref: "scripts/background.js:732-751",
+        ref: "scripts/background.js:733-752",
         note: "The same handler is reached from <kbd>Ctrl+Shift+S</kbd> via <code>chrome.commands.onCommand</code>. Both funnel into <code>handleAskPuchne</code>.",
       },
       {
@@ -634,7 +642,7 @@ const FLOWS = [
         api: 'chrome.tabs.sendMessage(tabId, { action: "getSelectionOrPage" }, { frameId })',
         payload: '// response\n{ selectionText, title, url,\n  text: document.body.innerText.replace(/\\s+/g," ").slice(0, 2500) }\n\n// becomes\n"About this page (Title - URL):\\n\\n<text>\\n\\n' +
           'Can you summarize and explain key points from this page?"',
-        ref: "scripts/content.js:75-85 · scripts/background.js:753-771",
+        ref: "scripts/content.js:75-85 · scripts/background.js:754-772",
       },
       {
         t: "One setting decides what happens next",
@@ -642,7 +650,7 @@ const FLOWS = [
         from: "worker", to: "storage", screen: "setAsk",
         api: 'settings.askAction — "panel" | "direct"',
         store: [{ area: "sync", key: "settings", op: "read", shape: 'askAction: "panel", askTargetMode: "enabled" | "custom", askTargetIds: []' }],
-        ref: "scripts/background.js:784-791",
+        ref: "scripts/background.js:785-792",
       },
       {
         t: "Panel mode — three fallbacks deep",
@@ -651,7 +659,7 @@ const FLOWS = [
         focus: { x: 17.9, y: 56.7, w: 64.4, h: 16.2 },
         api: 'chrome.tabs.sendMessage(tab.id, { action: "openOverlayWithPrompt", promptText }, { frameId: 0 })',
         store: [{ area: "session", key: "pendingPrompt", op: "write", shape: "the prompt text — read once by the panel on init, then deleted" }],
-        ref: "scripts/background.js:865-908 · scripts/prompt-panel.js:600-610",
+        ref: "scripts/background.js:866-909 · scripts/prompt-panel.js:600-610",
       },
       {
         t: "Direct mode — the worker does the panel's job",
@@ -660,7 +668,7 @@ const FLOWS = [
         mockArgs: { lines: ["// sendPromptDirect(tab, promptText, settings)", "askTargetIds(settings)   // custom set or enabled", "partitionTargets(targets)", "addToHistory(promptText, settings)", "handleMulticast(promptText, ids)"] },
         api: "askTargetIds(settings) → partitionTargets → addToHistory → handleMulticast",
         store: [{ area: "local", key: "promptHistory", op: "write", shape: "same shape and ordering the panel writes — newest first, de-duplicated, trimmed" }],
-        ref: "scripts/background.js:817-863",
+        ref: "scripts/background.js:818-864",
         note: "Nothing to send to, or no site access at all, falls back to the panel — silently dropping the text after a right-click would look like the menu item did nothing.",
       },
       {
@@ -668,7 +676,7 @@ const FLOWS = [
         say: "<code>handleMulticast</code> is the same function the compose panel calls. Everything downstream — grid or tabs, injection, status — is identical.",
         from: "worker", to: "site", screen: "grid",
         api: "handleMulticast(promptText, ids)",
-        ref: "scripts/background.js:1328",
+        ref: "scripts/background.js:1329",
       },
     ],
   },
@@ -686,14 +694,14 @@ const FLOWS = [
         focus: { x: 3.3, y: 12.1, w: 21.5, h: 33.2 },
         api: 'chrome.storage.sync.get("settings") → { ...DEFAULTS, ...stored.settings }',
         store: [{ area: "sync", key: "settings", op: "read", shape: "24 keys — see the settings table below" }],
-        ref: "pages/options.js:98-128",
+        ref: "pages/options.js:101-134",
       },
       {
         t: "Every control calls the same debounced save",
         say: "There is no Save button. Each change schedules a write 300 ms later, so dragging a slider produces one storage write rather than fifty.",
         from: "you", to: "surface", screen: "setBehav",
         api: "save() → clearTimeout → setTimeout(_doSave, 300)",
-        ref: "pages/options.js:1405-1418",
+        ref: "pages/options.js:1427-1430",
       },
       {
         t: "The write re-reads first, so nothing is clobbered",
@@ -701,7 +709,7 @@ const FLOWS = [
         from: "surface", to: "storage", screen: "setBehav",
         api: "const stored = await chrome.storage.sync.get('settings'); … chrome.storage.sync.set({ settings })",
         store: [{ area: "sync", key: "settings", op: "write", shape: "{ ...stored.settings, ...this page's 24 keys } — serviceOrder survives" }],
-        ref: "pages/options.js:1420-1450",
+        ref: "pages/options.js:1435-1468",
         note: "The compose panel does the mirror image of this: <code>saveSettings()</code> writes only <code>enabledServices</code> and <code>serviceOrder</code>, merged into whatever the options page last wrote.",
       },
       {
@@ -709,7 +717,7 @@ const FLOWS = [
         say: "Docking as a sidebar isn't just a stored flag — it changes what clicking the toolbar icon does, and only the worker can tell Chrome that.",
         from: "surface", to: "worker", screen: "setAppear",
         api: 'chrome.runtime.sendMessage({ action: "setSidebarMode", useSidebar }) → chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick })',
-        ref: "scripts/background.js:576-583 · 992-995",
+        ref: "scripts/background.js:577-584 · 993-996",
       },
       {
         t: "History is trimmed to the new limit right away",
@@ -717,7 +725,7 @@ const FLOWS = [
         from: "surface", to: "storage", screen: "setAppear",
         api: "chrome.storage.local.set({ promptHistory: history.slice(0, settings.historyLimit) })",
         store: [{ area: "local", key: "promptHistory", op: "write", shape: "sliced to historyLimit (default 20)" }],
-        ref: "pages/options.js:1452-1461",
+        ref: "pages/options.js:1470-1479",
       },
       {
         t: "Testing a custom tool opens a real hidden tab",
@@ -726,7 +734,7 @@ const FLOWS = [
         mockArgs: { lines: ['// action: "testService"', "isServiceGranted(…) || bail with a reason", "tabs.create({ url, active: false })", "waitForTabLoad → ensureContentScript", "sleep(min(waitMs, 5000))", 'tabs.sendMessage(… "testSelector")', "finally → tabs.remove(tab.id)"] },
         api: 'chrome.runtime.sendMessage({ action: "testService", url, selector, buttonSel, inputType, waitMs })',
         payload: '// response\n{ ok: true, inputFound: true, buttonFound: true }',
-        ref: "scripts/background.js:1033-1081 · scripts/content.js:120-148",
+        ref: "scripts/background.js:1034-1082 · scripts/content.js:120-148",
         note: "Access is checked up front on purpose: opening the tab would work without it, but injecting the test into it would not — so it says why instead of reporting a mystery failure.",
       },
       {
@@ -738,7 +746,7 @@ const FLOWS = [
           { area: "sync", key: "settings", op: "write", shape: "replaced wholesale with DEFAULTS" },
           { area: "local", key: "promptHistory", op: "delete", shape: "removed" },
         ],
-        ref: "pages/options.js:1486-1495",
+        ref: "pages/options.js:1504-1513",
       },
     ],
   },
@@ -756,7 +764,7 @@ const FLOWS = [
         mockArgs: { lines: ["// chrome.runtime.onInstalled — reason: install", "storage.sync.set({ settings })", "contextMenus.create × 2", 'storage.local.remove("activeSessionTabs")  // legacy key'] },
         api: "chrome.runtime.onInstalled → chrome.storage.sync.set({ settings })",
         store: [{ area: "sync", key: "settings", op: "write", shape: "the DEFAULTS object — enabledServices: chatgpt, claude, gemini · gridView: true · autoSubmit: true · theme: system" }],
-        ref: "scripts/background.js:614-625",
+        ref: "scripts/background.js:615-626",
         note: "Zero websites are granted at this point. The install prompt asks for no host access at all.",
       },
       {
@@ -769,7 +777,7 @@ const FLOWS = [
           { area: "sync", key: "settings", op: "write", shape: 'theme: "system"' },
           { area: "local", key: "themeSystemMigrated", op: "write", shape: "true — a one-shot latch, so anyone who then picks light or dark keeps it" },
         ],
-        ref: "scripts/background.js:636-646",
+        ref: "scripts/background.js:637-647",
       },
       {
         t: "On every worker startup: session storage is opened up",
@@ -777,7 +785,7 @@ const FLOWS = [
         from: "worker", to: "storage", screen: "worker",
         mockArgs: { lines: ["// top-level IIFE, runs on every respawn", "storage.session.setAccessLevel({", '  accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })'] },
         api: 'chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })',
-        ref: "scripts/background.js:586-611",
+        ref: "scripts/background.js:587-612",
         note: "This is what lets the follow-up bar check for a live session without a round-trip to the worker — that read is served by the browser process and costs nothing on an ordinary page load.",
       },
       {
@@ -787,7 +795,7 @@ const FLOWS = [
         mockArgs: { lines: ["await syncHostAccess()", "  permissions.getAll()", "  storage.local.set({ grantedOrigins })", "  registerServiceScripts(granted)", "await applySidebarMode(settings.useSidebar)"] },
         api: "syncHostAccess() → chrome.permissions.getAll() → registerServiceScripts(granted)",
         store: [{ area: "local", key: "grantedOrigins", op: "write", shape: "rewritten from the real permission set on every startup" }],
-        ref: "scripts/background.js:269-326 · 586-594",
+        ref: "scripts/background.js:270-327 · 587-595",
       },
       {
         t: "Stale grid payloads are swept",
@@ -796,7 +804,7 @@ const FLOWS = [
         mockArgs: { lines: ["// chrome.runtime.onStartup", "const all = await storage.local.get(null)", 'stale = keys.filter(k => k.startsWith("gridData_"))', "storage.local.remove(stale)"] },
         api: "chrome.runtime.onStartup → chrome.storage.local.remove(staleKeys)",
         store: [{ area: "local", key: "gridData_*", op: "delete", shape: "every key with the gridData_ prefix" }],
-        ref: "scripts/background.js:660-664",
+        ref: "scripts/background.js:661-665",
         note: "<code>activeSessionTabs</code> needs no sweep — it lives in session storage, which dies with the browser anyway.",
       },
       {
@@ -818,7 +826,7 @@ const STORAGE_AREAS = [
     area: "sync", title: "chrome.storage.sync",
     sub: "Follows your signed-in Chrome profile between machines. 100 KB total, 8 KB per key. Exactly one key is used.",
     rows: [
-      { key: "settings", shape: "One object, 24 fields — see the breakdown below.",
+      { key: "settings", shape: "One object, 25 fields — see the breakdown below.",
         by: "options.js (debounced) · prompt-panel.saveSettings · popup.js theme toggle · grid.js hover toggle · worker on install, update and grant",
         read: "Every surface, on every open.",
         life: "Forever, and it syncs." },
@@ -878,6 +886,7 @@ const SETTINGS_FIELDS = [
   ["gridView", "true", "The big fork: one tiled tab, or one browser tab per tool."],
   ["autoSubmit", "true", "Press send for you, or leave the prompt in the box to edit."],
   ["groupTabs", "false", "Collect new tabs into one Chrome tab group."],
+  ["cycleTabs", "false", "Visit each new tab once before typing, ending on the first — some sites don't start rendering until their tab is viewed."],
   ["useSidebar", "false", "Dock the panel as a Chrome side panel instead of a popup."],
   ["overlayPosition", '"center"', "Where the in-page overlay sits: top, center or bottom."],
   ["chipDisplay", '"logo-name"', "logo-name · logo · name · none."],
@@ -948,13 +957,14 @@ const TIMINGS = [
   ["clickSubmitButton", "6 × 300 ms ≈ 1.5 s", "Retries clicking send, because most sites enable the button a beat after they see input.", "content.js:770-785"],
   ["GRID_STAGGER_MS", "200 ms", "Gap between grid iframe navigations, so seven SPAs don't boot in the same frame.", "constants.js:11"],
   ["iframe load timeout", "12 s", "Per grid cell, before it shows “could not be embedded”.", "grid.js:993-1000"],
-  ["GRID_DATA_WAIT_MS", "5 s", "How long the grid page waits for the worker to write its payload.", "constants.js:15"],
+  ["GRID_DATA_WAIT_MS", "5 s", "How long the grid page waits for the worker to write its payload.", "constants.js:16"],
   ["TAB_LOAD_TIMEOUT", "10 s", "Longest wait for a tab to reach status “complete”.", "constants.js:12"],
   ["INJECT_TIMEOUT_MS", "15 s", "Per-tab safety net on the fillQuery message, so Promise.allSettled can't hang.", "constants.js:13"],
-  ["PENDING_SEND_MAX_AGE_MS", "5 min", "After this, a send parked behind a permission prompt is dropped rather than fired.", "constants.js:28"],
+  ["CYCLE_DWELL_MS", "400 ms", "Pause on each tab while cycling — long enough for a site to notice it is visible, short enough that the round trip isn't a slideshow.", "constants.js:14"],
+  ["PENDING_SEND_MAX_AGE_MS", "5 min", "After this, a send parked behind a permission prompt is dropped rather than fired.", "constants.js:29"],
   ["LOGIN_TOAST_MS", "12 s", "How long the sign-in toast stays up. Paused while you hover it.", "content.js:868"],
   ["cookie-dismiss retries", "10 × 800 ms", "Plus a MutationObserver for banners injected later.", "cookie-dismiss.js:134-160"],
-  ["options save debounce", "300 ms", "Batches rapid setting changes into one storage write.", "options.js:1414"],
+  ["options save debounce", "300 ms", "Batches rapid setting changes into one storage write.", "options.js:1429"],
   ["MAX_HISTORY", "20", "Default recents cap. Configurable in Settings › Appearance.", "constants.js:6"],
 ];
 

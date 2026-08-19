@@ -19,6 +19,7 @@ const serviceListEl = document.getElementById("serviceList");
 const autoSubmitEl = document.getElementById("autoSubmit");
 const useSidebarEl = document.getElementById("useSidebar");
 const groupTabsEl = document.getElementById("groupTabs");
+const cycleTabsEl = document.getElementById("cycleTabs");
 const delayMsEl = document.getElementById("delayMs");
 const historyLimitEl = document.getElementById("historyLimit");
 const clearHistoryBtn = document.getElementById("clearHistory");
@@ -27,6 +28,7 @@ const gridViewEl = document.getElementById("gridView");
 const modeGridBtn = document.getElementById("modeGridBtn");
 const modeTabsBtn = document.getElementById("modeTabsBtn");
 const groupTabsRow = document.getElementById("groupTabsRow");
+const cycleTabsRow = document.getElementById("cycleTabsRow");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
 const showRecentsEl = document.getElementById("showRecents");
@@ -78,7 +80,8 @@ const customAddStatusEl = document.getElementById("customAddStatus");
 
 // ── Animated row wrappers (set up in DOMContentLoaded) ───────
 let hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-    cookieConsentWrap, groupTabsWrap, askTargetModeWrap, askTargetIdsWrap;
+    cookieConsentWrap, groupTabsWrap, cycleTabsWrap,
+    askTargetModeWrap, askTargetIdsWrap;
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
@@ -104,6 +107,9 @@ const DEFAULTS = {
   hoverExpandMin: 2,
   hoverExpandDelay: 200,
   groupTabs: false,
+  // Off by default: walking the new tabs steals focus for a moment, so it is
+  // opt-in for people whose browser only renders a tab once it is viewed.
+  cycleTabs: false,
   delayMs: 2000,
   historyLimit: 20,
   // Prompt history is on by default: it never leaves this device, and
@@ -147,12 +153,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   hoverExpandDelayWrap = makeCollapsible(hoverExpandDelayRow);
   cookieConsentWrap    = makeCollapsible(cookieConsentRow);
   groupTabsWrap        = makeCollapsible(groupTabsRow);
+  cycleTabsWrap        = makeCollapsible(cycleTabsRow);
   askTargetModeWrap    = makeCollapsible(askTargetModeRow);
   askTargetIdsWrap     = makeCollapsible(askTargetIdsRow);
 
   // Disable transitions for initial state so page load doesn't animate
   [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-   cookieConsentWrap, groupTabsWrap, askTargetModeWrap,
+   cookieConsentWrap, groupTabsWrap, cycleTabsWrap, askTargetModeWrap,
    askTargetIdsWrap].forEach(w => w.style.transition = "none");
 
   // Wire the dropdowns before any saved value is painted into them.
@@ -190,7 +197,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   selects.hoverExpandMin.setValue(String(settings.hoverExpandMin ?? 2));
   selects.hoverExpandDelay.setValue(String(settings.hoverExpandDelay ?? DEFAULTS.hoverExpandDelay));
   groupTabsEl.checked = settings.groupTabs;
+  cycleTabsEl.checked = settings.cycleTabs === true;
   updateGroupTabsState();
+  updateCycleTabsState();
   updateHoverExpandState();
   selects.cookieConsent.setValue(settings.cookieConsent || "accept");
   updateCookieConsentState();
@@ -205,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Re-enable transitions after initial state is painted
   requestAnimationFrame(() => requestAnimationFrame(() => {
     [hoverExpandWrap, hoverExpandMinWrap, hoverExpandDelayWrap,
-     cookieConsentWrap, groupTabsWrap, askTargetModeWrap,
+     cookieConsentWrap, groupTabsWrap, cycleTabsWrap, askTargetModeWrap,
      askTargetIdsWrap].forEach(w => w.style.transition = "");
   }));
 
@@ -256,6 +265,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   gridViewEl.addEventListener("change", () => {
     updateModeButtons();
     updateGroupTabsState();
+    updateCycleTabsState();
     updateCookieConsentState();
     updateHoverExpandState();
     save();
@@ -264,6 +274,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     gridViewEl.checked = true;
     updateModeButtons();
     updateGroupTabsState();
+    updateCycleTabsState();
     updateCookieConsentState();
     updateHoverExpandState();
     save();
@@ -272,6 +283,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     gridViewEl.checked = false;
     updateModeButtons();
     updateGroupTabsState();
+    updateCycleTabsState();
     updateCookieConsentState();
     updateHoverExpandState();
     save();
@@ -296,6 +308,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     save();
   });
   groupTabsEl.addEventListener("change", save);
+  cycleTabsEl.addEventListener("change", save);
   delayMsEl.addEventListener("change", save);
   historyLimitEl.addEventListener("change", save);
 
@@ -704,6 +717,10 @@ function updateModeButtons() {
 
 function updateGroupTabsState() {
   groupTabsWrap.classList.toggle("collapsed", gridViewEl.checked);
+}
+
+function updateCycleTabsState() {
+  cycleTabsWrap.classList.toggle("collapsed", gridViewEl.checked);
 }
 
 function updateOverlayPositionState() {
@@ -1430,6 +1447,7 @@ async function _doSave() {
     hoverExpandMin: parseInt(hoverExpandMinEl.value, 10) || 2,
     hoverExpandDelay: isNaN(parseInt(hoverExpandDelayEl.value, 10)) ? 0 : parseInt(hoverExpandDelayEl.value, 10),
     groupTabs: groupTabsEl.checked,
+    cycleTabs: cycleTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
     historyLimit: parseInt(historyLimitEl.value, 10) || DEFAULTS.historyLimit,
     enableHistory: showRecentsEl.checked,
