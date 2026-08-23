@@ -1,0 +1,45 @@
+{
+  // Serves website/ from Cloudflare. Nothing to do with the extension itself —
+  // `pwsh tools/package.ps1` still builds the store zip and ignores this file.
+  //
+  //   npx wrangler deploy        publish website/
+  //   npx wrangler versions list see what is live
+  //   npx wrangler delete        take it down again
+  //
+  // Credentials come from .env in this folder; wrangler reads it on its own.
+  "name": "puchne-website",
+  "compatibility_date": "2026-08-23",
+
+  // No "main" key: this is an assets-only Worker. Wrangler uploads the folder
+  // and Cloudflare serves it straight off the edge, so there is still no build
+  // step and no framework. 404-page hands unknown paths to website/404.html,
+  // which is what GitHub Pages does today.
+  "assets": {
+    "directory": "./website",
+    "not_found_handling": "404-page",
+
+    // Left at Cloudflare's default deliberately. The alternatives serve
+    // /guide.html without a redirect, but both "none" and "drop-trailing-slash"
+    // also switch off index.html resolution, so the bare domain 404s -- tested,
+    // not assumed. The cost here is one 307 per *.html link (/guide.html ->
+    // /guide); canonical URLs become extensionless, and the old .html URLs keep
+    // working through that redirect.
+    "html_handling": "auto-trailing-slash"
+  },
+
+  // With no custom domain set, deploys land on
+  // puchne-website.<your-workers-subdomain>.workers.dev — handy for checking a
+  // deploy before pointing the real hostname at it.
+  "workers_dev": true,
+
+  // --- The subdomain ------------------------------------------------------
+  //
+  // Cloudflare creates the proxied DNS record for this hostname and issues its
+  // certificate on deploy. Attachment goes through the account-scoped Custom
+  // Domains API, not the zone API -- which is why it works with an
+  // account-owned token that cannot touch zone endpoints directly.
+  //
+  // This is the only DNS wrangler writes. For a record that is not fronted by
+  // a Worker, use tools/cf-dns.ps1 (which DOES need a zone-scoped token).
+  "routes": [{ "pattern": "puchne.arshitvaghasiya.com", "custom_domain": true }]
+}

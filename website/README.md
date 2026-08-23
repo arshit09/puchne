@@ -44,6 +44,45 @@ there so Pages serves the folder as-is.
 The site lands at `https://arshit09.github.io/puchne/`. Every link is relative,
 so the subpath needs no changes.
 
+**Cloudflare, on your own subdomain.** `wrangler.jsonc` in the repo root
+publishes this folder as an assets-only Worker — still no build step, Cloudflare
+just serves the files off the edge, and `not_found_handling` hands unknown paths
+to `404.html` exactly as Pages does.
+
+```bash
+cp .env.example .env      # then fill in the token and account ID
+npx wrangler deploy
+```
+
+Credentials live in `.env`, which is gitignored; wrangler loads it by itself
+when run from the repo root, so there is no `wrangler login` and no exported
+shell variable. `.env.example` lists what goes in it and the five permissions
+the API token needs.
+
+One behavioural difference from Pages: Cloudflare canonicalises `/guide.html`
+to `/guide`, so internal links take a single 307 and the canonical URLs lose
+their extension. Old `.html` URLs keep working through that redirect. The modes
+that serve `.html` directly (`none`, `drop-trailing-slash`) also switch off
+`index.html` resolution, which 404s the bare domain — so the default stays.
+
+That first deploy lands on `puchne-website.<your-subdomain>.workers.dev`. To put
+it on your own hostname, uncomment the `routes` block in `wrangler.jsonc` and
+set the pattern to the subdomain you want:
+
+```jsonc
+"routes": [{ "pattern": "www.example.com", "custom_domain": true }]
+```
+
+The next `wrangler deploy` creates the proxied DNS record for that hostname and
+issues its certificate. **This is the only DNS wrangler can write** — there is
+no `wrangler dns` command, and a Custom Domain always points at the Worker. For
+a subdomain that is not a Worker (a VPS, a TXT record, a CNAME to some other
+host) use `pwsh tools/cf-dns.ps1`, which drives the Cloudflare API from the same
+`.env`.
+
+Nothing here replaces the GitHub Pages workflow; both can run at once, and the
+canonical URL is whichever one you point people at.
+
 **Netlify / Vercel / Cloudflare Pages.** No build command; publish directory
 `website`.
 
