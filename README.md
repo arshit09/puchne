@@ -56,6 +56,47 @@ Everything is on one page — right-click the Puchne icon and pick **Options**. 
 
 ![Puchne settings — Ask Puchne](docs/screenshots/settings-ask-puchne.png)
 
+## How it works
+
+Puchne has no server and calls no AI APIs. It opens each AI site in your browser and types into the site's own prompt box, the way you would.
+
+**The parts.** The service worker is the hub. Prompts reach it from the panel or Ask Puchne, it opens the sites, and a content script does the typing inside each one.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/overview-dark.png">
+  <img src="docs/diagrams/overview-light.png" alt="Diagram of Puchne's parts: the prompt panel and Ask Puchne feed the service worker, which uses storage, opens the access window and drives the grid tab or new tabs. Header rules allow the grid's iframes, and a content script types into each site.">
+</picture>
+
+**One send.** The worker can't type into a site until its iframe exists, so the job is saved first. Once the grid's iframes are ready, the worker injects the scripts into each one in turn.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/one-send-dark.png">
+  <img src="docs/diagrams/one-send-light.png" alt="Numbered flow of one send in grid view: you press send, the service worker picks the tools and saves the job, the grid tab builds cells, iframes load with header rules allowing them, the worker injects scripts, the content script types, and the result is saved.">
+</picture>
+
+**Typing.** Each site uses a different editor, so Puchne types in the way that editor expects. If a site changes its markup, generic selectors give it a second chance.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/typing-dark.png">
+  <img src="docs/diagrams/typing-light.png" alt="Flow of typing into a site: find the prompt box, try generic selectors if it isn't found, type in one of three ways (ProseMirror for ChatGPT, Claude and Grok; textarea for Copilot and DeepSeek; contenteditable for Gemini and Perplexity), then send and report back.">
+</picture>
+
+**First use of a site.** Your prompt waits while Chrome asks for the site, then sends itself once you allow it. A prompt left waiting for over 5 minutes is dropped.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/site-access-dark.png">
+  <img src="docs/diagrams/site-access-light.png" alt="Numbered flow for the first use of a site: the panel spots a locked tool, the prompt is parked, Chrome asks you, scripts are registered, and the prompt sends if it is under 5 minutes old.">
+</picture>
+
+**Grid vs tabs.** The two modes open sites differently but share the same typing code. Follow-ups skip straight to injection, because the sites are already open.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/grid-vs-tabs-dark.png">
+  <img src="docs/diagrams/grid-vs-tabs-light.png" alt="Comparison of grid view and new tabs. Grid view opens one tab of iframes and injects one by one. New tabs opens one tab per tool and injects in parallel. Both use the same typing code, and follow-ups from the footer box or floating bar go straight to injection.">
+</picture>
+
+Diagrams drawn with [Sketchy](https://github.com/ddkbs/sketchy).
+
 ## Privacy
 
 Puchne installs with access to **no websites at all**. The first time you turn a tool on, Chrome asks for that one site — and you can withdraw it from Settings whenever you like. No account, no server, no tracking: your prompts go straight from your browser to the AI sites you chose.
@@ -74,7 +115,7 @@ git clone https://github.com/arshit09/puchne.git
 
 The repo root holds more than the extension — `promo/` is the Remotion project
 behind the launch video, `website/` is the launch and documentation site, and
-`docs/` is the screenshots above. Don't zip the root by hand; run:
+`docs/` is the screenshots and diagrams above. Don't zip the root by hand; run:
 
 ```powershell
 pwsh tools/package.ps1

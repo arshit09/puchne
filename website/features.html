@@ -71,6 +71,7 @@
         <a href="#history">Recent prompts</a>
         <a href="#permissions">Per-site access</a>
         <a href="#craft">Theme &amp; a11y</a>
+        <a href="#how-it-works">How it works</a>
         <a href="#compare">Grid vs. tabs</a>
       </nav>
 
@@ -448,6 +449,66 @@
               <b>Labelled controls</b><span>Proper roles</span>
             </div>
           </div>
+        </section>
+
+        <section id="how-it-works">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+            How it works
+          </h2>
+          <p>Puchne has no server and calls no AI APIs. It opens each AI site in your browser and types into the site's own prompt box, the way you would.</p>
+
+          <figure>
+            <div class="shot shot-scroll">
+              <img class="diagram-light" src="assets/img/diagrams/overview-light.png" width="1924" height="1188" loading="lazy"
+                   alt="Diagram of Puchne's parts: the prompt panel and Ask Puchne feed the service worker, which uses storage, opens the access window and drives the grid tab or new tabs. Header rules allow the grid's iframes, and a content script types into each site.">
+              <img class="diagram-dark" src="assets/img/diagrams/overview-dark.png" width="1924" height="1188" loading="lazy"
+                   alt="Diagram of Puchne's parts: the prompt panel and Ask Puchne feed the service worker, which uses storage, opens the access window and drives the grid tab or new tabs. Header rules allow the grid's iframes, and a content script types into each site.">
+            </div>
+            <figcaption>The service worker is the hub. Prompts reach it from the panel or Ask Puchne, it opens the sites, and a content script does the typing inside each one.</figcaption>
+          </figure>
+
+          <figure>
+            <div class="shot shot-scroll">
+              <img class="diagram-light" src="assets/img/diagrams/one-send-light.png" width="2434" height="1058" loading="lazy"
+                   alt="Numbered flow of one send in grid view: you press send, the service worker picks the tools and saves the job, the grid tab builds cells, iframes load with header rules allowing them, the worker injects scripts, the content script types, and the result is saved.">
+              <img class="diagram-dark" src="assets/img/diagrams/one-send-dark.png" width="2434" height="1058" loading="lazy"
+                   alt="Numbered flow of one send in grid view: you press send, the service worker picks the tools and saves the job, the grid tab builds cells, iframes load with header rules allowing them, the worker injects scripts, the content script types, and the result is saved.">
+            </div>
+            <figcaption>The worker can't type into a site until its iframe exists, so the job is saved first. Once the grid's iframes are ready, the worker injects the scripts into each one in turn.</figcaption>
+          </figure>
+
+          <figure>
+            <div class="shot shot-scroll">
+              <img class="diagram-light" src="assets/img/diagrams/typing-light.png" width="2552" height="846" loading="lazy"
+                   alt="Flow of typing into a site: find the prompt box, try generic selectors if it isn't found, type in one of three ways (ProseMirror for ChatGPT, Claude and Grok; textarea for Copilot and DeepSeek; contenteditable for Gemini and Perplexity), then send and report back.">
+              <img class="diagram-dark" src="assets/img/diagrams/typing-dark.png" width="2552" height="846" loading="lazy"
+                   alt="Flow of typing into a site: find the prompt box, try generic selectors if it isn't found, type in one of three ways (ProseMirror for ChatGPT, Claude and Grok; textarea for Copilot and DeepSeek; contenteditable for Gemini and Perplexity), then send and report back.">
+            </div>
+            <figcaption>Each site uses a different editor, so Puchne types in the way that editor expects. If a site changes its markup, generic selectors give it a second chance.</figcaption>
+          </figure>
+
+          <figure>
+            <div class="shot shot-scroll">
+              <img class="diagram-light" src="assets/img/diagrams/site-access-light.png" width="2498" height="666" loading="lazy"
+                   alt="Numbered flow for the first use of a site: the panel spots a locked tool, the prompt is parked, Chrome asks you, scripts are registered, and the prompt sends if it is under 5 minutes old.">
+              <img class="diagram-dark" src="assets/img/diagrams/site-access-dark.png" width="2498" height="666" loading="lazy"
+                   alt="Numbered flow for the first use of a site: the panel spots a locked tool, the prompt is parked, Chrome asks you, scripts are registered, and the prompt sends if it is under 5 minutes old.">
+            </div>
+            <figcaption>Your prompt waits while Chrome asks for the site, then sends itself once you allow it. A prompt left waiting for over 5 minutes is dropped.</figcaption>
+          </figure>
+
+          <figure>
+            <div class="shot shot-scroll">
+              <img class="diagram-light" src="assets/img/diagrams/grid-vs-tabs-light.png" width="2038" height="1034" loading="lazy"
+                   alt="Comparison of grid view and new tabs. Grid view opens one tab of iframes and injects one by one. New tabs opens one tab per tool and injects in parallel. Both use the same typing code, and follow-ups from the footer box or floating bar go straight to injection.">
+              <img class="diagram-dark" src="assets/img/diagrams/grid-vs-tabs-dark.png" width="2038" height="1034" loading="lazy"
+                   alt="Comparison of grid view and new tabs. Grid view opens one tab of iframes and injects one by one. New tabs opens one tab per tool and injects in parallel. Both use the same typing code, and follow-ups from the footer box or floating bar go straight to injection.">
+            </div>
+            <figcaption>The two modes open sites differently but share the same typing code. Follow-ups skip straight to injection, because the sites are already open.</figcaption>
+          </figure>
+
+          <p class="muted">Diagrams drawn with <a href="https://github.com/ddkbs/sketchy">Sketchy</a>.</p>
         </section>
 
         <section id="compare" data-reveal>

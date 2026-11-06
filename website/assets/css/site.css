@@ -401,6 +401,16 @@ section { padding-block: clamp(56px, 9vw, 104px); }
 
 .shot-plain { box-shadow: var(--shadow-md); }
 
+/* Diagrams ship in both themes; show the one that matches the page. */
+[data-theme="dark"] .diagram-light { display: none; }
+:root:not([data-theme="dark"]) .diagram-dark { display: none; }
+
+/* Unreadable squeezed onto a phone, so they scroll sideways as tables do. */
+@media (max-width: 720px) {
+  .shot-scroll { overflow-x: auto; }
+  .shot-scroll img { width: 760px; max-width: none; }
+}
+
 /* ── Screenshot cards ───────────────────────────────────────────
    The three source screenshots are 788, 768 and 1425px tall. Left
    at their natural sizes they made a ragged row with one image
